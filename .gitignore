@@ -1,0 +1,84 @@
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+~$*
+
+# IDE / Editor
+.idea/
+.vscode/
+*.iml
+*.sublime-workspace
+*.sublime-project
+out/
+
+# Build System (Gradle)
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**
+!**/src/test/**
+
+# Gradle log files
+gradle-app.setting
+.gradle/
+gradle.properties
+
+# Java / Spring Boot
+# Class & Packaging Artifacts
+*.class
+*.jar
+*.war
+*.ear
+
+# JVM crash logs
+hs_err_pid*
+replay_pid*
+
+# Environment & Config
+.env
+.env.local
+.env.*.local
+application-*.yml
+application-*.yaml
+application-*.properties
+
+# Logs / Temp
+*.log
+*.tmp
+*.swp
+*.bak
+*.pid
+*.seed
+*.out
+/logs/
+tmp/
+*.lock
+
+# Test / Coverage / Reports
+/coverage
+/test-output
+/.classpath
+/.project
+/.settings/
+/bin/
+/target/
+/reports/
+
+# Docker / Deployment
+# Docker Compose
+docker-compose.override.yml
+# Docker build artifacts
+*.tar
+*.img
+
+# OS Cache / Misc
+$RECYCLE.BIN/
+Thumbs.db
+ehthumbs.db
+.DS_Store
