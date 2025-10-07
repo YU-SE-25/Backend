@@ -44,9 +44,6 @@ replay_pid*
 .env
 .env.local
 .env.*.local
-application-*.yml
-application-*.yaml
-application-*.properties
 
 # Logs / Temp
 *.log
@@ -73,6 +70,7 @@ tmp/
 # Docker / Deployment
 # Docker Compose
 docker-compose.override.yml
+
 # Docker build artifacts
 *.tar
 *.img
