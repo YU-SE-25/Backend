@@ -30,6 +30,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 // Swagger UI 관련 경로는 누구나 접근 가능하도록 허용
                 .requestMatchers(SWAGGER_URL_PATTERNS).permitAll()
+                .requestMatchers("/api/auth/**").permitAll() // 인증 관련 경로는 누구나 접근 가능하도록 허용
                 // 나머지 모든 요청은 일단 인증된 사용자만 접근 가능하도록 설정
                 .anyRequest().authenticated()
             );
