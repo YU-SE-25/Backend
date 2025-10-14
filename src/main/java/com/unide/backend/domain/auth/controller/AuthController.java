@@ -11,7 +11,7 @@ import com.unide.backend.domain.auth.dto.BlacklistCheckResponseDto;
 import com.unide.backend.domain.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import main.java.com.unide.backend.domain.auth.dto.RegisterRequestDto;
+import com.unide.backend.domain.auth.dto.RegisterRequestDto;
 
 import java.util.Map;
 
