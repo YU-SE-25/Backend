@@ -5,8 +5,9 @@ package com.unide.backend.domain.auth.service;
 import com.unide.backend.domain.auth.dto.AvailabilityResponseDto;
 import com.unide.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import com.unide.backend.domain.admin.dto.BlacklistCheckRequestDto;
+import com.unide.backend.domain.auth.dto.BlacklistCheckRequestDto;
 import com.unide.backend.domain.auth.dto.BlacklistCheckResponseDto;
+import com.unide.backend.domain.admin.repository.BlacklistRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AuthService {
     private final UserRepository userRepository;
+    private final BlacklistRepository blacklistRepository;
 
     /**
      * 이메일 사용 가능 여부를 확인하는 메서드

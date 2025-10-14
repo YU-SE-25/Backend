@@ -6,7 +6,7 @@ import com.unide.backend.domain.auth.dto.AvailabilityResponseDto;
 import com.unide.backend.domain.auth.dto.EmailCheckRequestDto;
 import com.unide.backend.domain.auth.dto.NicknameCheckRequestDto;
 import com.unide.backend.domain.auth.dto.PhoneCheckRequestDto;
-import com.unide.backend.domain.admin.dto.BlacklistCheckRequestDto;
+import com.unide.backend.domain.auth.dto.BlacklistCheckRequestDto;
 import com.unide.backend.domain.auth.dto.BlacklistCheckResponseDto;
 import com.unide.backend.domain.auth.service.AuthService;
 import jakarta.validation.Valid;
