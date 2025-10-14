@@ -18,7 +18,7 @@ public class AuthService {
      * 이메일 사용 가능 여부를 확인하는 메서드
      * @param email 검사할 이메일
      * @return 사용 가능 여부와 메시지를 담은 DTO
-     */
+    */
     public AvailabilityResponseDto checkEmailAvailability(String email) {
         // userRepository에 email이 존재하는지 확인(중복 확인). 존재하면 isAvailable은 false, 존재하지 않으면 true
         boolean isAvailable = !userRepository.existsByEmail(email);
@@ -30,11 +30,23 @@ public class AuthService {
      * 닉네임 사용 가능 여부를 확인하는 메서드
      * @param nickname 검사할 닉네임
      * @return 사용 가능 여부와 메시지를 담은 DTO
-     */
+    */
     public AvailabilityResponseDto checkNicknameAvailability(String nickname) {
         // userRepository에 nickname이 존재하는지 확인(중복 확인). 존재하면 isAvailable은 false, 존재하지 않으면 true
         boolean isAvailable = !userRepository.existsByNickname(nickname);
         String message = isAvailable ? "사용 가능한 닉네임입니다." : "이미 사용 중인 닉네임입니다.";
+        return new AvailabilityResponseDto(isAvailable, message);
+    }
+
+    /**
+     * 휴대폰 번호 사용 가능 여부를 확인하는 메서드
+     * @param phone 검사할 휴대폰 번호
+     * @return 사용 가능 여부와 메시지를 담은 DTO
+    */
+    public AvailabilityResponseDto checkPhoneAvailability(String phone) {
+        // userRepository에 phone이 존재하는지 확인(중복 확인). 존재하면 isAvailable은 false, 존재하지 않으면 true
+        boolean isAvailable = !userRepository.existsByPhone(phone);
+        String message = isAvailable ? "사용 가능한 휴대폰 번호입니다." : "이미 등록된 휴대폰 번호입니다.";
         return new AvailabilityResponseDto(isAvailable, message);
     }
 }
