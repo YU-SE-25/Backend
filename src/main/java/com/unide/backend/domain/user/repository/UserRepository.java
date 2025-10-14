@@ -11,4 +11,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // 닉네임이 존재하는지 확인하는 메서드
     boolean existsByNickname(String nickname);
+
+    // 휴대폰 번호가 존재하는지 확인하는 메서드
+    boolean existsByPhone(String phone);
 }
