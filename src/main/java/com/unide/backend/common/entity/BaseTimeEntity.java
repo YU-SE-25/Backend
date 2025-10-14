@@ -1,6 +1,6 @@
 // 엔터티가 생성되거나 수정될 때 시간을 자동으로 기록하기 위한 역할
 
-package main.java.com.unide.backend.common.entity;
+package com.unide.backend.common.entity;
 
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;

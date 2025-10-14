@@ -1,6 +1,6 @@
 // 사용자 역할을 정의하는 열거형 클래스
 
-package main.java.com.unide.backend.domain.user.entity;
+package com.unide.backend.domain.user.entity;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

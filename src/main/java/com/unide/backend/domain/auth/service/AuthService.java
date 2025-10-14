@@ -1,6 +1,6 @@
 // 인증 관련 비즈니스 로직을 처리하는 서비스 클래스
 
-package main.java.com.unide.backend.domain.auth.service;
+package com.unide.backend.domain.auth.service;
 
 import com.unide.backend.domain.auth.dto.AvailabilityResponseDto;
 import com.unide.backend.domain.user.repository.UserRepository;

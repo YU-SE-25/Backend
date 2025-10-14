@@ -1,6 +1,6 @@
 // 사용자 엔티티 클래스
 
-package main.java.com.unide.backend.domain.user.entity;
+package com.unide.backend.domain.user.entity;
 
 import com.unide.backend.common.entity.BaseTimeEntity;
 import jakarta.persistence.*;

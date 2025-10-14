@@ -1,6 +1,6 @@
 // 이메일 중복 확인 시 클라이언트의 요청을 담는 DTO
 
-package main.java.com.unide.backend.domain.auth.dto;
+package com.unide.backend.domain.auth.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

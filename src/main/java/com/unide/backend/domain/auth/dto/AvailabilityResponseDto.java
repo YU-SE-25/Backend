@@ -1,6 +1,6 @@
 // 이메일/닉네임 등의 사용 가능 여부를 반환하는 응답 DTO
 
-package main.java.com.unide.backend.domain.auth.dto;
+package com.unide.backend.domain.auth.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
