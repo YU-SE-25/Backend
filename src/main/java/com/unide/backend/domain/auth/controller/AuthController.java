@@ -6,6 +6,8 @@ import com.unide.backend.domain.auth.dto.AvailabilityResponseDto;
 import com.unide.backend.domain.auth.dto.EmailCheckRequestDto;
 import com.unide.backend.domain.auth.dto.NicknameCheckRequestDto;
 import com.unide.backend.domain.auth.dto.PhoneCheckRequestDto;
+import com.unide.backend.domain.auth.dto.BlacklistCheckRequestDto;
+import com.unide.backend.domain.auth.dto.BlacklistCheckResponseDto;
 import com.unide.backend.domain.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,12 @@ public class AuthController {
     @PostMapping("/check/phone")
     public ResponseEntity<AvailabilityResponseDto> checkPhoneAvailability(@Valid @RequestBody PhoneCheckRequestDto requestDto) {
         AvailabilityResponseDto response = authService.checkPhoneAvailability(requestDto.getPhone());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/check/blacklist")
+    public ResponseEntity<BlacklistCheckResponseDto> checkBlacklistStatus(@Valid @RequestBody BlacklistCheckRequestDto requestDto) {
+        BlacklistCheckResponseDto response = authService.checkBlacklistStatus(requestDto);
         return ResponseEntity.ok(response);
     }
 }
