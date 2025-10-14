@@ -3,14 +3,19 @@
 package com.unide.backend.domain.auth.service;
 
 import com.unide.backend.domain.auth.dto.AvailabilityResponseDto;
+import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import com.unide.backend.domain.terms.entity.UserTermsConsent;
 import com.unide.backend.domain.auth.dto.BlacklistCheckRequestDto;
 import com.unide.backend.domain.auth.dto.BlacklistCheckResponseDto;
 import com.unide.backend.domain.admin.repository.BlacklistRepository;
+import com.unide.backend.domain.auth.dto.RegisterRequestDto;
+import com.unide.backend.domain.terms.repository.UserTermsConsentRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
     private final UserRepository userRepository;
     private final BlacklistRepository blacklistRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final UserTermsConsentRepository userTermsConsentRepository;
 
     /**
      * 이메일 사용 가능 여부를 확인하는 메서드
@@ -65,5 +72,41 @@ public class AuthService {
         boolean isBlacklisted = blacklistRepository.existsByEmailOrPhone(requestDto.getEmail(), requestDto.getPhone());
         String message = isBlacklisted ? "회원가입이 제한된 사용자입니다." : "블랙리스트 대상이 아닙니다.";
         return new BlacklistCheckResponseDto(isBlacklisted, message);
+    }
+
+    /**
+     * 최종 회원가입을 처리하는 메서드
+     * @param requestDto 회원가입 요청 DTO
+     * @return 새로 생성된 사용자 ID
+    */
+    @Transactional
+    public Long registerUser(RegisterRequestDto requestDto) {
+        String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
+        User newUser = User.builder()
+                .email(requestDto.getEmail())
+                .passwordHash(encodedPassword)
+                .name(requestDto.getName())
+                .nickname(requestDto.getNickname())
+                .phone(requestDto.getPhone())
+                .role(requestDto.getRole())
+                .build();
+
+        User savedUser = userRepository.save(newUser);
+        
+        if (requestDto.getAgreedTerms() != null) {
+            requestDto.getAgreedTerms().forEach(termsCode -> {
+                UserTermsConsent consent = UserTermsConsent.builder()
+                        .user(savedUser)
+                        .termsCode(termsCode)
+                        .version("1.0")
+                        .agreed(true)
+                        .build();
+                
+                savedUser.addUserTermsConsent(consent);
+                userTermsConsentRepository.save(consent); 
+            });
+        }
+
+        return savedUser.getId();
     }
 }
