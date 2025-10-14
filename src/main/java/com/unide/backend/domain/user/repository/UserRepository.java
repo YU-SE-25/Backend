@@ -8,4 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface UserRepository extends JpaRepository<User, Long> {
     // 이메일이 존재하는지 확인하는 메서드
     boolean existsByEmail(String email);
+
+    // 닉네임이 존재하는지 확인하는 메서드
+    boolean existsByNickname(String nickname);
 }
