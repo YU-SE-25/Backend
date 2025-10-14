@@ -5,6 +5,7 @@ package com.unide.backend.domain.auth.controller;
 import com.unide.backend.domain.auth.dto.AvailabilityResponseDto;
 import com.unide.backend.domain.auth.dto.EmailCheckRequestDto;
 import com.unide.backend.domain.auth.dto.NicknameCheckRequestDto;
+import com.unide.backend.domain.auth.dto.PhoneCheckRequestDto;
 import com.unide.backend.domain.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,12 @@ public class AuthController {
     @PostMapping("/check/nickname")
     public ResponseEntity<AvailabilityResponseDto> checkNicknameAvailability(@Valid @RequestBody NicknameCheckRequestDto requestDto) {
         AvailabilityResponseDto response = authService.checkNicknameAvailability(requestDto.getNickname());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/check/phone")
+    public ResponseEntity<AvailabilityResponseDto> checkPhoneAvailability(@Valid @RequestBody PhoneCheckRequestDto requestDto) {
+        AvailabilityResponseDto response = authService.checkPhoneAvailability(requestDto.getPhone());
         return ResponseEntity.ok(response);
     }
 }
