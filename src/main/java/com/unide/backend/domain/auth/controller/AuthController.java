@@ -11,11 +11,16 @@ import com.unide.backend.domain.auth.dto.BlacklistCheckResponseDto;
 import com.unide.backend.domain.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import com.unide.backend.domain.auth.dto.RegisterRequestDto;
+
+import java.util.Map;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequiredArgsConstructor
@@ -46,4 +51,15 @@ public class AuthController {
         BlacklistCheckResponseDto response = authService.checkBlacklistStatus(requestDto);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/register")
+    public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody RegisterRequestDto requestDto) {
+        Long userId = authService.registerUser(requestDto);
+        Map<String, Object> responseBody = Map.of(
+            "userId", userId,
+            "message", "회원가입 완료"
+        );
+        return new ResponseEntity<>(responseBody, HttpStatus.CREATED);
+    }
+
 }

@@ -1,14 +1,17 @@
-// 사용자 엔티티 클래스
+// 사용자 엔터티 클래스
 
 package com.unide.backend.domain.user.entity;
 
 import com.unide.backend.common.entity.BaseTimeEntity;
+import com.unide.backend.domain.terms.entity.UserTermsConsent;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Entity
@@ -58,7 +61,10 @@ public class User extends BaseTimeEntity {
 
     private LocalDateTime instructorVerifiedAt;
 
-    @Builder // 빌더 패턴으로 객체를 생성할 수 있게 합니다.
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserTermsConsent> userTermsConsents = new ArrayList<>();
+
+    @Builder // 빌더 패턴으로 객체를 생성할 수 있게 함.
     public User(String email, String passwordHash, String name, String nickname, String phone, UserRole role) {
         this.email = email;
         this.passwordHash = passwordHash;
@@ -69,5 +75,11 @@ public class User extends BaseTimeEntity {
         this.status = UserStatus.PENDING;
         this.loginFailureCount = 0;
         this.isSocialAccount = false;
+    }
+
+    // 연관관계 편의 메서드
+    public void addUserTermsConsent(UserTermsConsent consent) {
+        this.userTermsConsents.add(consent);
+        consent.setUser(this);
     }
 }

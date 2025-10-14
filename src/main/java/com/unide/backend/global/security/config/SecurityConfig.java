@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -31,11 +33,16 @@ public class SecurityConfig {
                 // Swagger UI 관련 경로는 누구나 접근 가능하도록 허용
                 .requestMatchers(SWAGGER_URL_PATTERNS).permitAll()
                 // 인증 관련 경로는 누구나 접근 가능하도록 허용
-                .requestMatchers("/api/auth/check/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
                 // 나머지 모든 요청은 일단 인증된 사용자만 접근 가능하도록 설정
                 .anyRequest().authenticated()
             );
 
         return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }
