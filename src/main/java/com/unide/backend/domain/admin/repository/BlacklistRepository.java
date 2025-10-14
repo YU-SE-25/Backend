@@ -6,5 +6,5 @@ import com.unide.backend.domain.admin.entity.Blacklist;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface BlacklistRepository extends JpaRepository<Blacklist, Long> {
-
+    boolean existsByEmailOrPhone(String email, String phone);
 }
