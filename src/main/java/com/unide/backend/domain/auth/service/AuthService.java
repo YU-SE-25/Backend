@@ -6,16 +6,25 @@ import com.unide.backend.domain.auth.dto.AvailabilityResponseDto;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import com.unide.backend.domain.auth.dto.EmailRequestDto;
+
 import com.unide.backend.domain.terms.entity.UserTermsConsent;
 import com.unide.backend.domain.auth.dto.BlacklistCheckRequestDto;
 import com.unide.backend.domain.auth.dto.BlacklistCheckResponseDto;
 import com.unide.backend.domain.admin.repository.BlacklistRepository;
 import com.unide.backend.domain.auth.dto.RegisterRequestDto;
 import com.unide.backend.domain.terms.repository.UserTermsConsentRepository;
+import com.unide.backend.domain.auth.entity.EmailVerificationCode;
+import com.unide.backend.domain.auth.repository.EmailVerificationCodeRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +34,8 @@ public class AuthService {
     private final BlacklistRepository blacklistRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserTermsConsentRepository userTermsConsentRepository;
+    private final EmailVerificationCodeRepository emailVerificationCodeRepository;
+    private final JavaMailSender mailSender;
 
     /**
      * 이메일 사용 가능 여부를 확인하는 메서드
@@ -109,4 +120,36 @@ public class AuthService {
 
         return savedUser.getId();
     }
+
+    /**
+     * 회원가입 인증 이메일을 발송하는 메서드
+     * @param requestDto 이메일 주소를 담은 DTO
+    */
+    @Transactional
+    public void sendVerificationEmail(EmailRequestDto requestDto) {
+        // 1. 이메일로 사용자를 찾음
+        User user = userRepository.findByEmail(requestDto.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        // 2. 고유한 인증 토큰 생성
+        String token = UUID.randomUUID().toString();
+
+        // 3. 생성된 토큰을 DB에 저장 (유효시간: 10분)
+        EmailVerificationCode verificationCode = EmailVerificationCode.builder()
+                .user(user)
+                .verificationToken(token)
+                .purpose(EmailVerificationCode.VerificationPurpose.SIGNUP)
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .build();
+        emailVerificationCodeRepository.save(verificationCode);
+
+        // 4. 이메일을 구성 및 발송
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(user.getEmail());
+        message.setSubject("[Unide] 회원가입 이메일 인증");
+        message.setText("Unide 회원가입을 완료하려면 다음 링크를 클릭하세요: \n"
+                + "http://localhost:3000/verify-email?token=" + token); // 링크는 실제 프론트엔드 주소로 변경해야 합니다.
+        mailSender.send(message);
+    }
+
 }
