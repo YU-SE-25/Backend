@@ -5,6 +5,8 @@ package com.unide.backend.domain.user.repository;
 import com.unide.backend.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Optional;
+
 public interface UserRepository extends JpaRepository<User, Long> {
     // 이메일이 존재하는지 확인하는 메서드
     boolean existsByEmail(String email);
@@ -14,4 +16,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // 휴대폰 번호가 존재하는지 확인하는 메서드
     boolean existsByPhone(String phone);
+
+    // 이메일로 사용자를 찾는 메서드
+    Optional<User> findByEmail(String email);
 }
