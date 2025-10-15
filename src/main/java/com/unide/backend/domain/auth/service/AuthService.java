@@ -134,14 +134,14 @@ public class AuthService {
     */
     @Transactional
     public void sendVerificationEmail(EmailRequestDto requestDto) {
-        // 1. 이메일로 사용자를 찾음
+        // 이메일로 사용자를 찾음
         User user = userRepository.findByEmail(requestDto.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        // 2. 고유한 인증 토큰 생성
+        // 고유한 인증 토큰 생성
         String token = UUID.randomUUID().toString();
 
-        // 3. 생성된 토큰을 DB에 저장 (유효시간: 10분)
+        // 생성된 토큰을 DB에 저장 (유효시간: 10분)
         EmailVerificationCode verificationCode = EmailVerificationCode.builder()
                 .user(user)
                 .verificationToken(token)
@@ -150,7 +150,7 @@ public class AuthService {
                 .build();
         emailVerificationCodeRepository.save(verificationCode);
 
-        // 4. 이메일 구성 및 발송
+        // 이메일 구성 및 발송
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
@@ -200,10 +200,6 @@ public class AuthService {
 
         // 사용자 계정 활성화
         User user = verificationCode.getUser();
-        user.setStatus(UserStatus.ACTIVE);
-        user.setEmailVerifiedAt(LocalDateTime.now());
-        
-        emailVerificationCodeRepository.save(verificationCode);
-        userRepository.save(user);
+        user.activateAccount();
     }
 }
