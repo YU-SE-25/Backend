@@ -196,7 +196,7 @@ public class AuthService {
         }
 
         // 토큰 사용 처리
-        verificationCode.setUsedAt(LocalDateTime.now());
+        verificationCode.useToken();
 
         // 사용자 계정 활성화
         User user = verificationCode.getUser();
