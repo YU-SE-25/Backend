@@ -2,25 +2,19 @@
 
 package com.unide.backend.domain.auth.controller;
 
-import com.unide.backend.domain.auth.dto.AvailabilityResponseDto;
-import com.unide.backend.domain.auth.dto.EmailCheckRequestDto;
-import com.unide.backend.domain.auth.dto.NicknameCheckRequestDto;
-import com.unide.backend.domain.auth.dto.PhoneCheckRequestDto;
-import com.unide.backend.domain.auth.dto.BlacklistCheckRequestDto;
-import com.unide.backend.domain.auth.dto.BlacklistCheckResponseDto;
+import com.unide.backend.common.response.MessageResponseDto;
+import com.unide.backend.domain.auth.dto.*;
 import com.unide.backend.domain.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import com.unide.backend.domain.auth.dto.RegisterRequestDto;
-
-import java.util.Map;
-
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.http.HttpStatus;
+
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -56,10 +50,15 @@ public class AuthController {
     public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody RegisterRequestDto requestDto) {
         Long userId = authService.registerUser(requestDto);
         Map<String, Object> responseBody = Map.of(
-            "userId", userId,
-            "message", "회원가입 완료"
+                "userId", userId,
+                "message", "회원가입 완료"
         );
         return new ResponseEntity<>(responseBody, HttpStatus.CREATED);
     }
 
+    @PostMapping("/email/send-link")
+    public ResponseEntity<MessageResponseDto> sendVerificationEmail(@Valid @RequestBody EmailRequestDto requestDto) {
+        authService.sendVerificationEmail(requestDto);
+        return ResponseEntity.ok(new MessageResponseDto("인증 이메일이 발송되었습니다."));
+    }
 }
