@@ -265,7 +265,7 @@ public class AuthService {
             throw new AuthException("비밀번호가 일치하지 않습니다.");
         }
         
-        // 4. 로그인 성공 처리
+        // 로그인 성공 처리
         // TODO: 로그인 실패 횟수 초기화 및 마지막 로그인 시각(last_login_at) 업데이트 로직 추가 필요
         // user.resetLoginFailureCount(); 
         // user.updateLastLoginAt();
@@ -273,7 +273,7 @@ public class AuthService {
         // JWT 토큰 생성
         String accessToken = "DUMMY_ACCESS_TOKEN_FOR_NOW"; // 실제 JWT 생성 로직 대체
 
-        // keepLogin이 true일 때만 refresh token 발급
+        // keepLogin이 true일 때만(로그인 유지 기능 활성화 시) refresh token 발급
         String refreshToken = requestDto.isKeepLogin() ? "DUMMY_REFRESH_TOKEN_FOR_NOW" : null; 
         Long expiresIn = 3600L; // 토큰 만료 시간 (초 단위, 예: 1시간)
 
