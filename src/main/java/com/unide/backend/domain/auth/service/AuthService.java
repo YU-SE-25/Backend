@@ -157,7 +157,7 @@ public class AuthService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
 
             // 프론트엔드에서 사용할 인증 페이지 URL
-            String url = "http://localhost:3000/verify-email?token=" + token;
+            String url = "http://localhost:8080/api/auth/email/verify-link?token=" + token;
 
             Context context = new Context();
             context.setVariable("verificationUrl", url);
