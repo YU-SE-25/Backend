@@ -20,7 +20,7 @@ import com.unide.backend.domain.user.entity.UserStatus;
 import com.unide.backend.domain.auth.dto.WelcomeEmailRequestDto;
 import com.unide.backend.domain.auth.dto.LoginRequestDto;
 import com.unide.backend.domain.auth.dto.LoginResponseDto;
-import com.unide.backend.domain.user.enums.UserStatus;
+import com.unide.backend.domain.user.entity.UserStatus;
 import com.unide.backend.global.exception.AuthException;
 
 import org.springframework.stereotype.Service;

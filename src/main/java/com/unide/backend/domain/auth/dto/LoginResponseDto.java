@@ -2,7 +2,7 @@
 
 package com.unide.backend.domain.auth.dto;
 
-import com.unide.backend.domain.user.enums.UserRole;
+import com.unide.backend.domain.user.entity.UserRole;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
