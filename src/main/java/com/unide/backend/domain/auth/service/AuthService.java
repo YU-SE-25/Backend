@@ -18,6 +18,10 @@ import com.unide.backend.domain.auth.entity.EmailVerificationCode;
 import com.unide.backend.domain.auth.repository.EmailVerificationCodeRepository;
 import com.unide.backend.domain.user.entity.UserStatus;
 import com.unide.backend.domain.auth.dto.WelcomeEmailRequestDto;
+import com.unide.backend.domain.auth.dto.LoginRequestDto;
+import com.unide.backend.domain.auth.dto.LoginResponseDto;
+import com.unide.backend.domain.user.entity.UserStatus;
+import com.unide.backend.global.exception.AuthException;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -236,5 +240,55 @@ public class AuthService {
         } catch (MessagingException e) {
             throw new RuntimeException("환영 이메일 발송에 실패했습니다.", e);
         }
+    }
+
+    /**
+     * 로그인 처리 메서드 (POST /api/auth/login)
+     * @param requestDto 로그인 요청 DTO (이메일, 비밀번호)
+     * @return 로그인 응답 DTO (토큰, 사용자 정보)
+     */
+    @Transactional
+    public LoginResponseDto login(LoginRequestDto requestDto) {
+        
+        // 사용자 이메일로 사용자 조회
+        User user = userRepository.findByEmail(requestDto.getEmail())
+                .orElseThrow(() -> new AuthException("존재하지 않는 사용자입니다."));
+
+        // 계정 상태 확인 (PENDING이면 로그인 거부)
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new AuthException("계정이 활성화되지 않았거나 정지된 상태입니다. (상태: " + user.getStatus() + ")");
+        }
+        
+        // 비밀번호 검증
+        if (!passwordEncoder.matches(requestDto.getPassword(), user.getPasswordHash())) {
+            // TODO: 로그인 실패 횟수(login_failure_count) 증가 및 계정 잠금(lockout_until) 로직 추가 필요
+            throw new AuthException("비밀번호가 일치하지 않습니다.");
+        }
+        
+        // 4. 로그인 성공 처리
+        // TODO: 로그인 실패 횟수 초기화 및 마지막 로그인 시각(last_login_at) 업데이트 로직 추가 필요
+        // user.resetLoginFailureCount(); 
+        // user.updateLastLoginAt();
+        
+        // JWT 토큰 생성
+        String accessToken = "DUMMY_ACCESS_TOKEN_FOR_NOW"; // 실제 JWT 생성 로직 대체
+
+        // keepLogin이 true일 때만 refresh token 발급
+        String refreshToken = requestDto.isKeepLogin() ? "DUMMY_REFRESH_TOKEN_FOR_NOW" : null; 
+        Long expiresIn = 3600L; // 토큰 만료 시간 (초 단위, 예: 1시간)
+
+        // 응답 DTO 구성
+        LoginResponseDto.UserInfo userInfo = LoginResponseDto.UserInfo.builder()
+                .userId(user.getId())
+                .nickname(user.getNickname())
+                .role(user.getRole())
+                .build();
+
+        return LoginResponseDto.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .expiresIn(expiresIn)
+                .user(userInfo)
+                .build();
     }
 }

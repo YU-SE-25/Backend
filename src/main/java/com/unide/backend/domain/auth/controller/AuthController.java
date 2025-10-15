@@ -76,4 +76,10 @@ public class AuthController {
         authService.sendWelcomeEmail(requestDto);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(new MessageResponseDto("환영 이메일 요청이 완료되었습니다."));
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto requestDto) {
+        LoginResponseDto response = authService.login(requestDto);
+        return ResponseEntity.ok(response);
+    }
 }
