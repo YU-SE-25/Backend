@@ -47,4 +47,8 @@ public class EmailVerificationCode {
     public enum VerificationPurpose {
         SIGNUP, PWD_RESET
     }
+
+    public void useToken() {
+        this.usedAt = LocalDateTime.now();
+    }
 }

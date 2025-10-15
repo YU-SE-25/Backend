@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import java.net.URI;
 
 import java.util.Map;
 
@@ -60,5 +63,11 @@ public class AuthController {
     public ResponseEntity<MessageResponseDto> sendVerificationEmail(@Valid @RequestBody EmailRequestDto requestDto) {
         authService.sendVerificationEmail(requestDto);
         return ResponseEntity.ok(new MessageResponseDto("인증 이메일이 발송되었습니다."));
+    }
+
+    @GetMapping("/email/verify-link")
+    public String verifyEmail(@RequestParam("token") String token) {
+        authService.verifyEmail(token);
+        return "verify-success";
     }
 }
