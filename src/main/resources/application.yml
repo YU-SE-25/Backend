@@ -24,3 +24,4 @@ spring:
           auth: true
           starttls:
             enable: true
+          from: ${ZOHO_MAIL_USERNAME}
