@@ -17,6 +17,7 @@ import com.unide.backend.domain.terms.repository.UserTermsConsentRepository;
 import com.unide.backend.domain.auth.entity.EmailVerificationCode;
 import com.unide.backend.domain.auth.repository.EmailVerificationCodeRepository;
 import com.unide.backend.domain.user.entity.UserStatus;
+import com.unide.backend.domain.auth.dto.WelcomeEmailRequestDto;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -156,7 +157,7 @@ public class AuthService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
 
             // 프론트엔드에서 사용할 인증 페이지 URL
-            String url = "http://localhost:3000/verify-email?token=" + token;
+            String url = "http://localhost:8080/api/auth/email/verify-link?token=" + token;
 
             Context context = new Context();
             context.setVariable("verificationUrl", url);
@@ -178,7 +179,7 @@ public class AuthService {
     /**
      * 이메일 인증 토큰을 검증하고 계정을 활성화하는 메서드
      * @param token 이메일로 발송된 인증 토큰
-     */
+    */
     @Transactional
     public void verifyEmail(String token) {
         // 토큰으로 인증 정보를 찾음
@@ -201,5 +202,39 @@ public class AuthService {
         // 사용자 계정 활성화
         User user = verificationCode.getUser();
         user.activateAccount();
+    }
+
+    /**
+     * 회원가입 환영 이메일을 발송하는 메서드
+     * @param requestDto 사용자 ID와 이메일을 담은 DTO
+    */
+    public void sendWelcomeEmail(WelcomeEmailRequestDto requestDto) {
+        // ID로 사용자를 찾음
+        User user = userRepository.findById(requestDto.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        // HTML 이메일을 구성 및 발송
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+            // 프론트엔드의 로그인 페이지 URL
+            String loginUrl = "http://localhost:3000/login"; 
+
+            Context context = new Context();
+            context.setVariable("nickname", user.getNickname());
+            context.setVariable("loginUrl", loginUrl);
+
+            // 템플릿을 사용해 HTML을 생성
+            String html = templateEngine.process("welcome-email", context);
+
+            helper.setTo(user.getEmail());
+            helper.setSubject("[Unide] 가입을 환영합니다!");
+            helper.setText(html, true);
+
+            mailSender.send(mimeMessage);
+        } catch (MessagingException e) {
+            throw new RuntimeException("환영 이메일 발송에 실패했습니다.", e);
+        }
     }
 }

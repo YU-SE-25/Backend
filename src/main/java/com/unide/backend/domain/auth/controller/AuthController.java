@@ -70,4 +70,10 @@ public class AuthController {
         authService.verifyEmail(token);
         return "verify-success";
     }
+
+    @PostMapping("/email/send-welcome")
+    public ResponseEntity<MessageResponseDto> sendWelcomeEmail(@Valid @RequestBody WelcomeEmailRequestDto requestDto) {
+        authService.sendWelcomeEmail(requestDto);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(new MessageResponseDto("환영 이메일 요청이 완료되었습니다."));
+    }
 }
