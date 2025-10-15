@@ -94,4 +94,16 @@ public class User extends BaseTimeEntity {
         this.loginFailureCount = 0;
         this.lockoutUntil = null;
     }
+
+    public void onLoginFailure(int maxFailures, int lockoutDurationMinutes) {
+        this.loginFailureCount++;
+
+        if (this.loginFailureCount >= maxFailures) {
+            this.lockoutUntil = LocalDateTime.now().plusMinutes(lockoutDurationMinutes);
+        }
+    }
+
+    public boolean isAccountLocked() {
+        return this.lockoutUntil != null && this.lockoutUntil.isAfter(LocalDateTime.now());
+    }
 }
