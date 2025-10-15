@@ -15,6 +15,7 @@
 *.txt text working-tree-encoding=UTF-8
 
 # OS / IDE별 줄바꿈 처리
+*.ps1 eol=crlf
 
 # Windows에서 CRLF가 자동 변환되지 않도록
 *.bat text eol=crlf
