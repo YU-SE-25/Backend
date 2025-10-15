@@ -66,9 +66,8 @@ public class AuthController {
     }
 
     @GetMapping("/email/verify-link")
-    public ResponseEntity<Void> verifyEmail(@RequestParam("token") String token) {
+    public String verifyEmail(@RequestParam("token") String token) {
         authService.verifyEmail(token);
-        URI redirectUri = URI.create("http://localhost:3000/login"); // 리다이렉트할 URL 
-        return ResponseEntity.status(HttpStatus.FOUND).location(redirectUri).build();
+        return "verify-success";
     }
 }
