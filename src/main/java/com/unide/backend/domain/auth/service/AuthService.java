@@ -17,6 +17,7 @@ import com.unide.backend.domain.terms.repository.UserTermsConsentRepository;
 import com.unide.backend.domain.auth.entity.EmailVerificationCode;
 import com.unide.backend.domain.auth.repository.EmailVerificationCodeRepository;
 import com.unide.backend.domain.user.entity.UserStatus;
+import com.unide.backend.domain.auth.dto.WelcomeEmailRequestDto;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
