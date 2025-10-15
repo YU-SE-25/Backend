@@ -22,10 +22,10 @@ public class JwtTokenProvider {
     private final long refreshExpirationMs;
 
     public JwtTokenProvider(
-        @Value("${jwt.secret-key}") String secretKey,
-        @Value("${jwt.access-token-expiration-ms}") long accessExpirationMs,
-        @Value("${jwt.refresh-token-expiration-ms}") long refreshExpirationMs) {
-        
+        @Value("${spring.jwt.secret-key}") String secretKey,
+        @Value("${spring.jwt.access-token-expiration-ms}") long accessExpirationMs,
+        @Value("${spring.jwt.refresh-token-expiration-ms}") long refreshExpirationMs) {
+
         this.key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
         this.accessExpirationMs = accessExpirationMs;
         this.refreshExpirationMs = refreshExpirationMs;
