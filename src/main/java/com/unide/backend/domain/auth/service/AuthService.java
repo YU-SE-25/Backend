@@ -36,6 +36,8 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.time.Duration;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +50,8 @@ public class AuthService {
     private final EmailVerificationCodeRepository emailVerificationCodeRepository;
     private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
+    private static final int MAX_LOGIN_FAILURES = 5;
+    private static final Duration LOCKOUT_DURATION = Duration.ofMinutes(10);
 
     /**
      * 이메일 사용 가능 여부를 확인하는 메서드
@@ -249,7 +253,6 @@ public class AuthService {
      */
     @Transactional
     public LoginResponseDto login(LoginRequestDto requestDto) {
-        
         // 사용자 이메일로 사용자 조회
         User user = userRepository.findByEmail(requestDto.getEmail())
                 .orElseThrow(() -> new AuthException("존재하지 않는 사용자입니다."));
@@ -258,21 +261,30 @@ public class AuthService {
         if (user.getStatus() != UserStatus.ACTIVE) {
             throw new AuthException("계정이 활성화되지 않았거나 정지된 상태입니다. (상태: " + user.getStatus() + ")");
         }
+
+        // 계정 잠금 상태 확인
+        if (user.isLocked()) {
+            throw new AuthException(String.format("계정이 잠금되었습니다. %s 이후에 다시 시도해 주세요.", user.getLockoutUntil()));
+        }
         
         // 비밀번호 검증
         if (!passwordEncoder.matches(requestDto.getPassword(), user.getPasswordHash())) {
-            // TODO: 로그인 실패 횟수(login_failure_count) 증가 및 계정 잠금(lockout_until) 로직 추가 필요
+            user.onLoginFailure(MAX_LOGIN_FAILURES, LOCKOUT_DURATION);
+            userRepository.save(user); 
+
+            if (user.isLocked()) {
+                 throw new AuthException("비밀번호가 일치하지 않습니다. 로그인 실패 횟수 초과로 계정이 잠금되었습니다.");
+            }
+
             throw new AuthException("비밀번호가 일치하지 않습니다.");
         }
         
         // 로그인 성공 처리
-        // TODO: 로그인 실패 횟수 초기화 및 마지막 로그인 시각(last_login_at) 업데이트 로직 추가 필요
-        // user.resetLoginFailureCount(); 
-        // user.updateLastLoginAt();
+        user.onLoginSuccess();
+        userRepository.save(user);
         
         // JWT 토큰 생성
         String accessToken = "DUMMY_ACCESS_TOKEN_FOR_NOW"; // 실제 JWT 생성 로직 대체
-
         // keepLogin이 true일 때만(로그인 유지 기능 활성화 시) refresh token 발급
         String refreshToken = requestDto.isKeepLogin() ? "DUMMY_REFRESH_TOKEN_FOR_NOW" : null; 
         Long expiresIn = 3600L; // 토큰 만료 시간 (초 단위, 예: 1시간)
