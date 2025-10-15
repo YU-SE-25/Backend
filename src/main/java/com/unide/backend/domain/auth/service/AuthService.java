@@ -16,6 +16,7 @@ import com.unide.backend.domain.auth.dto.RegisterRequestDto;
 import com.unide.backend.domain.terms.repository.UserTermsConsentRepository;
 import com.unide.backend.domain.auth.entity.EmailVerificationCode;
 import com.unide.backend.domain.auth.repository.EmailVerificationCodeRepository;
+import com.unide.backend.domain.user.entity.UserStatus;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -149,14 +150,7 @@ public class AuthService {
                 .build();
         emailVerificationCodeRepository.save(verificationCode);
 
-        // 4. 이메일을 구성 및 발송
-        // SimpleMailMessage message = new SimpleMailMessage();
-        // message.setTo(user.getEmail());
-        // message.setSubject("[Unide] 회원가입 이메일 인증");
-        // message.setText("Unide 회원가입을 완료하려면 다음 링크를 클릭하세요: \n"
-        //         + "http://localhost:3000/verify-email?token=" + token); // 링크는 실제 프론트엔드 주소로 변경해야 함
-        // mailSender.send(message);
-
+        // 4. 이메일 구성 및 발송
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
@@ -181,4 +175,35 @@ public class AuthService {
         }
     }
 
+    /**
+     * 이메일 인증 토큰을 검증하고 계정을 활성화하는 메서드
+     * @param token 이메일로 발송된 인증 토큰
+     */
+    @Transactional
+    public void verifyEmail(String token) {
+        // 토큰으로 인증 정보를 찾음
+        EmailVerificationCode verificationCode = emailVerificationCodeRepository.findByVerificationToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 인증 토큰입니다."));
+
+        // 토큰이 만료되었는지 확인
+        if (verificationCode.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("인증 토큰이 만료되었습니다.");
+        }
+        
+        // 이미 사용된 토큰인지 확인
+        if (verificationCode.getUsedAt() != null) {
+            throw new IllegalArgumentException("이미 사용된 인증 토큰입니다.");
+        }
+
+        // 토큰 사용 처리
+        verificationCode.setUsedAt(LocalDateTime.now());
+
+        // 사용자 계정 활성화
+        User user = verificationCode.getUser();
+        user.setStatus(UserStatus.ACTIVE);
+        user.setEmailVerifiedAt(LocalDateTime.now());
+        
+        emailVerificationCodeRepository.save(verificationCode);
+        userRepository.save(user);
+    }
 }
