@@ -22,6 +22,9 @@ import com.unide.backend.domain.auth.dto.LoginRequestDto;
 import com.unide.backend.domain.auth.dto.LoginResponseDto;
 import com.unide.backend.domain.user.entity.UserStatus;
 import com.unide.backend.global.exception.AuthException;
+import com.unide.backend.global.security.jwt.JwtTokenProvider;
+import com.unide.backend.domain.auth.entity.RefreshToken;
+import com.unide.backend.domain.auth.repository.RefreshTokenRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +55,8 @@ public class AuthService {
     private final SpringTemplateEngine templateEngine;
     private static final int MAX_LOGIN_FAILURES = 5;
     private static final Duration LOCKOUT_DURATION = Duration.ofMinutes(10);
+    private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     /**
      * 이메일 사용 가능 여부를 확인하는 메서드
@@ -284,10 +289,31 @@ public class AuthService {
         userRepository.save(user);
         
         // JWT 토큰 생성
-        String accessToken = "DUMMY_ACCESS_TOKEN_FOR_NOW"; // 실제 JWT 생성 로직 대체
+        String accessToken = jwtTokenProvider.createAccessToken(user);
+        Long expiresIn = 3600L; // 토큰 만료 시간
+
         // keepLogin이 true일 때만(로그인 유지 기능 활성화 시) refresh token 발급
-        String refreshToken = requestDto.isKeepLogin() ? "DUMMY_REFRESH_TOKEN_FOR_NOW" : null; 
-        Long expiresIn = 3600L; // 토큰 만료 시간 (초 단위, 예: 1시간)
+        String refreshToken = null;
+
+        if (requestDto.isKeepLogin()) {
+            final String newTokenValue = jwtTokenProvider.createRefreshToken(user);
+            final LocalDateTime tokenExpires = LocalDateTime.now().plusSeconds(jwtTokenProvider.getRefreshExpirationMs() / 1000);
+
+            refreshTokenRepository.findByUserId(user.getId())
+                .ifPresentOrElse(
+                    token -> token.updateToken(newTokenValue, tokenExpires),
+                    () -> {
+                        RefreshToken newRefreshToken = RefreshToken.builder()
+                            .user(user)
+                            .tokenValue(newTokenValue)
+                            .expiresAt(tokenExpires)
+                            .build();
+                        refreshTokenRepository.save(newRefreshToken);
+                    }
+                );
+            
+            refreshToken = newTokenValue;
+        }
 
         // 응답 DTO 구성
         LoginResponseDto.UserInfo userInfo = LoginResponseDto.UserInfo.builder()
