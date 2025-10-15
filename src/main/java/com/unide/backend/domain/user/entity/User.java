@@ -82,4 +82,10 @@ public class User extends BaseTimeEntity {
         this.userTermsConsents.add(consent);
         consent.setUser(this);
     }
+
+    // 계정 활성화 메서드
+    public void activateAccount() {
+        this.status = UserStatus.ACTIVE;
+        this.emailVerifiedAt = LocalDateTime.now();
+    }
 }
