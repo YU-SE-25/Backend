@@ -88,4 +88,10 @@ public class User extends BaseTimeEntity {
         this.status = UserStatus.ACTIVE;
         this.emailVerifiedAt = LocalDateTime.now();
     }
+
+    public void onLoginSuccess() {
+        this.lastLoginAt = LocalDateTime.now();
+        this.loginFailureCount = 0;
+        this.lockoutUntil = null;
+    }
 }
