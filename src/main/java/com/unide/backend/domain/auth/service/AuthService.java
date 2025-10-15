@@ -22,6 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -36,6 +41,7 @@ public class AuthService {
     private final UserTermsConsentRepository userTermsConsentRepository;
     private final EmailVerificationCodeRepository emailVerificationCodeRepository;
     private final JavaMailSender mailSender;
+    private final SpringTemplateEngine templateEngine;
 
     /**
      * 이메일 사용 가능 여부를 확인하는 메서드
@@ -144,12 +150,35 @@ public class AuthService {
         emailVerificationCodeRepository.save(verificationCode);
 
         // 4. 이메일을 구성 및 발송
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(user.getEmail());
-        message.setSubject("[Unide] 회원가입 이메일 인증");
-        message.setText("Unide 회원가입을 완료하려면 다음 링크를 클릭하세요: \n"
-                + "http://localhost:3000/verify-email?token=" + token); // 링크는 실제 프론트엔드 주소로 변경해야 합니다.
-        mailSender.send(message);
+        // SimpleMailMessage message = new SimpleMailMessage();
+        // message.setTo(user.getEmail());
+        // message.setSubject("[Unide] 회원가입 이메일 인증");
+        // message.setText("Unide 회원가입을 완료하려면 다음 링크를 클릭하세요: \n"
+        //         + "http://localhost:3000/verify-email?token=" + token); // 링크는 실제 프론트엔드 주소로 변경해야 함
+        // mailSender.send(message);
+
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+            // 프론트엔드에서 사용할 인증 페이지 URL
+            String url = "http://localhost:3000/verify-email?token=" + token;
+
+            Context context = new Context();
+            context.setVariable("verificationUrl", url);
+
+            String html = templateEngine.process("verify-email", context);
+
+            helper.setTo(user.getEmail()); // 받는 사람
+            helper.setSubject("[Unide] 회원가입 이메일 인증"); // 제목
+            helper.setText(html, true); // 본문 (true는 이 내용이 HTML임을 의미)
+
+            mailSender.send(mimeMessage); // 최종 발송
+            
+        } catch (MessagingException e) {
+            // 이메일 발송 중 오류가 발생하면 예외를 던져 트랜잭션을 롤백함
+            throw new RuntimeException("이메일 발송에 실패했습니다.", e);
+        }
     }
 
 }
