@@ -3,7 +3,7 @@
 package com.unide.backend.global.security.jwt;
 
 import com.unide.backend.domain.user.entity.User;
-import com.unide.backend.domain.user.enums.UserRole;
+import com.unide.backend.domain.user.entity.UserRole;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
