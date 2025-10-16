@@ -5,9 +5,7 @@ package com.unide.backend.domain.auth.service;
 import com.unide.backend.domain.auth.dto.AvailabilityResponseDto;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import com.unide.backend.domain.auth.dto.EmailRequestDto;
-
 import com.unide.backend.domain.terms.entity.UserTermsConsent;
 import com.unide.backend.domain.auth.dto.BlacklistCheckRequestDto;
 import com.unide.backend.domain.auth.dto.BlacklistCheckResponseDto;
@@ -25,7 +23,12 @@ import com.unide.backend.global.exception.AuthException;
 import com.unide.backend.global.security.jwt.JwtTokenProvider;
 import com.unide.backend.domain.auth.entity.RefreshToken;
 import com.unide.backend.domain.auth.repository.RefreshTokenRepository;
+import com.unide.backend.domain.auth.dto.TokenRefreshRequestDto;
+import com.unide.backend.domain.auth.entity.RefreshToken;
+import com.unide.backend.domain.auth.repository.RefreshTokenRepository;
+import com.unide.backend.domain.auth.dto.LogoutRequestDto;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -328,5 +331,47 @@ public class AuthService {
                 .expiresIn(expiresIn)
                 .user(userInfo)
                 .build();
+    }
+
+    /**
+     * 리프레시 토큰을 사용하여 새로운 액세스 토큰을 발급하는 메서드
+     * @param requestDto 리프레시 토큰을 담은 DTO
+     * @return 새로 발급된 액세스 토큰
+    */
+    @Transactional
+    public String refreshToken(TokenRefreshRequestDto requestDto) {
+        String refreshTokenValue = requestDto.getRefreshToken();
+
+        // 토큰 유효성 검사
+        if (!jwtTokenProvider.validateToken(refreshTokenValue)) {
+            throw new IllegalArgumentException("유효하지 않은 리프레시 토큰입니다.");
+        }
+
+        // DB에서 리프레시 토큰 조회
+        RefreshToken refreshToken = refreshTokenRepository.findByTokenValue(refreshTokenValue)
+                .orElseThrow(() -> new IllegalArgumentException("리프레시 토큰을 찾을 수 없습니다."));
+
+        // 토큰 만료 시간 확인
+        if (refreshToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            refreshTokenRepository.delete(refreshToken); // 만료된 토큰 삭제
+            throw new IllegalArgumentException("만료된 리프레시 토큰입니다. 다시 로그인해주세요.");
+        }
+
+        // 새로운 액세스 토큰 생성
+        User user = refreshToken.getUser();
+        return jwtTokenProvider.createAccessToken(user);
+    }
+
+    /**
+     * 로그아웃을 처리하는 메서드 (DB에서 리프레시 토큰 삭제)
+     * @param requestDto 리프레시 토큰을 담은 DTO
+    */
+    @Transactional
+    public void logout(LogoutRequestDto requestDto) {
+        String refreshTokenValue = requestDto.getRefreshToken();
+        
+        // DB에서 해당 리프레시 토큰을 찾아 삭제
+        refreshTokenRepository.findByTokenValue(refreshTokenValue)
+                .ifPresent(refreshTokenRepository::delete);
     }
 }
