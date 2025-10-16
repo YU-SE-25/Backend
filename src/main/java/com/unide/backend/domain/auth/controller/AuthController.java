@@ -82,4 +82,20 @@ public class AuthController {
         LoginResponseDto response = authService.login(requestDto);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<TokenRefreshResponseDto> refreshToken(@Valid @RequestBody TokenRefreshRequestDto requestDto) {
+        String newAccessToken = authService.refreshToken(requestDto);
+        TokenRefreshResponseDto response = TokenRefreshResponseDto.builder()
+                .accessToken(newAccessToken)
+                .expiresIn(3600L)
+                .build();
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<MessageResponseDto> logout(@Valid @RequestBody LogoutRequestDto requestDto) {
+        authService.logout(requestDto);
+        return ResponseEntity.ok(new MessageResponseDto("로그아웃이 성공적으로 처리되었습니다."));
+    }
 }
