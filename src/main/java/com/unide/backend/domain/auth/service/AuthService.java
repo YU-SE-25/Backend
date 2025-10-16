@@ -32,6 +32,7 @@ import com.unide.backend.domain.auth.entity.PasswordResetToken;
 import com.unide.backend.domain.auth.repository.PasswordResetTokenRepository;
 import com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyRequestDto;
 import com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyResponseDto;
+import com.unide.backend.domain.auth.dto.PasswordResetRequestDto;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -458,5 +459,34 @@ public class AuthService {
 
         // 응답으로 보낼 임시 토큰 반환
         return new PasswordResetCodeVerifyResponseDto(resetToken.getResetToken(), "인증에 성공했습니다. 비밀번호를 재설정해주세요.");
+    }
+
+    /**
+     * 임시 토큰을 검증하고 사용자의 비밀번호를 최종 재설정하는 메서드
+     * @param requestDto 임시 토큰과 새 비밀번호를 담은 DTO
+    */
+    @Transactional
+    public void resetPassword(PasswordResetRequestDto requestDto) {
+        // 임시 토큰으로 인증 정보 조회
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByResetToken(requestDto.getResetToken())
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 재설정 토큰입니다."));
+
+        // 토큰 만료 확인
+        if (resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("재설정 토큰이 만료되었습니다.");
+        }
+
+        // 이미 사용된 토큰인지 확인
+        if (resetToken.getUsedAt() != null) {
+            throw new IllegalArgumentException("이미 사용된 재설정 토큰입니다.");
+        }
+
+        // 토큰 사용 처리
+        resetToken.useToken();
+
+        // 사용자 비밀번호 업데이트
+        User user = resetToken.getUser();
+        String newEncodedPassword = passwordEncoder.encode(requestDto.getNewPassword());
+        user.updatePassword(newEncodedPassword);
     }
 }
