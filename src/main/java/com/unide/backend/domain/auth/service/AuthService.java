@@ -30,6 +30,8 @@ import com.unide.backend.domain.auth.dto.LogoutRequestDto;
 import com.unide.backend.domain.user.service.UserLoginService;
 import com.unide.backend.domain.auth.entity.PasswordResetToken;
 import com.unide.backend.domain.auth.repository.PasswordResetTokenRepository;
+import com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyRequestDto;
+import com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyResponseDto;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -430,5 +432,31 @@ public class AuthService {
         } catch (MessagingException e) {
             throw new RuntimeException("비밀번호 재설정 코드 발송에 실패했습니다.", e);
         }
+    }
+
+    /**
+     * 비밀번호 재설정 코드를 검증하고 임시 토큰을 발급하는 메서드
+     * @param requestDto 이메일과 인증 코드를 담은 DTO
+     * @return 임시 토큰과 메시지를 담은 DTO
+    */
+    @Transactional
+    public PasswordResetCodeVerifyResponseDto verifyPasswordResetCode(PasswordResetCodeVerifyRequestDto requestDto) {
+        // 이메일과 코드로 인증 정보 조회
+        PasswordResetToken resetToken = passwordResetTokenRepository
+                .findByUser_EmailAndVerificationCode(requestDto.getEmail(), requestDto.getCode())
+                .orElseThrow(() -> new IllegalArgumentException("이메일 또는 인증 코드가 올바르지 않습니다."));
+
+        // 토큰이 만료되었는지 확인
+        if (resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("인증 코드가 만료되었습니다.");
+        }
+
+        // 이미 사용된 토큰인지 확인
+        if (resetToken.getUsedAt() != null) {
+            throw new IllegalArgumentException("이미 사용된 인증 코드입니다.");
+        }
+
+        // 응답으로 보낼 임시 토큰 반환
+        return new PasswordResetCodeVerifyResponseDto(resetToken.getResetToken(), "인증에 성공했습니다. 비밀번호를 재설정해주세요.");
     }
 }
