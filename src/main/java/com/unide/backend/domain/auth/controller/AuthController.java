@@ -7,8 +7,8 @@ import com.unide.backend.domain.auth.dto.*;
 import com.unide.backend.domain.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import main.java.com.unide.backend.domain.auth.dto.LogoutRequestDto;
-import main.java.com.unide.backend.domain.auth.dto.TokenRefreshRequestDto;
+import com.unide.backend.domain.auth.dto.LogoutRequestDto;
+import com.unide.backend.domain.auth.dto.TokenRefreshRequestDto;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
