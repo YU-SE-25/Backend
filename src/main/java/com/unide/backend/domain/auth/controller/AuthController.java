@@ -7,8 +7,8 @@ import com.unide.backend.domain.auth.dto.*;
 import com.unide.backend.domain.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import com.unide.backend.domain.auth.dto.LogoutRequestDto;
-import com.unide.backend.domain.auth.dto.TokenRefreshRequestDto;
+import com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyRequestDto;
+import com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyResponseDto;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -106,5 +106,11 @@ public class AuthController {
     public ResponseEntity<MessageResponseDto> sendPasswordResetCode(@Valid @RequestBody EmailRequestDto requestDto) {
         authService.sendPasswordResetCode(requestDto);
         return ResponseEntity.ok(new MessageResponseDto("비밀번호 재설정 코드가 이메일로 발송되었습니다."));
+    }
+
+    @PostMapping("/password/verify-reset-code")
+    public ResponseEntity<PasswordResetCodeVerifyResponseDto> verifyPasswordResetCode(@Valid @RequestBody PasswordResetCodeVerifyRequestDto requestDto) {
+        PasswordResetCodeVerifyResponseDto response = authService.verifyPasswordResetCode(requestDto);
+        return ResponseEntity.ok(response);
     }
 }
