@@ -7,8 +7,9 @@ import com.unide.backend.domain.auth.dto.*;
 import com.unide.backend.domain.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyRequestDto;
-import com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyResponseDto;
+import com.unide.backend.domain.auth.dto.LogoutRequestDto;
+import com.unide.backend.domain.auth.dto.PasswordResetRequestDto;
+import com.unide.backend.domain.auth.dto.TokenRefreshRequestDto;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +19,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import java.net.URI;
+import org.springframework.web.bind.annotation.PutMapping;
 
+import java.net.URI;
 import java.util.Map;
 
 @RestController
@@ -112,5 +114,11 @@ public class AuthController {
     public ResponseEntity<PasswordResetCodeVerifyResponseDto> verifyPasswordResetCode(@Valid @RequestBody PasswordResetCodeVerifyRequestDto requestDto) {
         PasswordResetCodeVerifyResponseDto response = authService.verifyPasswordResetCode(requestDto);
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/password/reset")
+    public ResponseEntity<MessageResponseDto> resetPassword(@Valid @RequestBody PasswordResetRequestDto requestDto) {
+        authService.resetPassword(requestDto);
+        return ResponseEntity.ok(new MessageResponseDto("비밀번호가 성공적으로 재설정되었습니다."));
     }
 }
