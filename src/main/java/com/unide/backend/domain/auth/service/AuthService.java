@@ -28,6 +28,8 @@ import com.unide.backend.domain.auth.entity.RefreshToken;
 import com.unide.backend.domain.auth.repository.RefreshTokenRepository;
 import com.unide.backend.domain.auth.dto.LogoutRequestDto;
 import com.unide.backend.domain.user.service.UserLoginService;
+import com.unide.backend.domain.auth.entity.PasswordResetToken;
+import com.unide.backend.domain.auth.repository.PasswordResetTokenRepository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -46,6 +48,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -63,6 +66,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserLoginService userLoginService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     /**
      * 이메일 사용 가능 여부를 확인하는 메서드
@@ -384,5 +388,47 @@ public class AuthService {
         // DB에서 해당 리프레시 토큰을 찾아 삭제
         refreshTokenRepository.findByTokenValue(refreshTokenValue)
                 .ifPresent(refreshTokenRepository::delete);
+    }
+
+    /**
+     * 비밀번호 재설정을 위한 인증 코드를 이메일로 발송하는 메서드
+     * @param requestDto 이메일 주소를 담은 DTO
+    */
+    @Transactional
+    public void sendPasswordResetCode(EmailRequestDto requestDto) {
+        User user = userRepository.findByEmail(requestDto.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        // 6자리 랜덤 숫자 코드 생성
+        String verificationCode = String.format("%06d", new Random().nextInt(1000000));
+        // 비밀번호 변경 단계를 위한 임시 토큰 생성
+        String resetToken = UUID.randomUUID().toString();
+
+        PasswordResetToken passwordResetToken = PasswordResetToken.builder()
+                .user(user)
+                .verificationCode(verificationCode)
+                .resetToken(resetToken)
+                .expiresAt(LocalDateTime.now().plusMinutes(10)) // 10분 후 만료
+                .build();
+        passwordResetTokenRepository.save(passwordResetToken);
+
+        // HTML 이메일 발송
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+            Context context = new Context();
+            context.setVariable("verificationCode", verificationCode);
+
+            String html = templateEngine.process("password-reset-code", context);
+
+            helper.setTo(user.getEmail());
+            helper.setSubject("[Unide] 비밀번호 재설정 인증 코드");
+            helper.setText(html, true);
+
+            mailSender.send(mimeMessage);
+        } catch (MessagingException e) {
+            throw new RuntimeException("비밀번호 재설정 코드 발송에 실패했습니다.", e);
+        }
     }
 }
