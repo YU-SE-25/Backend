@@ -2,56 +2,37 @@
 
 package com.unide.backend.domain.auth.service;
 
-import com.unide.backend.domain.auth.dto.AvailabilityResponseDto;
-import com.unide.backend.domain.user.entity.User;
-import com.unide.backend.domain.user.repository.UserRepository;
-import com.unide.backend.domain.auth.dto.EmailRequestDto;
-import com.unide.backend.domain.terms.entity.UserTermsConsent;
-import com.unide.backend.domain.auth.dto.BlacklistCheckRequestDto;
-import com.unide.backend.domain.auth.dto.BlacklistCheckResponseDto;
-import com.unide.backend.domain.admin.repository.BlacklistRepository;
-import com.unide.backend.domain.auth.dto.RegisterRequestDto;
-import com.unide.backend.domain.terms.repository.UserTermsConsentRepository;
-import com.unide.backend.domain.auth.entity.EmailVerificationCode;
-import com.unide.backend.domain.auth.repository.EmailVerificationCodeRepository;
-import com.unide.backend.domain.user.entity.UserStatus;
-import com.unide.backend.domain.auth.dto.WelcomeEmailRequestDto;
-import com.unide.backend.domain.auth.dto.LoginRequestDto;
-import com.unide.backend.domain.auth.dto.LoginResponseDto;
-import com.unide.backend.domain.user.entity.UserStatus;
-import com.unide.backend.global.exception.AuthException;
-import com.unide.backend.global.security.jwt.JwtTokenProvider;
-import com.unide.backend.domain.auth.entity.RefreshToken;
-import com.unide.backend.domain.auth.repository.RefreshTokenRepository;
-import com.unide.backend.domain.auth.dto.TokenRefreshRequestDto;
-import com.unide.backend.domain.auth.entity.RefreshToken;
-import com.unide.backend.domain.auth.repository.RefreshTokenRepository;
-import com.unide.backend.domain.auth.dto.LogoutRequestDto;
-import com.unide.backend.domain.user.service.UserLoginService;
-import com.unide.backend.domain.auth.entity.PasswordResetToken;
-import com.unide.backend.domain.auth.repository.PasswordResetTokenRepository;
-import com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyRequestDto;
-import com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyResponseDto;
-import com.unide.backend.domain.auth.dto.PasswordResetRequestDto;
-
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import org.springframework.mail.javamail.MimeMessageHelper;
-import org.thymeleaf.context.Context;
-import org.thymeleaf.spring6.SpringTemplateEngine;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Random;
+import java.util.UUID;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.SpringTemplateEngine;
+
+import com.unide.backend.domain.admin.repository.BlacklistRepository;
+import com.unide.backend.domain.auth.dto.*;
+import com.unide.backend.domain.auth.entity.*;
+import com.unide.backend.domain.auth.repository.*;
+import com.unide.backend.domain.terms.entity.UserTermsConsent;
+import com.unide.backend.domain.terms.repository.UserTermsConsentRepository;
+import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.domain.user.entity.UserStatus;
+import com.unide.backend.domain.user.repository.UserRepository;
+import com.unide.backend.domain.user.service.UserLoginService;
+import com.unide.backend.global.exception.AuthException;
+import com.unide.backend.global.security.jwt.JwtTokenProvider;
 
 @Service
 @RequiredArgsConstructor
