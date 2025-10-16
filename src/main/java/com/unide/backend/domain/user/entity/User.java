@@ -110,4 +110,8 @@ public class User extends BaseTimeEntity {
     public boolean isLocked() {
         return this.lockoutUntil != null && this.lockoutUntil.isAfter(LocalDateTime.now());
     }
+
+    public void changeRole(UserRole newRole) {
+        this.role = newRole;
+    }
 }
