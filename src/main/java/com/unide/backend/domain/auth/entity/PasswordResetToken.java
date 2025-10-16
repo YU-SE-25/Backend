@@ -43,4 +43,8 @@ public class PasswordResetToken extends BaseTimeEntity {
         this.verificationCode = verificationCode;
         this.expiresAt = expiresAt;
     }
+
+    public void useToken() {
+        this.usedAt = LocalDateTime.now();
+    }
 }
