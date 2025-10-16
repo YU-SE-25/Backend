@@ -7,6 +7,10 @@ import com.unide.backend.domain.auth.dto.*;
 import com.unide.backend.domain.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import com.unide.backend.domain.auth.dto.LogoutRequestDto;
+import com.unide.backend.domain.auth.dto.PasswordResetRequestDto;
+import com.unide.backend.domain.auth.dto.TokenRefreshRequestDto;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,8 +19,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import java.net.URI;
+import org.springframework.web.bind.annotation.PutMapping;
 
+import java.net.URI;
 import java.util.Map;
 
 @RestController
@@ -97,5 +102,23 @@ public class AuthController {
     public ResponseEntity<MessageResponseDto> logout(@Valid @RequestBody LogoutRequestDto requestDto) {
         authService.logout(requestDto);
         return ResponseEntity.ok(new MessageResponseDto("로그아웃이 성공적으로 처리되었습니다."));
+    }
+
+    @PostMapping("/password/send-reset-code")
+    public ResponseEntity<MessageResponseDto> sendPasswordResetCode(@Valid @RequestBody EmailRequestDto requestDto) {
+        authService.sendPasswordResetCode(requestDto);
+        return ResponseEntity.ok(new MessageResponseDto("비밀번호 재설정 코드가 이메일로 발송되었습니다."));
+    }
+
+    @PostMapping("/password/verify-reset-code")
+    public ResponseEntity<PasswordResetCodeVerifyResponseDto> verifyPasswordResetCode(@Valid @RequestBody PasswordResetCodeVerifyRequestDto requestDto) {
+        PasswordResetCodeVerifyResponseDto response = authService.verifyPasswordResetCode(requestDto);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/password/reset")
+    public ResponseEntity<MessageResponseDto> resetPassword(@Valid @RequestBody PasswordResetRequestDto requestDto) {
+        authService.resetPassword(requestDto);
+        return ResponseEntity.ok(new MessageResponseDto("비밀번호가 성공적으로 재설정되었습니다."));
     }
 }

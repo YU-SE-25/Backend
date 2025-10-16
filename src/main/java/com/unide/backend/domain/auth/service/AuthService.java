@@ -2,50 +2,37 @@
 
 package com.unide.backend.domain.auth.service;
 
-import com.unide.backend.domain.auth.dto.AvailabilityResponseDto;
-import com.unide.backend.domain.user.entity.User;
-import com.unide.backend.domain.user.repository.UserRepository;
-import com.unide.backend.domain.auth.dto.EmailRequestDto;
-import com.unide.backend.domain.terms.entity.UserTermsConsent;
-import com.unide.backend.domain.auth.dto.BlacklistCheckRequestDto;
-import com.unide.backend.domain.auth.dto.BlacklistCheckResponseDto;
-import com.unide.backend.domain.admin.repository.BlacklistRepository;
-import com.unide.backend.domain.auth.dto.RegisterRequestDto;
-import com.unide.backend.domain.terms.repository.UserTermsConsentRepository;
-import com.unide.backend.domain.auth.entity.EmailVerificationCode;
-import com.unide.backend.domain.auth.repository.EmailVerificationCodeRepository;
-import com.unide.backend.domain.user.entity.UserStatus;
-import com.unide.backend.domain.auth.dto.WelcomeEmailRequestDto;
-import com.unide.backend.domain.auth.dto.LoginRequestDto;
-import com.unide.backend.domain.auth.dto.LoginResponseDto;
-import com.unide.backend.domain.user.entity.UserStatus;
-import com.unide.backend.global.exception.AuthException;
-import com.unide.backend.global.security.jwt.JwtTokenProvider;
-import com.unide.backend.domain.auth.entity.RefreshToken;
-import com.unide.backend.domain.auth.repository.RefreshTokenRepository;
-import com.unide.backend.domain.auth.dto.TokenRefreshRequestDto;
-import com.unide.backend.domain.auth.entity.RefreshToken;
-import com.unide.backend.domain.auth.repository.RefreshTokenRepository;
-import com.unide.backend.domain.auth.dto.LogoutRequestDto;
-import com.unide.backend.domain.user.service.UserLoginService;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Random;
+import java.util.UUID;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
-import java.time.Duration;
-import java.time.LocalDateTime;
+import com.unide.backend.domain.admin.repository.BlacklistRepository;
+import com.unide.backend.domain.auth.dto.*;
+import com.unide.backend.domain.auth.entity.*;
+import com.unide.backend.domain.auth.repository.*;
+import com.unide.backend.domain.terms.entity.UserTermsConsent;
+import com.unide.backend.domain.terms.repository.UserTermsConsentRepository;
+import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.domain.user.entity.UserStatus;
+import com.unide.backend.domain.user.repository.UserRepository;
+import com.unide.backend.domain.user.service.UserLoginService;
+import com.unide.backend.global.exception.AuthException;
+import com.unide.backend.global.security.jwt.JwtTokenProvider;
 
 @Service
 @RequiredArgsConstructor
@@ -63,6 +50,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserLoginService userLoginService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     /**
      * 이메일 사용 가능 여부를 확인하는 메서드
@@ -384,5 +372,102 @@ public class AuthService {
         // DB에서 해당 리프레시 토큰을 찾아 삭제
         refreshTokenRepository.findByTokenValue(refreshTokenValue)
                 .ifPresent(refreshTokenRepository::delete);
+    }
+
+    /**
+     * 비밀번호 재설정을 위한 인증 코드를 이메일로 발송하는 메서드
+     * @param requestDto 이메일 주소를 담은 DTO
+    */
+    @Transactional
+    public void sendPasswordResetCode(EmailRequestDto requestDto) {
+        User user = userRepository.findByEmail(requestDto.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        // 6자리 랜덤 숫자 코드 생성
+        String verificationCode = String.format("%06d", new Random().nextInt(1000000));
+        // 비밀번호 변경 단계를 위한 임시 토큰 생성
+        String resetToken = UUID.randomUUID().toString();
+
+        PasswordResetToken passwordResetToken = PasswordResetToken.builder()
+                .user(user)
+                .verificationCode(verificationCode)
+                .resetToken(resetToken)
+                .expiresAt(LocalDateTime.now().plusMinutes(10)) // 10분 후 만료
+                .build();
+        passwordResetTokenRepository.save(passwordResetToken);
+
+        // HTML 이메일 발송
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+            Context context = new Context();
+            context.setVariable("verificationCode", verificationCode);
+
+            String html = templateEngine.process("password-reset-code", context);
+
+            helper.setTo(user.getEmail());
+            helper.setSubject("[Unide] 비밀번호 재설정 인증 코드");
+            helper.setText(html, true);
+
+            mailSender.send(mimeMessage);
+        } catch (MessagingException e) {
+            throw new RuntimeException("비밀번호 재설정 코드 발송에 실패했습니다.", e);
+        }
+    }
+
+    /**
+     * 비밀번호 재설정 코드를 검증하고 임시 토큰을 발급하는 메서드
+     * @param requestDto 이메일과 인증 코드를 담은 DTO
+     * @return 임시 토큰과 메시지를 담은 DTO
+    */
+    @Transactional
+    public PasswordResetCodeVerifyResponseDto verifyPasswordResetCode(PasswordResetCodeVerifyRequestDto requestDto) {
+        // 이메일과 코드로 인증 정보 조회
+        PasswordResetToken resetToken = passwordResetTokenRepository
+                .findByUser_EmailAndVerificationCode(requestDto.getEmail(), requestDto.getCode())
+                .orElseThrow(() -> new IllegalArgumentException("이메일 또는 인증 코드가 올바르지 않습니다."));
+
+        // 토큰이 만료되었는지 확인
+        if (resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("인증 코드가 만료되었습니다.");
+        }
+
+        // 이미 사용된 토큰인지 확인
+        if (resetToken.getUsedAt() != null) {
+            throw new IllegalArgumentException("이미 사용된 인증 코드입니다.");
+        }
+
+        // 응답으로 보낼 임시 토큰 반환
+        return new PasswordResetCodeVerifyResponseDto(resetToken.getResetToken(), "인증에 성공했습니다. 비밀번호를 재설정해주세요.");
+    }
+
+    /**
+     * 임시 토큰을 검증하고 사용자의 비밀번호를 최종 재설정하는 메서드
+     * @param requestDto 임시 토큰과 새 비밀번호를 담은 DTO
+    */
+    @Transactional
+    public void resetPassword(PasswordResetRequestDto requestDto) {
+        // 임시 토큰으로 인증 정보 조회
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByResetToken(requestDto.getResetToken())
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 재설정 토큰입니다."));
+
+        // 토큰 만료 확인
+        if (resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("재설정 토큰이 만료되었습니다.");
+        }
+
+        // 이미 사용된 토큰인지 확인
+        if (resetToken.getUsedAt() != null) {
+            throw new IllegalArgumentException("이미 사용된 재설정 토큰입니다.");
+        }
+
+        // 토큰 사용 처리
+        resetToken.useToken();
+
+        // 사용자 비밀번호 업데이트
+        User user = resetToken.getUser();
+        String newEncodedPassword = passwordEncoder.encode(requestDto.getNewPassword());
+        user.updatePassword(newEncodedPassword);
     }
 }

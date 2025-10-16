@@ -114,4 +114,11 @@ public class User extends BaseTimeEntity {
     public void changeRole(UserRole newRole) {
         this.role = newRole;
     }
+
+    public void updatePassword(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
+        this.passwordUpdatedAt = LocalDateTime.now();
+        this.loginFailureCount = 0;
+        this.lockoutUntil = null;
+    }
 }
