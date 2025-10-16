@@ -9,9 +9,12 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDateTime;
+import java.time.Duration;
 
 @Getter
 @Entity
@@ -87,5 +90,24 @@ public class User extends BaseTimeEntity {
     public void activateAccount() {
         this.status = UserStatus.ACTIVE;
         this.emailVerifiedAt = LocalDateTime.now();
+    }
+
+    public void onLoginSuccess() {
+        this.lastLoginAt = LocalDateTime.now();
+        this.loginFailureCount = 0;
+        this.lockoutUntil = null;
+    }
+
+    public void onLoginFailure(int maxFailures, Duration lockoutDuration) {
+        this.loginFailureCount++;
+
+        if (this.loginFailureCount >= maxFailures) {
+            long lockoutDurationMinutes = lockoutDuration.toMinutes();
+            this.lockoutUntil = LocalDateTime.now().plusMinutes(lockoutDurationMinutes);
+        }
+    }
+
+    public boolean isLocked() {
+        return this.lockoutUntil != null && this.lockoutUntil.isAfter(LocalDateTime.now());
     }
 }

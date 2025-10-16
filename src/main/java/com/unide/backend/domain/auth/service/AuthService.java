@@ -17,6 +17,14 @@ import com.unide.backend.domain.terms.repository.UserTermsConsentRepository;
 import com.unide.backend.domain.auth.entity.EmailVerificationCode;
 import com.unide.backend.domain.auth.repository.EmailVerificationCodeRepository;
 import com.unide.backend.domain.user.entity.UserStatus;
+import com.unide.backend.domain.auth.dto.WelcomeEmailRequestDto;
+import com.unide.backend.domain.auth.dto.LoginRequestDto;
+import com.unide.backend.domain.auth.dto.LoginResponseDto;
+import com.unide.backend.domain.user.entity.UserStatus;
+import com.unide.backend.global.exception.AuthException;
+import com.unide.backend.global.security.jwt.JwtTokenProvider;
+import com.unide.backend.domain.auth.entity.RefreshToken;
+import com.unide.backend.domain.auth.repository.RefreshTokenRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +39,8 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.time.Duration;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +53,10 @@ public class AuthService {
     private final EmailVerificationCodeRepository emailVerificationCodeRepository;
     private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
+    private static final int MAX_LOGIN_FAILURES = 5;
+    private static final Duration LOCKOUT_DURATION = Duration.ofMinutes(10);
+    private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     /**
      * 이메일 사용 가능 여부를 확인하는 메서드
@@ -156,7 +170,7 @@ public class AuthService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
 
             // 프론트엔드에서 사용할 인증 페이지 URL
-            String url = "http://localhost:3000/verify-email?token=" + token;
+            String url = "http://localhost:8080/api/auth/email/verify-link?token=" + token;
 
             Context context = new Context();
             context.setVariable("verificationUrl", url);
@@ -178,7 +192,7 @@ public class AuthService {
     /**
      * 이메일 인증 토큰을 검증하고 계정을 활성화하는 메서드
      * @param token 이메일로 발송된 인증 토큰
-     */
+    */
     @Transactional
     public void verifyEmail(String token) {
         // 토큰으로 인증 정보를 찾음
@@ -201,5 +215,118 @@ public class AuthService {
         // 사용자 계정 활성화
         User user = verificationCode.getUser();
         user.activateAccount();
+    }
+
+    /**
+     * 회원가입 환영 이메일을 발송하는 메서드
+     * @param requestDto 사용자 ID와 이메일을 담은 DTO
+    */
+    public void sendWelcomeEmail(WelcomeEmailRequestDto requestDto) {
+        // ID로 사용자를 찾음
+        User user = userRepository.findById(requestDto.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        // HTML 이메일을 구성 및 발송
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+            // 프론트엔드의 로그인 페이지 URL
+            String loginUrl = "http://localhost:3000/login"; 
+
+            Context context = new Context();
+            context.setVariable("nickname", user.getNickname());
+            context.setVariable("loginUrl", loginUrl);
+
+            // 템플릿을 사용해 HTML을 생성
+            String html = templateEngine.process("welcome-email", context);
+
+            helper.setTo(user.getEmail());
+            helper.setSubject("[Unide] 가입을 환영합니다!");
+            helper.setText(html, true);
+
+            mailSender.send(mimeMessage);
+        } catch (MessagingException e) {
+            throw new RuntimeException("환영 이메일 발송에 실패했습니다.", e);
+        }
+    }
+
+    /**
+     * 로그인 처리 메서드 (POST /api/auth/login)
+     * @param requestDto 로그인 요청 DTO (이메일, 비밀번호)
+     * @return 로그인 응답 DTO (토큰, 사용자 정보)
+     */
+    @Transactional
+    public LoginResponseDto login(LoginRequestDto requestDto) {
+        // 사용자 이메일로 사용자 조회
+        User user = userRepository.findByEmail(requestDto.getEmail())
+                .orElseThrow(() -> new AuthException("존재하지 않는 사용자입니다."));
+
+        // 계정 상태 확인 (PENDING이면 로그인 거부)
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new AuthException("계정이 활성화되지 않았거나 정지된 상태입니다. (상태: " + user.getStatus() + ")");
+        }
+
+        // 계정 잠금 상태 확인
+        if (user.isLocked()) {
+            throw new AuthException(String.format("계정이 잠금되었습니다. %s 이후에 다시 시도해 주세요.", user.getLockoutUntil()));
+        }
+        
+        // 비밀번호 검증
+        if (!passwordEncoder.matches(requestDto.getPassword(), user.getPasswordHash())) {
+            user.onLoginFailure(MAX_LOGIN_FAILURES, LOCKOUT_DURATION);
+            userRepository.save(user); 
+
+            if (user.isLocked()) {
+                 throw new AuthException("비밀번호가 일치하지 않습니다. 로그인 실패 횟수 초과로 계정이 잠금되었습니다.");
+            }
+
+            throw new AuthException("비밀번호가 일치하지 않습니다.");
+        }
+        
+        // 로그인 성공 처리
+        user.onLoginSuccess();
+        userRepository.save(user);
+        
+        // JWT 토큰 생성
+        String accessToken = jwtTokenProvider.createAccessToken(user);
+        Long expiresIn = 3600L; // 토큰 만료 시간
+
+        // keepLogin이 true일 때만(로그인 유지 기능 활성화 시) refresh token 발급
+        String refreshToken = null;
+
+        if (requestDto.isKeepLogin()) {
+            final String newTokenValue = jwtTokenProvider.createRefreshToken(user);
+            final LocalDateTime tokenExpires = LocalDateTime.now().plusSeconds(jwtTokenProvider.getRefreshExpirationMs() / 1000);
+
+            refreshTokenRepository.findByUserId(user.getId())
+                .ifPresentOrElse(
+                    token -> token.updateToken(newTokenValue, tokenExpires),
+                    () -> {
+                        RefreshToken newRefreshToken = RefreshToken.builder()
+                            .user(user)
+                            .tokenValue(newTokenValue)
+                            .expiresAt(tokenExpires)
+                            .build();
+                        refreshTokenRepository.save(newRefreshToken);
+                    }
+                );
+            
+            refreshToken = newTokenValue;
+        }
+
+        // 응답 DTO 구성
+        LoginResponseDto.UserInfo userInfo = LoginResponseDto.UserInfo.builder()
+                .userId(user.getId())
+                .nickname(user.getNickname())
+                .role(user.getRole())
+                .build();
+
+        return LoginResponseDto.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .expiresIn(expiresIn)
+                .user(userInfo)
+                .build();
     }
 }
