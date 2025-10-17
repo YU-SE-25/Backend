@@ -26,8 +26,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         OAuth2User oAuth2User = super.loadUser(userRequest);
 
         // 어떤 소셜인지 구분
-        OAuth2UserInfo oAuth2UserInfo = null;
+        final OAuth2UserInfo oAuth2UserInfo;
         String provider = userRequest.getClientRegistration().getRegistrationId();
+
         if (provider.equals("google")) {
             oAuth2UserInfo = new GoogleUserInfo(oAuth2User.getAttributes());
         } else {
@@ -56,6 +57,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     return userRepository.save(newUser);
                 });
 
-        return new PrincipalDetails(user);
+        return new PrincipalDetails(user, oAuth2User.getAttributes());
     }
 }
