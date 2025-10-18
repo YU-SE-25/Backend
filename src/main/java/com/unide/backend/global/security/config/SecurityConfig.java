@@ -13,6 +13,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.unide.backend.global.security.jwt.JwtAuthenticationFilter;
+import com.unide.backend.global.security.oauth.CustomOAuth2UserService;
+import com.unide.backend.global.security.oauth.OAuth2AuthenticationSuccessHandler;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,6 +23,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
     // Swagger UI와 API 문서에 대한 경로
     private static final String[] SWAGGER_URL_PATTERNS = {
@@ -48,6 +52,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("MANAGER")
                 // 나머지 모든 요청은 일단 인증된 사용자만 접근 가능하도록 설정
                 .anyRequest().authenticated()
+            )
+
+            .oauth2Login(oauth2 -> oauth2
+                .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                .successHandler(oAuth2AuthenticationSuccessHandler)
             )
 
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -30,3 +30,14 @@ spring:
     secret-key: ${JWT_SECRET_KEY}
     access-token-expiration-ms: 3600000
     refresh-token-expiration-ms: 604800000
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - profile
+              - email
