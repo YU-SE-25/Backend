@@ -35,6 +35,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         User user = principalDetails.getUser();
 
         user.onLoginSuccess();
+        userRepository.save(user);
 
         // 액세스 토큰과 리프레시 토큰을 생성
         String accessToken = jwtTokenProvider.createAccessToken(user);
