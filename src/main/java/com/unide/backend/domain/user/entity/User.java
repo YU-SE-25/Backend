@@ -121,4 +121,8 @@ public class User extends BaseTimeEntity {
         this.loginFailureCount = 0;
         this.lockoutUntil = null;
     }
+
+    public void markAsSocialAccount() {
+        this.isSocialAccount = true;
+    }
 }
