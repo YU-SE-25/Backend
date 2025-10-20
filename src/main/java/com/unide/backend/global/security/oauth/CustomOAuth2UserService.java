@@ -52,8 +52,10 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                             .nickname(oAuth2UserInfo.getName()) // 닉네임은 임시로 이름으로 설정
                             .phone("010-0000-0000") // 소셜 로그인은 휴대폰 번호를 알 수 없으므로 임시 값 설정
                             .role(UserRole.LEARNER)
+                            // .isSocialAccount(true) // 소셜 계정 플래그 설정
                             .build();
                     newUser.activateAccount(); // 소셜 로그인은 이메일이 검증된 것으로 간주하여 바로 활성화
+                    newUser.markAsSocialAccount();
                     return userRepository.save(newUser);
                 });
 
