@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -103,7 +104,7 @@ public class AdminService {
                 .build();
     }
 
-@Transactional
+    @Transactional
     public InstructorApplicationDetailDto updateApplicationStatus(Long applicationId, InstructorApplicationUpdateRequestDto requestDto) {
         // 현재 인증된 관리자 정보를 가져옴
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -114,11 +115,12 @@ public class AdminService {
         InstructorApplication application = instructorApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new IllegalArgumentException("ID에 해당하는 강사 지원서를 찾을 수 없습니다: " + applicationId));
 
+        User applicantUser = application.getUser();
+
         // 엔터티의 상태 변경 메서드 호출
         if (requestDto.getStatus() == ApplicationStatus.APPROVED) {
-            // 승인 시, 인증 토큰 생성
-            String verificationToken = UUID.randomUUID().toString();
-            application.approve(adminUser, verificationToken);
+            application.approve(adminUser);
+            applicantUser.changeRole(UserRole.INSTRUCTOR);
         } else if (requestDto.getStatus() == ApplicationStatus.REJECTED) {
             if (requestDto.getRejectionReason() == null || requestDto.getRejectionReason().isBlank()) {
                 throw new IllegalArgumentException("거절 시에는 사유를 반드시 입력해야 합니다.");
@@ -130,7 +132,6 @@ public class AdminService {
         }
         
         // 변경된 상세 정보를 다시 조회하여 반환
-        // instructorApplicationRepository.save(application);
         return getApplicationDetail(applicationId);
     }
 }
