@@ -31,12 +31,18 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         if (provider.equals("google")) {
             oAuth2UserInfo = new GoogleUserInfo(oAuth2User.getAttributes());
+        } else if (provider.equals("github")) {
+            oAuth2UserInfo = new GitHubUserInfo(oAuth2User.getAttributes());
         } else {
             // 다른 소셜 서비스
             throw new OAuth2AuthenticationException("Unsupported provider: " + provider);
         }
 
         String email = oAuth2UserInfo.getEmail();
+
+        if (email == null) {
+            throw new OAuth2AuthenticationException("Email not found from OAuth2 provider");
+        }
 
         // 이메일로 기존 회원 조회
         User user = userRepository.findByEmail(email)
@@ -45,14 +51,15 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     return existingUser;
                 })
                 .orElseGet(() -> {
+                    String tempPhone = "social_" + provider + "_" + oAuth2UserInfo.getProviderId();
+
                     // 존재하지 않는 사용자인 경우, 회원가입 처리
                     User newUser = User.builder()
                             .email(email)
                             .name(oAuth2UserInfo.getName())
                             .nickname(oAuth2UserInfo.getName()) // 닉네임은 임시로 이름으로 설정
-                            .phone("010-0000-0000") // 소셜 로그인은 휴대폰 번호를 알 수 없으므로 임시 값 설정
+                            .phone(tempPhone) // 소셜 로그인은 휴대폰 번호를 알 수 없으므로 임시 값 설정
                             .role(UserRole.LEARNER)
-                            // .isSocialAccount(true) // 소셜 계정 플래그 설정
                             .build();
                     newUser.activateAccount(); // 소셜 로그인은 이메일이 검증된 것으로 간주하여 바로 활성화
                     newUser.markAsSocialAccount();
