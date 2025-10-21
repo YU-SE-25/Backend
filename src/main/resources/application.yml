@@ -48,3 +48,6 @@ spring:
             scope:
               - user:email
               - read:user
+
+  file:
+    upload-dir: ./uploads
