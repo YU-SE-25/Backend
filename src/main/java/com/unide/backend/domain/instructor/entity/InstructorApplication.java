@@ -52,7 +52,7 @@ public class InstructorApplication extends BaseTimeEntity {
         this.status = ApplicationStatus.PENDING;
     }
 
-    public void approve(User processor, String verifiedToken) {
+    public void approve(User processor) {
         this.status = ApplicationStatus.APPROVED;
         this.processor = processor;
         this.processedAt = LocalDateTime.now();
