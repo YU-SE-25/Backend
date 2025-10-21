@@ -38,9 +38,6 @@ public class InstructorApplication extends BaseTimeEntity {
     @Column(length = 255)
     private String rejectionReason;
 
-    @Column(length = 255)
-    private String verifiedToken;
-
     private LocalDateTime processedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -59,7 +56,6 @@ public class InstructorApplication extends BaseTimeEntity {
         this.status = ApplicationStatus.APPROVED;
         this.processor = processor;
         this.processedAt = LocalDateTime.now();
-        this.verifiedToken = verifiedToken;
         this.rejectionReason = null;
     }
 
@@ -68,6 +64,5 @@ public class InstructorApplication extends BaseTimeEntity {
         this.processor = processor;
         this.processedAt = LocalDateTime.now();
         this.rejectionReason = reason;
-        this.verifiedToken = null;
     }
 }
