@@ -13,8 +13,11 @@ import com.unide.backend.domain.admin.dto.InstructorApplicationListResponseDto;
 import com.unide.backend.domain.instructor.entity.ApplicationStatus;
 import com.unide.backend.domain.instructor.entity.InstructorApplication;
 import com.unide.backend.domain.instructor.repository.InstructorApplicationRepository;
+import com.unide.backend.domain.admin.dto.InstructorApplicationUpdateRequestDto;
+import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 
@@ -22,6 +25,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
 @RequiredArgsConstructor
@@ -96,5 +101,36 @@ public class AdminService {
                 .processorId(processor != null ? processor.getId() : null)
                 .processorName(processor != null ? processor.getName() : null)
                 .build();
+    }
+
+@Transactional
+    public InstructorApplicationDetailDto updateApplicationStatus(Long applicationId, InstructorApplicationUpdateRequestDto requestDto) {
+        // 현재 인증된 관리자 정보를 가져옴
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        PrincipalDetails principalDetails = (PrincipalDetails) authentication.getPrincipal();
+        User adminUser = principalDetails.getUser();
+
+        // ID로 지원서를 조회
+        InstructorApplication application = instructorApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new IllegalArgumentException("ID에 해당하는 강사 지원서를 찾을 수 없습니다: " + applicationId));
+
+        // 엔터티의 상태 변경 메서드 호출
+        if (requestDto.getStatus() == ApplicationStatus.APPROVED) {
+            // 승인 시, 인증 토큰 생성
+            String verificationToken = UUID.randomUUID().toString();
+            application.approve(adminUser, verificationToken);
+        } else if (requestDto.getStatus() == ApplicationStatus.REJECTED) {
+            if (requestDto.getRejectionReason() == null || requestDto.getRejectionReason().isBlank()) {
+                throw new IllegalArgumentException("거절 시에는 사유를 반드시 입력해야 합니다.");
+            }
+            application.reject(adminUser, requestDto.getRejectionReason());
+        } else {
+            // PENDING 상태로는 변경 불가
+             throw new IllegalArgumentException("지원 상태는 APPROVED 또는 REJECTED로만 변경 가능합니다.");
+        }
+        
+        // 변경된 상세 정보를 다시 조회하여 반환
+        // instructorApplicationRepository.save(application);
+        return getApplicationDetail(applicationId);
     }
 }
