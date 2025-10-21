@@ -112,6 +112,11 @@ public class User extends BaseTimeEntity {
     }
 
     public void changeRole(UserRole newRole) {
+        if (newRole == UserRole.INSTRUCTOR) {
+            this.instructorVerifiedAt = LocalDateTime.now();
+        } else {
+            this.instructorVerifiedAt = null;
+        }
         this.role = newRole;
     }
 
