@@ -37,7 +37,7 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false, length = 50)
     private String nickname;
 
-    @Column(nullable = false, unique = true, length = 20)
+    @Column(nullable = false, unique = true, length = 255)
     private String phone;
 
     @Enumerated(EnumType.STRING) // Enum 이름을 DB에 문자열로 저장
