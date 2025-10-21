@@ -7,6 +7,7 @@ import com.unide.backend.domain.admin.dto.RoleChangeRequestDto;
 import com.unide.backend.domain.admin.dto.RoleChangeResponseDto;
 import com.unide.backend.domain.admin.dto.InstructorApplicationDetailDto;
 import com.unide.backend.domain.admin.dto.InstructorApplicationListResponseDto;
+import com.unide.backend.domain.admin.dto.InstructorApplicationUpdateRequestDto;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 
 @RestController
 @RequiredArgsConstructor
@@ -43,6 +45,14 @@ public class AdminController {
     public ResponseEntity<InstructorApplicationDetailDto> getApplicationDetail(
             @PathVariable Long applicationId) {
         InstructorApplicationDetailDto response = adminService.getApplicationDetail(applicationId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/instructor/applications/{applicationId}/status")
+    public ResponseEntity<InstructorApplicationDetailDto> updateApplicationStatus(
+            @PathVariable Long applicationId,
+            @Valid @RequestBody InstructorApplicationUpdateRequestDto requestDto) {
+        InstructorApplicationDetailDto response = adminService.updateApplicationStatus(applicationId, requestDto);
         return ResponseEntity.ok(response);
     }
 }
