@@ -58,7 +58,7 @@ public class AdminService {
                         .applicationId(app.getId())
                         .name(app.getUser().getName())
                         .email(app.getUser().getEmail())
-                        .submittedAt(app.getCreatedAt()
+                        .submittedAt(app.getCreatedAt())
                         .status(app.getStatus())
                         .build())
                 .collect(Collectors.toList());
