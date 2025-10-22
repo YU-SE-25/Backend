@@ -11,6 +11,10 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
 import lombok.RequiredArgsConstructor;
+import main.java.com.unide.backend.domain.auth.dto.LogoutRequestDto;
+import main.java.com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyRequestDto;
+import main.java.com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyResponseDto;
+import main.java.com.unide.backend.domain.auth.dto.TokenRefreshRequestDto;
 
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -33,6 +37,11 @@ import com.unide.backend.domain.user.repository.UserRepository;
 import com.unide.backend.domain.user.service.UserLoginService;
 import com.unide.backend.global.exception.AuthException;
 import com.unide.backend.global.security.jwt.JwtTokenProvider;
+import com.unide.backend.domain.instructor.entity.InstructorApplication;
+import com.unide.backend.domain.instructor.entity.UserPortfolioFile;
+import com.unide.backend.domain.instructor.repository.InstructorApplicationRepository;
+import com.unide.backend.domain.instructor.repository.UserPortfolioFileRepository;
+import com.unide.backend.domain.user.entity.UserRole;
 
 @Service
 @RequiredArgsConstructor
@@ -51,6 +60,8 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserLoginService userLoginService;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final UserPortfolioFileRepository userPortfolioFileRepository;
+    private final InstructorApplicationRepository instructorApplicationRepository;
 
     /**
      * 이메일 사용 가능 여부를 확인하는 메서드
@@ -107,6 +118,7 @@ public class AuthService {
     */
     @Transactional
     public Long registerUser(RegisterRequestDto requestDto) {
+        UserRole initialRole = (requestDto.getRole() == UserRole.INSTRUCTOR) ? UserRole.LEARNER : requestDto.getRole();
         String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
         User newUser = User.builder()
                 .email(requestDto.getEmail())
@@ -114,23 +126,48 @@ public class AuthService {
                 .name(requestDto.getName())
                 .nickname(requestDto.getNickname())
                 .phone(requestDto.getPhone())
-                .role(requestDto.getRole())
+                .role(initialRole)
                 .build();
-
-        User savedUser = userRepository.save(newUser);
         
         if (requestDto.getAgreedTerms() != null) {
             requestDto.getAgreedTerms().forEach(termsCode -> {
                 UserTermsConsent consent = UserTermsConsent.builder()
-                        .user(savedUser)
                         .termsCode(termsCode)
                         .version("1.0")
                         .agreed(true)
                         .build();
-                
-                savedUser.addUserTermsConsent(consent);
-                userTermsConsentRepository.save(consent); 
+                newUser.addUserTermsConsent(consent);
             });
+        }
+
+        User savedUser = userRepository.save(newUser);
+
+        // 요청 DTO의 role이 INSTRUCTOR일 때 지원서 저장
+        if (requestDto.getRole() == UserRole.INSTRUCTOR) {
+            // UserPortfolioFile 저장
+            if (requestDto.getPortfolioFileUrl() != null && requestDto.getOriginalFileName() != null) {
+                UserPortfolioFile portfolioFile = UserPortfolioFile.builder()
+                        .user(savedUser) // 저장된 User 엔티티 사용
+                        .originalName(requestDto.getOriginalFileName())
+                        .storedKey(requestDto.getPortfolioFileUrl()) // DTO의 fileUrl은 실제로는 storedKey
+                        .mimeType(null) // mimeType은 파일 업로드 시 알 수 있으므로 null 또는 기본값
+                        .sizeBytes(requestDto.getFileSize())
+                        .storage(UserPortfolioFile.StorageType.LOCAL)
+                        .build();
+                userPortfolioFileRepository.save(portfolioFile);
+            } else {
+                throw new IllegalArgumentException("강사 역할 선택 시 포트폴리오 파일 정보는 필수입니다.");
+            }
+
+            // InstructorApplication 저장
+            String linksAsString = requestDto.getPortfolioLinks() != null ?
+                    String.join("\n", requestDto.getPortfolioLinks()) : null;
+            InstructorApplication application = InstructorApplication.builder()
+                    .user(savedUser) // 저장된 User 엔티티 사용
+                    .portfolioFileUrl(requestDto.getPortfolioFileUrl()) // 저장된 파일 키/URL
+                    .portfolioLinks(linksAsString)
+                    .build();
+            instructorApplicationRepository.save(application);
         }
 
         return savedUser.getId();
