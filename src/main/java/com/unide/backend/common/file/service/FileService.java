@@ -22,7 +22,6 @@ public class FileService {
     @Value("${file.upload-dir}")
     private String uploadDir;
 
-    @Transactional
     public FileUploadResponseDto uploadPortfolio(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("업로드할 파일이 없습니다.");

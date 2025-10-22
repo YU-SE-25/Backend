@@ -11,10 +11,10 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
 import lombok.RequiredArgsConstructor;
-import main.java.com.unide.backend.domain.auth.dto.LogoutRequestDto;
-import main.java.com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyRequestDto;
-import main.java.com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyResponseDto;
-import main.java.com.unide.backend.domain.auth.dto.TokenRefreshRequestDto;
+import com.unide.backend.domain.auth.dto.LogoutRequestDto;
+import com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyRequestDto;
+import com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyResponseDto;
+import com.unide.backend.domain.auth.dto.TokenRefreshRequestDto;
 
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
