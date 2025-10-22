@@ -48,6 +48,8 @@ public class SecurityConfig {
                 .requestMatchers(SWAGGER_URL_PATTERNS).permitAll()
                 // 인증 관련 경로는 누구나 접근 가능하도록 허용
                 .requestMatchers("/api/auth/**").permitAll()
+                // 포트폴리오 업로드 경로는 누구나 접근 가능하도록 허용
+                .requestMatchers("/api/upload/portfolio").permitAll()
                 // MANAGER 역할을 가진 사용자만 접근 가능
                 .requestMatchers("/api/admin/**").hasRole("MANAGER")
                 // 나머지 모든 요청은 일단 인증된 사용자만 접근 가능하도록 설정
