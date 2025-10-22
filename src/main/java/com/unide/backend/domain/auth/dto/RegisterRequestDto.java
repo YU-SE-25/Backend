@@ -36,4 +36,12 @@ public class RegisterRequestDto {
 
     @NotEmpty(message = "필수 약관에 모두 동의해야 합니다.")
     private List<Terms> agreedTerms;
+
+    private String portfolioFileUrl;
+
+    private String originalFileName;
+    
+    private Long fileSize;
+    
+    private List<String> portfolioLinks;
 }
