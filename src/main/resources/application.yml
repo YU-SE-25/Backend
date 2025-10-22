@@ -49,5 +49,5 @@ spring:
               - user:email
               - read:user
 
-  file:
-    upload-dir: ./uploads
+file:
+  upload-dir: ./uploads
