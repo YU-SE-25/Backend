@@ -4,10 +4,8 @@ package com.unide.backend.common.file.controller;
 
 import com.unide.backend.common.file.dto.FileUploadResponseDto;
 import com.unide.backend.common.file.service.FileService;
-import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -26,10 +24,8 @@ public class UploadController {
 
     @PostMapping("/portfolio")
     public ResponseEntity<FileUploadResponseDto> uploadPortfolio(
-            @AuthenticationPrincipal PrincipalDetails principalDetails,
             @RequestParam("file") MultipartFile file) throws IOException {
-
-        FileUploadResponseDto response = fileService.uploadPortfolio(principalDetails.getUser(), file);
+        FileUploadResponseDto response = fileService.uploadPortfolio(file);
         return ResponseEntity.ok(response);
     }
 }
