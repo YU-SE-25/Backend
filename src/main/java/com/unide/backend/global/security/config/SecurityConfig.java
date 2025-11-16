@@ -6,10 +6,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.unide.backend.global.security.jwt.JwtAuthenticationFilter;
@@ -50,11 +50,19 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 // 포트폴리오 업로드 경로는 누구나 접근 가능하도록 허용
                 .requestMatchers("/api/upload/portfolio").permitAll()
+                // 닉네임으로 마이페이지 조회는 누구나 접근 가능 (GET만 허용)
+                .requestMatchers("GET", "/api/mypage/**").permitAll()
                 // MANAGER 역할을 가진 사용자만 접근 가능
                 .requestMatchers("/api/admin/**").hasRole("MANAGER")
+                // 마이페이지 수정/삭제는 인증 필요 (PUT, DELETE)
+                .requestMatchers("PUT", "/api/mypage").authenticated()
+                .requestMatchers("DELETE", "/api/mypage").authenticated()
                 // 나머지 모든 요청은 일단 인증된 사용자만 접근 가능하도록 설정
                 .anyRequest().authenticated()
             )
+            
+            .formLogin(form -> form.disable())
+            .httpBasic(basic -> basic.disable())
 
             .oauth2Login(oauth2 -> oauth2
                 .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
