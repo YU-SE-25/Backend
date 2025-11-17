@@ -8,6 +8,7 @@ import com.unide.backend.domain.review.dto.ReviewCreateRequestDto;
 import com.unide.backend.domain.review.dto.ReviewCreateResponseDto;
 import com.unide.backend.domain.review.dto.ReviewUpdateRequestDto;
 import com.unide.backend.domain.review.dto.ReviewUpdateResponseDto;
+import com.unide.backend.domain.review.dto.ReviewDeleteResponseDto;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import lombok.RequiredArgsConstructor;
@@ -77,6 +78,21 @@ public class ReviewController {
             @Valid @RequestBody ReviewUpdateRequestDto requestDto) {
         
         ReviewUpdateResponseDto response = reviewService.updateReview(reviewId, principalDetails.getUser(), requestDto);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 리뷰를 삭제하는 API
+     * @param reviewId 삭제할 리뷰 ID
+     * @param principalDetails 현재 로그인한 사용자
+     * @return 삭제 결과
+    */
+    @DeleteMapping("/reviews/{reviewId}")
+    public ResponseEntity<ReviewDeleteResponseDto> deleteReview(
+            @PathVariable Long reviewId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        
+        ReviewDeleteResponseDto response = reviewService.deleteReview(reviewId, principalDetails.getUser());
         return ResponseEntity.ok(response);
     }
 }
