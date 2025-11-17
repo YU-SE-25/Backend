@@ -1,0 +1,10 @@
+// Submissions 엔터티에 대한 데이터베이스 접근을 처리하는 JpaRepository
+
+package com.unide.backend.domain.submissions.repository;
+
+import com.unide.backend.domain.submissions.entity.Submissions;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface SubmissionsRepository extends JpaRepository<Submissions, Long> {
+
+}
