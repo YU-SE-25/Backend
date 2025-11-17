@@ -1,0 +1,24 @@
+{{>layouts/header}}
+{#List/{PageNumber}}
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">post_id</th>
+      <th scope="col">제목</th>
+      <th scope="col">카테고리</th>
+      <th scope="col">글쓴이</th>
+      <th scope="col">댓글</th>
+      <th scope="col">👍</th>
+      <th scope="col">작성일</th>
+
+    </tr>
+    {/List/{PageNumber}}
+  </thead>
+  <tbody>
+   
+  </tbody>
+</table>
+
+<a href="/api/debug/dis_board/new" class="btn btn-primary">NEW POST</a>
+
+{{layouts/footer}}
