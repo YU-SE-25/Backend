@@ -4,21 +4,23 @@ package com.unide.backend.domain.review.controller;
 
 import com.unide.backend.domain.review.dto.ReviewListResponseDto;
 import com.unide.backend.domain.review.service.ReviewService;
+import com.unide.backend.domain.review.dto.ReviewCreateRequestDto;
+import com.unide.backend.domain.review.dto.ReviewCreateResponseDto;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/submissions")
+@RequestMapping("/api/")
 public class ReviewController {
     private final ReviewService reviewService;
 
@@ -29,7 +31,7 @@ public class ReviewController {
      * @param principalDetails 현재 로그인한 사용자 정보 (옵션)
      * @return 페이징된 리뷰 목록
      */
-    @GetMapping("/{submissionId}/reviews")
+    @GetMapping("/submissions/{submissionId}/reviews")
     public ResponseEntity<ReviewListResponseDto> getReviewList(
             @PathVariable Long submissionId,
             @PageableDefault(size = 10) Pageable pageable,
@@ -42,5 +44,20 @@ public class ReviewController {
                 principalDetails != null ? principalDetails.getUser() : null
         );
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 새로운 리뷰를 작성하는 API
+     * @param principalDetails 현재 로그인한 사용자
+     * @param requestDto 리뷰 내용 및 대상 submissionId
+     * @return 성공 메시지
+    */
+    @PostMapping("/reviews")
+    public ResponseEntity<ReviewCreateResponseDto> createReview(
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @Valid @RequestBody ReviewCreateRequestDto requestDto) {
+        
+        ReviewCreateResponseDto response = reviewService.createReview(principalDetails.getUser(), requestDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
