@@ -6,6 +6,8 @@ import com.unide.backend.domain.review.dto.ReviewListResponseDto;
 import com.unide.backend.domain.review.dto.ReviewSummaryDto;
 import com.unide.backend.domain.review.entity.CodeReview;
 import com.unide.backend.domain.review.repository.CodeReviewRepository;
+import com.unide.backend.domain.review.dto.ReviewCreateRequestDto;
+import com.unide.backend.domain.review.dto.ReviewCreateResponseDto;
 import com.unide.backend.domain.submissions.entity.Submissions;
 import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
 import com.unide.backend.domain.user.entity.User;
@@ -23,7 +25,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ReviewService {
-
     private final CodeReviewRepository codeReviewRepository;
     private final SubmissionsRepository submissionsRepository;
 
@@ -55,6 +56,30 @@ public class ReviewService {
                 .totalPages(reviewPage.getTotalPages())
                 .currentPage(reviewPage.getNumber())
                 .reviews(reviews)
+                .build();
+    }
+
+    /**
+     * 새로운 리뷰를 작성하는 메서드
+     * @param user 작성자
+     * @param requestDto 리뷰 작성 요청 정보
+     * @return 성공 메시지
+    */
+    @Transactional
+    public ReviewCreateResponseDto createReview(User user, ReviewCreateRequestDto requestDto) {
+        Submissions submission = submissionsRepository.findById(requestDto.getSubmissionId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 제출 코드입니다: " + requestDto.getSubmissionId()));
+
+        CodeReview review = CodeReview.builder()
+                .submission(submission)
+                .reviewer(user)
+                .content(requestDto.getContent())
+                .build();
+
+        codeReviewRepository.save(review);
+
+        return ReviewCreateResponseDto.builder()
+                .message("리뷰가 성공적으로 등록되었습니다.")
                 .build();
     }
 }
