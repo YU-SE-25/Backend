@@ -10,6 +10,7 @@ import com.unide.backend.domain.review.dto.ReviewCreateRequestDto;
 import com.unide.backend.domain.review.dto.ReviewCreateResponseDto;
 import com.unide.backend.domain.review.dto.ReviewUpdateRequestDto;
 import com.unide.backend.domain.review.dto.ReviewUpdateResponseDto;
+import com.unide.backend.domain.review.dto.ReviewDeleteResponseDto;
 import com.unide.backend.global.exception.AuthException;
 import com.unide.backend.domain.submissions.entity.Submissions;
 import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
@@ -107,6 +108,29 @@ public class ReviewService {
         return ReviewUpdateResponseDto.builder()
                 .reviewId(review.getId())
                 .message("리뷰가 성공적으로 수정되었습니다.")
+                .build();
+    }
+
+    /**
+     * 리뷰를 삭제하는 메서드
+     * @param reviewId 삭제할 리뷰 ID
+     * @param user 요청한 사용자 (작성자 본인 확인용)
+     * @return 삭제 결과 DTO
+     */
+    @Transactional
+    public ReviewDeleteResponseDto deleteReview(Long reviewId, User user) {
+        CodeReview review = codeReviewRepository.findById(reviewId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 리뷰입니다: " + reviewId));
+
+        if (!review.getReviewer().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("본인이 작성한 리뷰만 삭제할 수 있습니다.");
+        }
+
+        codeReviewRepository.delete(review);
+
+        return ReviewDeleteResponseDto.builder()
+                .reviewId(reviewId)
+                .message("리뷰가 성공적으로 삭제되었습니다.")
                 .build();
     }
 }
