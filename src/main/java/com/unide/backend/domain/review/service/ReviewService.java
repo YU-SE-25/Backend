@@ -22,6 +22,7 @@ import com.unide.backend.domain.review.dto.ReviewCommentCreateRequestDto;
 import com.unide.backend.domain.review.dto.ReviewCommentCreateResponseDto;
 import com.unide.backend.domain.review.dto.ReviewCommentUpdateRequestDto;
 import com.unide.backend.domain.review.dto.ReviewCommentUpdateResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentDeleteResponseDto;
 import com.unide.backend.global.exception.AuthException;
 import com.unide.backend.domain.submissions.entity.Submissions;
 import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
@@ -281,6 +282,34 @@ public class ReviewService {
         return ReviewCommentUpdateResponseDto.builder()
                 .commentId(comment.getId())
                 .message("댓글이 성공적으로 수정되었습니다.")
+                .build();
+    }
+
+    /**
+     * 리뷰 댓글을 삭제하는 메서드
+     * @param reviewId 댓글이 달린 리뷰 ID
+     * @param commentId 삭제할 댓글 ID
+     * @param user 요청한 사용자 (작성자 본인 확인용)
+     * @return 삭제 결과 DTO
+    */
+    @Transactional
+    public ReviewCommentDeleteResponseDto deleteComment(Long reviewId, Long commentId, User user) {
+        CodeReviewComment comment = codeReviewCommentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 댓글입니다: " + commentId));
+
+        if (!comment.getReview().getId().equals(reviewId)) {
+            throw new IllegalArgumentException("해당 댓글은 지정된 리뷰에 속하지 않습니다.");
+        }
+
+        if (!comment.getCommenter().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("본인이 작성한 댓글만 삭제할 수 있습니다.");
+        }
+
+        codeReviewCommentRepository.delete(comment);
+
+        return ReviewCommentDeleteResponseDto.builder()
+                .commentId(commentId)
+                .message("댓글이 성공적으로 삭제되었습니다.")
                 .build();
     }
 }
