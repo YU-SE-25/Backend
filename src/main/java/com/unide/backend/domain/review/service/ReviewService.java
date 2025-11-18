@@ -20,6 +20,8 @@ import com.unide.backend.domain.review.dto.ReviewCommentListResponseDto;
 import com.unide.backend.domain.review.dto.ReviewCommentDto;
 import com.unide.backend.domain.review.dto.ReviewCommentCreateRequestDto;
 import com.unide.backend.domain.review.dto.ReviewCommentCreateResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentUpdateRequestDto;
+import com.unide.backend.domain.review.dto.ReviewCommentUpdateResponseDto;
 import com.unide.backend.global.exception.AuthException;
 import com.unide.backend.domain.submissions.entity.Submissions;
 import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
@@ -250,6 +252,35 @@ public class ReviewService {
                 .commentId(savedComment.getId())
                 .message("댓글이 성공적으로 등록되었습니다.")
                 .createdAt(savedComment.getCreatedAt())
+                .build();
+    }
+
+    /**
+     * 리뷰 댓글을 수정하는 메서드
+     * @param reviewId 댓글이 달린 리뷰 ID
+     * @param commentId 수정할 댓글 ID
+     * @param user 요청한 사용자 (작성자 본인 확인용)
+     * @param requestDto 수정할 내용
+     * @return 수정 결과 DTO
+    */
+    @Transactional
+    public ReviewCommentUpdateResponseDto updateComment(Long reviewId, Long commentId, User user, ReviewCommentUpdateRequestDto requestDto) {
+        CodeReviewComment comment = codeReviewCommentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 댓글입니다: " + commentId));
+
+        if (!comment.getReview().getId().equals(reviewId)) {
+            throw new IllegalArgumentException("해당 댓글은 지정된 리뷰에 속하지 않습니다.");
+        }
+
+        if (!comment.getCommenter().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("본인이 작성한 댓글만 수정할 수 있습니다.");
+        }
+
+        comment.updateContent(requestDto.getContent());
+
+        return ReviewCommentUpdateResponseDto.builder()
+                .commentId(comment.getId())
+                .message("댓글이 성공적으로 수정되었습니다.")
                 .build();
     }
 }

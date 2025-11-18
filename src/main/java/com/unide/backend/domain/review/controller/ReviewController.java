@@ -13,6 +13,8 @@ import com.unide.backend.domain.review.dto.ReviewVoteResponseDto;
 import com.unide.backend.domain.review.dto.ReviewCommentListResponseDto;
 import com.unide.backend.domain.review.dto.ReviewCommentCreateRequestDto;
 import com.unide.backend.domain.review.dto.ReviewCommentCreateResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentUpdateRequestDto;
+import com.unide.backend.domain.review.dto.ReviewCommentUpdateResponseDto;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import lombok.RequiredArgsConstructor;
@@ -155,5 +157,29 @@ public class ReviewController {
                 requestDto
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * 리뷰 댓글을 수정하는 API
+     * @param reviewId 리뷰 ID
+     * @param commentId 댓글 ID
+     * @param principalDetails 현재 로그인한 사용자
+     * @param requestDto 수정할 내용
+     * @return 수정 결과
+    */
+    @PatchMapping("/reviews/{reviewId}/comments/{commentId}")
+    public ResponseEntity<ReviewCommentUpdateResponseDto> updateComment(
+            @PathVariable Long reviewId,
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @Valid @RequestBody ReviewCommentUpdateRequestDto requestDto) {
+        
+        ReviewCommentUpdateResponseDto response = reviewService.updateComment(
+                reviewId, 
+                commentId, 
+                principalDetails.getUser(), 
+                requestDto
+        );
+        return ResponseEntity.ok(response);
     }
 }

@@ -1,0 +1,14 @@
+// 리뷰 댓글 수정 시 클라이언트의 요청을 담는 DTO
+
+package com.unide.backend.domain.review.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+public class ReviewCommentUpdateRequestDto {
+    @NotBlank(message = "수정할 댓글 내용은 필수 입력 값입니다.")
+    private String content;
+}
