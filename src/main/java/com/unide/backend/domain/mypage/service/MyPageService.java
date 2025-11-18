@@ -110,7 +110,9 @@ public class MyPageService {
         return MyPageResponseDto.builder()
                 .id(myPage != null ? myPage.getId() : null)
                 .userId(user.getId())
-                .nickname(user.getNickname())  // User의 nickname 사용
+                .nickname(myPage != null && myPage.getNickname() != null 
+                        ? myPage.getNickname() 
+                        : user.getNickname())
                 // 아바타 url이 따로 없을 경우 기본 이미지 url 적용
                 .avatarUrl(myPage != null && myPage.getAvatarUrl() != null 
                         ? myPage.getAvatarUrl() 
@@ -139,6 +141,7 @@ public class MyPageService {
 
         MyPage myPage = MyPage.builder()
                 .user(user)
+                .nickname(user.getNickname())
                 .isPublic(true)
                 .build();
 
@@ -155,11 +158,15 @@ public class MyPageService {
                 .orElseThrow(() -> new IllegalArgumentException("마이페이지를 찾을 수 없습니다."));
 
         if (requestDto.getNickname() != null) {
-            // User 테이블에서 닉네임 중복 확인 (본인 제외)
+            // User 테이블과 MyPage 테이블 모두에서 닉네임 중복 확인 (본인 제외)
             if (userRepository.existsByNicknameAndIdNot(requestDto.getNickname(), userId)) {
                 throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
             }
-            // User의 닉네임만 업데이트 (MyPage는 User 참조)
+            if (myPageRepository.existsByNicknameAndUserIdNot(requestDto.getNickname(), userId)) {
+                throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+            }
+            // MyPage와 User의 닉네임 모두 업데이트
+            myPage.updateNickname(requestDto.getNickname());
             user.updateNickname(requestDto.getNickname());
         }
         if (requestDto.getBio() != null) {
@@ -188,5 +195,27 @@ public class MyPageService {
                 .orElseThrow(() -> new IllegalArgumentException("마이페이지를 찾을 수 없습니다."));
 
         myPageRepository.delete(myPage);
+    }
+
+    @Transactional
+    public MyPageResponseDto initializeMyPage(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        // 기존 MyPage가 있으면 삭제하고 flush로 즉시 반영
+        myPageRepository.findByUserId(userId).ifPresent(existingMyPage -> {
+            myPageRepository.delete(existingMyPage);
+            myPageRepository.flush(); // 즉시 DB에 반영
+        });
+        
+        // 초기 상태로 MyPage 재생성 (회원가입 시와 동일)
+        MyPage newMyPage = MyPage.builder()
+                .user(user)
+                .nickname(user.getNickname())
+                .isPublic(true)
+                .build();
+        
+        myPageRepository.save(newMyPage);
+        return buildMyPageResponse(user, newMyPage);
     }
 }
