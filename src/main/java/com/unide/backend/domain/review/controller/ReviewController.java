@@ -11,6 +11,8 @@ import com.unide.backend.domain.review.dto.ReviewUpdateResponseDto;
 import com.unide.backend.domain.review.dto.ReviewDeleteResponseDto;
 import com.unide.backend.domain.review.dto.ReviewVoteResponseDto;
 import com.unide.backend.domain.review.dto.ReviewCommentListResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentCreateRequestDto;
+import com.unide.backend.domain.review.dto.ReviewCommentCreateResponseDto;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import lombok.RequiredArgsConstructor;
@@ -132,5 +134,26 @@ public class ReviewController {
                 principalDetails != null ? principalDetails.getUser() : null
         );
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 특정 리뷰에 댓글을 작성하는 API
+     * @param reviewId 리뷰 ID
+     * @param principalDetails 현재 로그인한 사용자
+     * @param requestDto 댓글 내용
+     * @return 성공 메시지 및 댓글 ID
+    */
+    @PostMapping("/reviews/{reviewId}/comments")
+    public ResponseEntity<ReviewCommentCreateResponseDto> createComment(
+            @PathVariable Long reviewId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @Valid @RequestBody ReviewCommentCreateRequestDto requestDto) {
+        
+        ReviewCommentCreateResponseDto response = reviewService.createComment(
+                reviewId, 
+                principalDetails.getUser(), 
+                requestDto
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

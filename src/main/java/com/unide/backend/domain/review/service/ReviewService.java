@@ -18,6 +18,8 @@ import com.unide.backend.domain.review.dto.ReviewDeleteResponseDto;
 import com.unide.backend.domain.review.dto.ReviewVoteResponseDto;
 import com.unide.backend.domain.review.dto.ReviewCommentListResponseDto;
 import com.unide.backend.domain.review.dto.ReviewCommentDto;
+import com.unide.backend.domain.review.dto.ReviewCommentCreateRequestDto;
+import com.unide.backend.domain.review.dto.ReviewCommentCreateResponseDto;
 import com.unide.backend.global.exception.AuthException;
 import com.unide.backend.domain.submissions.entity.Submissions;
 import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
@@ -210,6 +212,44 @@ public class ReviewService {
                 .totalPages(commentPage.getTotalPages())
                 .currentPage(commentPage.getNumber())
                 .comments(comments)
+                .build();
+    }
+
+    /**
+     * 리뷰에 댓글(또는 대댓글)을 작성하는 메서드
+     * @param reviewId 댓글을 달 리뷰 ID
+     * @param user 댓글 작성자
+     * @param requestDto 댓글 내용 및 부모 댓글 ID
+     * @return 생성된 댓글 정보
+    */
+    @Transactional
+    public ReviewCommentCreateResponseDto createComment(Long reviewId, User user, ReviewCommentCreateRequestDto requestDto) {
+        CodeReview review = codeReviewRepository.findById(reviewId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 리뷰입니다: " + reviewId));
+
+        CodeReviewComment parentComment = null;
+        if (requestDto.getParentCommentId() != null) {
+            parentComment = codeReviewCommentRepository.findById(requestDto.getParentCommentId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 부모 댓글입니다: " + requestDto.getParentCommentId()));
+            
+            if (!parentComment.getReview().getId().equals(reviewId)) {
+                throw new IllegalArgumentException("부모 댓글이 해당 리뷰에 속하지 않습니다.");
+            }
+        }
+
+        CodeReviewComment comment = CodeReviewComment.builder()
+                .review(review)
+                .commenter(user)
+                .content(requestDto.getContent())
+                .parentComment(parentComment)
+                .build();
+
+        CodeReviewComment savedComment = codeReviewCommentRepository.save(comment);
+
+        return ReviewCommentCreateResponseDto.builder()
+                .commentId(savedComment.getId())
+                .message("댓글이 성공적으로 등록되었습니다.")
+                .createdAt(savedComment.getCreatedAt())
                 .build();
     }
 }
