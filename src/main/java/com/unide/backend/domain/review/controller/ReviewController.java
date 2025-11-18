@@ -10,6 +10,11 @@ import com.unide.backend.domain.review.dto.ReviewUpdateRequestDto;
 import com.unide.backend.domain.review.dto.ReviewUpdateResponseDto;
 import com.unide.backend.domain.review.dto.ReviewDeleteResponseDto;
 import com.unide.backend.domain.review.dto.ReviewVoteResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentListResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentCreateRequestDto;
+import com.unide.backend.domain.review.dto.ReviewCommentCreateResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentUpdateRequestDto;
+import com.unide.backend.domain.review.dto.ReviewCommentUpdateResponseDto;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import lombok.RequiredArgsConstructor;
@@ -109,6 +114,72 @@ public class ReviewController {
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
         
         ReviewVoteResponseDto response = reviewService.toggleVote(reviewId, principalDetails.getUser());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 특정 리뷰에 대한 댓글 목록을 조회하는 API
+     * @param reviewId 리뷰 ID
+     * @param pageable 페이징 정보 (기본값: page=0, size=20)
+     * @param principalDetails 현재 로그인한 사용자 (옵션)
+     * @return 페이징된 댓글 목록
+    */
+    @GetMapping("/reviews/{reviewId}/comments")
+    public ResponseEntity<ReviewCommentListResponseDto> getReviewComments(
+            @PathVariable Long reviewId,
+            @PageableDefault(size = 20) Pageable pageable,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        
+        ReviewCommentListResponseDto response = reviewService.getReviewComments(
+                reviewId, 
+                pageable, 
+                principalDetails != null ? principalDetails.getUser() : null
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 특정 리뷰에 댓글을 작성하는 API
+     * @param reviewId 리뷰 ID
+     * @param principalDetails 현재 로그인한 사용자
+     * @param requestDto 댓글 내용
+     * @return 성공 메시지 및 댓글 ID
+    */
+    @PostMapping("/reviews/{reviewId}/comments")
+    public ResponseEntity<ReviewCommentCreateResponseDto> createComment(
+            @PathVariable Long reviewId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @Valid @RequestBody ReviewCommentCreateRequestDto requestDto) {
+        
+        ReviewCommentCreateResponseDto response = reviewService.createComment(
+                reviewId, 
+                principalDetails.getUser(), 
+                requestDto
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * 리뷰 댓글을 수정하는 API
+     * @param reviewId 리뷰 ID
+     * @param commentId 댓글 ID
+     * @param principalDetails 현재 로그인한 사용자
+     * @param requestDto 수정할 내용
+     * @return 수정 결과
+    */
+    @PatchMapping("/reviews/{reviewId}/comments/{commentId}")
+    public ResponseEntity<ReviewCommentUpdateResponseDto> updateComment(
+            @PathVariable Long reviewId,
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @Valid @RequestBody ReviewCommentUpdateRequestDto requestDto) {
+        
+        ReviewCommentUpdateResponseDto response = reviewService.updateComment(
+                reviewId, 
+                commentId, 
+                principalDetails.getUser(), 
+                requestDto
+        );
         return ResponseEntity.ok(response);
     }
 }

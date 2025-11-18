@@ -6,6 +6,8 @@ import com.unide.backend.domain.review.dto.ReviewListResponseDto;
 import com.unide.backend.domain.review.dto.ReviewSummaryDto;
 import com.unide.backend.domain.review.entity.CodeReview;
 import com.unide.backend.domain.review.entity.CodeReviewVote;
+import com.unide.backend.domain.review.entity.CodeReviewComment;
+import com.unide.backend.domain.review.repository.CodeReviewCommentRepository;
 import com.unide.backend.domain.review.repository.CodeReviewVoteRepository;
 import com.unide.backend.domain.review.repository.CodeReviewRepository;
 import com.unide.backend.domain.review.dto.ReviewCreateRequestDto;
@@ -14,6 +16,12 @@ import com.unide.backend.domain.review.dto.ReviewUpdateRequestDto;
 import com.unide.backend.domain.review.dto.ReviewUpdateResponseDto;
 import com.unide.backend.domain.review.dto.ReviewDeleteResponseDto;
 import com.unide.backend.domain.review.dto.ReviewVoteResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentListResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentDto;
+import com.unide.backend.domain.review.dto.ReviewCommentCreateRequestDto;
+import com.unide.backend.domain.review.dto.ReviewCommentCreateResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentUpdateRequestDto;
+import com.unide.backend.domain.review.dto.ReviewCommentUpdateResponseDto;
 import com.unide.backend.global.exception.AuthException;
 import com.unide.backend.domain.submissions.entity.Submissions;
 import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
@@ -36,6 +44,7 @@ public class ReviewService {
     private final CodeReviewRepository codeReviewRepository;
     private final SubmissionsRepository submissionsRepository;
     private final CodeReviewVoteRepository codeReviewVoteRepository;
+    private final CodeReviewCommentRepository codeReviewCommentRepository;
 
     /**
      * 특정 제출 코드에 대한 리뷰 목록 조회
@@ -175,6 +184,103 @@ public class ReviewService {
                 .voteCount(review.getVoteCount())
                 .viewerLiked(viewerLiked)
                 .message(message)
+                .build();
+    }
+
+    /**
+     * 특정 리뷰에 대한 댓글 목록 조회
+     * @param reviewId 리뷰 ID
+     * @param pageable 페이징 정보
+     * @param currentUser 현재 로그인한 사용자 (본인 댓글 확인용)
+     * @return 페이징된 댓글 목록
+    */
+    public ReviewCommentListResponseDto getReviewComments(Long reviewId, Pageable pageable, User currentUser) {
+        CodeReview review = codeReviewRepository.findById(reviewId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 리뷰입니다: " + reviewId));
+
+        Page<CodeReviewComment> commentPage = codeReviewCommentRepository.findByReviewAndParentCommentIsNull(review, pageable);
+
+        List<ReviewCommentDto> comments = commentPage.getContent().stream()
+                .map(comment -> ReviewCommentDto.builder()
+                        .commentId(comment.getId())
+                        .commenter(comment.getCommenter().getNickname())
+                        .content(comment.getContent())
+                        .createdAt(comment.getCreatedAt())
+                        .isOwner(currentUser != null && comment.getCommenter().getId().equals(currentUser.getId()))
+                        .build())
+                .collect(Collectors.toList());
+
+        return ReviewCommentListResponseDto.builder()
+                .totalPages(commentPage.getTotalPages())
+                .currentPage(commentPage.getNumber())
+                .comments(comments)
+                .build();
+    }
+
+    /**
+     * 리뷰에 댓글(또는 대댓글)을 작성하는 메서드
+     * @param reviewId 댓글을 달 리뷰 ID
+     * @param user 댓글 작성자
+     * @param requestDto 댓글 내용 및 부모 댓글 ID
+     * @return 생성된 댓글 정보
+    */
+    @Transactional
+    public ReviewCommentCreateResponseDto createComment(Long reviewId, User user, ReviewCommentCreateRequestDto requestDto) {
+        CodeReview review = codeReviewRepository.findById(reviewId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 리뷰입니다: " + reviewId));
+
+        CodeReviewComment parentComment = null;
+        if (requestDto.getParentCommentId() != null) {
+            parentComment = codeReviewCommentRepository.findById(requestDto.getParentCommentId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 부모 댓글입니다: " + requestDto.getParentCommentId()));
+            
+            if (!parentComment.getReview().getId().equals(reviewId)) {
+                throw new IllegalArgumentException("부모 댓글이 해당 리뷰에 속하지 않습니다.");
+            }
+        }
+
+        CodeReviewComment comment = CodeReviewComment.builder()
+                .review(review)
+                .commenter(user)
+                .content(requestDto.getContent())
+                .parentComment(parentComment)
+                .build();
+
+        CodeReviewComment savedComment = codeReviewCommentRepository.save(comment);
+
+        return ReviewCommentCreateResponseDto.builder()
+                .commentId(savedComment.getId())
+                .message("댓글이 성공적으로 등록되었습니다.")
+                .createdAt(savedComment.getCreatedAt())
+                .build();
+    }
+
+    /**
+     * 리뷰 댓글을 수정하는 메서드
+     * @param reviewId 댓글이 달린 리뷰 ID
+     * @param commentId 수정할 댓글 ID
+     * @param user 요청한 사용자 (작성자 본인 확인용)
+     * @param requestDto 수정할 내용
+     * @return 수정 결과 DTO
+    */
+    @Transactional
+    public ReviewCommentUpdateResponseDto updateComment(Long reviewId, Long commentId, User user, ReviewCommentUpdateRequestDto requestDto) {
+        CodeReviewComment comment = codeReviewCommentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 댓글입니다: " + commentId));
+
+        if (!comment.getReview().getId().equals(reviewId)) {
+            throw new IllegalArgumentException("해당 댓글은 지정된 리뷰에 속하지 않습니다.");
+        }
+
+        if (!comment.getCommenter().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("본인이 작성한 댓글만 수정할 수 있습니다.");
+        }
+
+        comment.updateContent(requestDto.getContent());
+
+        return ReviewCommentUpdateResponseDto.builder()
+                .commentId(comment.getId())
+                .message("댓글이 성공적으로 수정되었습니다.")
                 .build();
     }
 }
