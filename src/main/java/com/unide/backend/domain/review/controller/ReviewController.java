@@ -15,6 +15,7 @@ import com.unide.backend.domain.review.dto.ReviewCommentCreateRequestDto;
 import com.unide.backend.domain.review.dto.ReviewCommentCreateResponseDto;
 import com.unide.backend.domain.review.dto.ReviewCommentUpdateRequestDto;
 import com.unide.backend.domain.review.dto.ReviewCommentUpdateResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentDeleteResponseDto;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import lombok.RequiredArgsConstructor;
@@ -179,6 +180,27 @@ public class ReviewController {
                 commentId, 
                 principalDetails.getUser(), 
                 requestDto
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 리뷰 댓글을 삭제하는 API
+     * @param reviewId 리뷰 ID
+     * @param commentId 댓글 ID
+     * @param principalDetails 현재 로그인한 사용자
+     * @return 삭제 결과
+    */
+    @DeleteMapping("/reviews/{reviewId}/comments/{commentId}")
+    public ResponseEntity<ReviewCommentDeleteResponseDto> deleteComment(
+            @PathVariable Long reviewId,
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        
+        ReviewCommentDeleteResponseDto response = reviewService.deleteComment(
+                reviewId, 
+                commentId, 
+                principalDetails.getUser()
         );
         return ResponseEntity.ok(response);
     }
