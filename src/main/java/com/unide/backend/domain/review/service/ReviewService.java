@@ -6,6 +6,8 @@ import com.unide.backend.domain.review.dto.ReviewListResponseDto;
 import com.unide.backend.domain.review.dto.ReviewSummaryDto;
 import com.unide.backend.domain.review.entity.CodeReview;
 import com.unide.backend.domain.review.entity.CodeReviewVote;
+import com.unide.backend.domain.review.entity.CodeReviewComment;
+import com.unide.backend.domain.review.repository.CodeReviewCommentRepository;
 import com.unide.backend.domain.review.repository.CodeReviewVoteRepository;
 import com.unide.backend.domain.review.repository.CodeReviewRepository;
 import com.unide.backend.domain.review.dto.ReviewCreateRequestDto;
@@ -14,6 +16,8 @@ import com.unide.backend.domain.review.dto.ReviewUpdateRequestDto;
 import com.unide.backend.domain.review.dto.ReviewUpdateResponseDto;
 import com.unide.backend.domain.review.dto.ReviewDeleteResponseDto;
 import com.unide.backend.domain.review.dto.ReviewVoteResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentListResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentDto;
 import com.unide.backend.global.exception.AuthException;
 import com.unide.backend.domain.submissions.entity.Submissions;
 import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
@@ -36,6 +40,7 @@ public class ReviewService {
     private final CodeReviewRepository codeReviewRepository;
     private final SubmissionsRepository submissionsRepository;
     private final CodeReviewVoteRepository codeReviewVoteRepository;
+    private final CodeReviewCommentRepository codeReviewCommentRepository;
 
     /**
      * 특정 제출 코드에 대한 리뷰 목록 조회
@@ -175,6 +180,36 @@ public class ReviewService {
                 .voteCount(review.getVoteCount())
                 .viewerLiked(viewerLiked)
                 .message(message)
+                .build();
+    }
+
+    /**
+     * 특정 리뷰에 대한 댓글 목록 조회
+     * @param reviewId 리뷰 ID
+     * @param pageable 페이징 정보
+     * @param currentUser 현재 로그인한 사용자 (본인 댓글 확인용)
+     * @return 페이징된 댓글 목록
+    */
+    public ReviewCommentListResponseDto getReviewComments(Long reviewId, Pageable pageable, User currentUser) {
+        CodeReview review = codeReviewRepository.findById(reviewId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 리뷰입니다: " + reviewId));
+
+        Page<CodeReviewComment> commentPage = codeReviewCommentRepository.findByReviewAndParentCommentIsNull(review, pageable);
+
+        List<ReviewCommentDto> comments = commentPage.getContent().stream()
+                .map(comment -> ReviewCommentDto.builder()
+                        .commentId(comment.getId())
+                        .commenter(comment.getCommenter().getNickname())
+                        .content(comment.getContent())
+                        .createdAt(comment.getCreatedAt())
+                        .isOwner(currentUser != null && comment.getCommenter().getId().equals(currentUser.getId()))
+                        .build())
+                .collect(Collectors.toList());
+
+        return ReviewCommentListResponseDto.builder()
+                .totalPages(commentPage.getTotalPages())
+                .currentPage(commentPage.getNumber())
+                .comments(comments)
                 .build();
     }
 }
