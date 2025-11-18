@@ -160,6 +160,7 @@ public class AuthService {
         MyPage myPage = MyPage.builder()
                 .user(savedUser)
                 .nickname(savedUser.getNickname())
+                .isPublic(true)
                 .build();
         myPageRepository.save(myPage);
 

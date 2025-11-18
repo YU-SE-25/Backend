@@ -14,6 +14,9 @@ import lombok.Getter;
 @AllArgsConstructor
 @Builder
 public class MyPageResponseDto {
+    // 마이페이지 ID
+    private final Long id;
+    
     // 사용자 기본 정보
     private final Long userId;
     private final String nickname;
@@ -22,6 +25,7 @@ public class MyPageResponseDto {
     private final List<String> preferredLanguage;
     private final String role;
     private final LocalDateTime joinedAt;
+    private final LocalDateTime updatedAt;
     private final Boolean isPublic;
     
     // 문제 풀이 관련

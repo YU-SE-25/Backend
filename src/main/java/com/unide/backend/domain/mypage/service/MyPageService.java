@@ -1,5 +1,12 @@
 package com.unide.backend.domain.mypage.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.unide.backend.domain.mypage.dto.MyPageResponseDto;
@@ -11,13 +18,8 @@ import com.unide.backend.domain.mypage.repository.MyPageRepository;
 import com.unide.backend.domain.submission.repository.SubmissionRepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -106,10 +108,9 @@ public class MyPageService {
         }
 
         return MyPageResponseDto.builder()
+                .id(myPage != null ? myPage.getId() : null)
                 .userId(user.getId())
-                .nickname(myPage != null && myPage.getNickname() != null 
-                        ? myPage.getNickname() 
-                        : user.getNickname())
+                .nickname(user.getNickname())  // User의 nickname 사용
                 // 아바타 url이 따로 없을 경우 기본 이미지 url 적용
                 .avatarUrl(myPage != null && myPage.getAvatarUrl() != null 
                         ? myPage.getAvatarUrl() 
@@ -118,6 +119,7 @@ public class MyPageService {
                 .preferredLanguage(preferredLanguageList)
                 .role(user.getRole().toString())
                 .joinedAt(user.getCreatedAt())
+                .updatedAt(myPage != null ? myPage.getUpdatedAt() : user.getUpdatedAt())
                 .isPublic(myPage != null ? myPage.getIsPublic() : true)
                 .solvedProblems(solvedProblems)
                 .bookmarkedProblems(List.of())
@@ -137,7 +139,6 @@ public class MyPageService {
 
         MyPage myPage = MyPage.builder()
                 .user(user)
-                .nickname(user.getNickname())
                 .isPublic(true)
                 .build();
 
@@ -154,11 +155,12 @@ public class MyPageService {
                 .orElseThrow(() -> new IllegalArgumentException("마이페이지를 찾을 수 없습니다."));
 
         if (requestDto.getNickname() != null) {
-            // 닉네임 중복 확인 (본인 제외)
-            if (myPageRepository.existsByNicknameAndUserIdNot(requestDto.getNickname(), userId)) {
+            // User 테이블에서 닉네임 중복 확인 (본인 제외)
+            if (userRepository.existsByNicknameAndIdNot(requestDto.getNickname(), userId)) {
                 throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
             }
-            myPage.updateNickname(requestDto.getNickname());
+            // User의 닉네임만 업데이트 (MyPage는 User 참조)
+            user.updateNickname(requestDto.getNickname());
         }
         if (requestDto.getBio() != null) {
             myPage.updateBio(requestDto.getBio());
@@ -175,6 +177,7 @@ public class MyPageService {
             myPage.updateIsPublic(requestDto.getIsPublic());
         }
 
+        userRepository.save(user);  // User 엔티티 저장
         myPageRepository.save(myPage);
         return buildMyPageResponse(user, myPage);
     }
