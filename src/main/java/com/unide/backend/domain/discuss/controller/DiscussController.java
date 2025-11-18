@@ -49,6 +49,7 @@ public class DiscussController {
         discussService.deleteDiscuss(postId);
     }
 
+
     // 검색
     @GetMapping("/search")
     public List<DiscussDto> search(@RequestParam("keyword") String keyword) {
