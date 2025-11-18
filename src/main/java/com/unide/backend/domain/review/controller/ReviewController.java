@@ -10,6 +10,7 @@ import com.unide.backend.domain.review.dto.ReviewUpdateRequestDto;
 import com.unide.backend.domain.review.dto.ReviewUpdateResponseDto;
 import com.unide.backend.domain.review.dto.ReviewDeleteResponseDto;
 import com.unide.backend.domain.review.dto.ReviewVoteResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentListResponseDto;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import lombok.RequiredArgsConstructor;
@@ -109,6 +110,27 @@ public class ReviewController {
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
         
         ReviewVoteResponseDto response = reviewService.toggleVote(reviewId, principalDetails.getUser());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 특정 리뷰에 대한 댓글 목록을 조회하는 API
+     * @param reviewId 리뷰 ID
+     * @param pageable 페이징 정보 (기본값: page=0, size=20)
+     * @param principalDetails 현재 로그인한 사용자 (옵션)
+     * @return 페이징된 댓글 목록
+    */
+    @GetMapping("/reviews/{reviewId}/comments")
+    public ResponseEntity<ReviewCommentListResponseDto> getReviewComments(
+            @PathVariable Long reviewId,
+            @PageableDefault(size = 20) Pageable pageable,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        
+        ReviewCommentListResponseDto response = reviewService.getReviewComments(
+                reviewId, 
+                pageable, 
+                principalDetails != null ? principalDetails.getUser() : null
+        );
         return ResponseEntity.ok(response);
     }
 }
