@@ -6,6 +6,7 @@ import com.unide.backend.domain.problems.entity.Problems;
 import com.unide.backend.domain.problems.repository.ProblemsRepository;
 import com.unide.backend.domain.submissions.dto.CodeDraftSaveRequestDto;
 import com.unide.backend.domain.submissions.dto.CodeDraftSaveResponseDto;
+import com.unide.backend.domain.submissions.dto.CodeDraftResponseDto;
 import com.unide.backend.domain.submissions.entity.SubmissionStatus;
 import com.unide.backend.domain.submissions.entity.Submissions;
 import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
@@ -49,6 +50,20 @@ public class SubmissionService {
         return CodeDraftSaveResponseDto.builder()
                 .message("임시 저장이 완료되었습니다.")
                 .draftSubmissionId(draftSubmission.getId())
+                .build();
+    }
+
+    public CodeDraftResponseDto getDraftCode(User user, Long problemId) {
+        Problems problem = problemsRepository.findById(problemId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 문제 ID입니다: " + problemId));
+
+        Submissions draftSubmission = submissionsRepository
+                .findByUserAndProblemAndStatus(user, problem, SubmissionStatus.DRAFT)
+                .orElseThrow(() -> new IllegalArgumentException("임시 저장된 코드가 없습니다."));
+
+        return CodeDraftResponseDto.builder()
+                .code(draftSubmission.getCode())
+                .language(draftSubmission.getLanguage())
                 .build();
     }
 }

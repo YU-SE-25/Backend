@@ -4,6 +4,7 @@ package com.unide.backend.domain.submissions.controller;
 
 import com.unide.backend.domain.submissions.dto.CodeDraftSaveRequestDto;
 import com.unide.backend.domain.submissions.dto.CodeDraftSaveResponseDto;
+import com.unide.backend.domain.submissions.dto.CodeDraftResponseDto;
 import com.unide.backend.domain.submissions.service.SubmissionService;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam; 
 
 @RestController
 @RequiredArgsConstructor
@@ -29,6 +32,15 @@ public class SubmissionController {
             @Valid @RequestBody CodeDraftSaveRequestDto requestDto) {
         
         CodeDraftSaveResponseDto response = submissionService.saveCodeDraft(principalDetails.getUser(), requestDto);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/draft")
+    public ResponseEntity<CodeDraftResponseDto> getDraftCode(
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @RequestParam Long problemId) {
+        
+        CodeDraftResponseDto response = submissionService.getDraftCode(principalDetails.getUser(), problemId);
         return ResponseEntity.ok(response);
     }
 }
