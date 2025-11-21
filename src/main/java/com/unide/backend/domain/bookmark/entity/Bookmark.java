@@ -1,7 +1,7 @@
 package com.unide.backend.domain.bookmark.entity;
 
 import com.unide.backend.common.entity.BaseTimeEntity;
-import com.unide.backend.domain.problem.entity.Problem;
+import com.unide.backend.domain.problems.entity.Problems;
 import com.unide.backend.domain.user.entity.User;
 
 import jakarta.persistence.Entity;
@@ -36,10 +36,10 @@ public class Bookmark extends BaseTimeEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "problem_id", nullable = false)
-    private Problem problem;
+    private Problems problem;
 
     @Builder
-    public Bookmark(User user, Problem problem) {
+    public Bookmark(User user, Problems problem) {
         this.user = user;
         this.problem = problem;
     }

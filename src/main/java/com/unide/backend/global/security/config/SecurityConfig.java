@@ -48,6 +48,9 @@ public class SecurityConfig {
                 .requestMatchers(SWAGGER_URL_PATTERNS).permitAll()
                 // 인증 관련 경로는 누구나 접근 가능하도록 허용
                 .requestMatchers("/api/auth/**").permitAll()
+                // 문제 목록 조회와 상세 조회는 누구나 접근 가능
+                .requestMatchers("GET", "/api/problems/list").permitAll()
+                .requestMatchers("GET", "/api/problems/detail/**").permitAll()
                 // 포트폴리오 업로드 경로는 누구나 접근 가능하도록 허용
                 .requestMatchers("/api/upload/portfolio").permitAll()
                 // 닉네임으로 마이페이지 조회는 누구나 접근 가능 (GET만 허용)

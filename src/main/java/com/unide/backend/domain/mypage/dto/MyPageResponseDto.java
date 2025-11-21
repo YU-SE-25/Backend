@@ -14,9 +14,6 @@ import lombok.Getter;
 @AllArgsConstructor
 @Builder
 public class MyPageResponseDto {
-    // 마이페이지 ID
-    private final Long id;
-    
     // 사용자 기본 정보
     private final Long userId;
     private final String nickname;
