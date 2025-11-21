@@ -2,9 +2,15 @@
 
 package com.unide.backend.domain.submissions.repository;
 
+import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.domain.problems.entity.Problems;
 import com.unide.backend.domain.submissions.entity.Submissions;
+import com.unide.backend.domain.submissions.entity.SubmissionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface SubmissionsRepository extends JpaRepository<Submissions, Long> {
+import java.util.Optional;
 
+public interface SubmissionsRepository extends JpaRepository<Submissions, Long> {
+    // 사용자, 문제, 상태로 제출 내역 조회
+    Optional<Submissions> findByUserAndProblemAndStatus(User user, Problems problem, SubmissionStatus status);
 }

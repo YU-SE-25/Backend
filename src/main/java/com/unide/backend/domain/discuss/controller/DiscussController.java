@@ -11,7 +11,6 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/api/dis_board")
 public class DiscussController {
-
     private final DiscussService discussService;
 
     // 목록
@@ -21,11 +20,11 @@ public class DiscussController {
     ) {
         return discussService.getDiscussList(pageNum);
     }
+  
     @GetMapping("/list")
     public List<DiscussDto> listAll(
         @RequestParam(value = "page", defaultValue = "1") Integer pageNum){
     return discussService.getDiscussList(pageNum);}
-
 
     // 상세
     @GetMapping("/{postId}")
@@ -53,7 +52,6 @@ public class DiscussController {
     public void delete(@PathVariable("postId") Long postId) {
         discussService.deleteDiscuss(postId);
     }
-
 
     // 검색
     @GetMapping("/search")

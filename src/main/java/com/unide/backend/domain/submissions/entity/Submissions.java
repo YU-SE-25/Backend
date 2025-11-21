@@ -17,7 +17,6 @@ import java.time.LocalDateTime;
 @Table(name = "submissions")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Submissions {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -70,5 +69,11 @@ public class Submissions {
         this.totalTestCases = totalTestCases;
         this.submittedAt = LocalDateTime.now();
         this.passedTestCases = 0;
+    }
+
+    public void updateDraft(String code, SubmissionLanguage language) {
+        this.code = code;
+        this.language = language;
+        this.submittedAt = LocalDateTime.now();
     }
 }
