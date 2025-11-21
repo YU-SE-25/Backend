@@ -21,6 +21,11 @@ public class DiscussController {
     ) {
         return discussService.getDiscussList(pageNum);
     }
+    @GetMapping("/list")
+    public List<DiscussDto> listAll(
+        @RequestParam(value = "page", defaultValue = "1") Integer pageNum){
+    return discussService.getDiscussList(pageNum);}
+
 
     // 상세
     @GetMapping("/{postId}")
