@@ -1,35 +1,24 @@
-package com.unide.backend.domain.problems.entity;
+// problems 테이블과 매핑되는 엔터티
 
-import java.util.ArrayList;
-import java.util.List;
+package com.unide.backend.domain.problems.entity;
 
 import com.unide.backend.common.entity.BaseTimeEntity;
 import com.unide.backend.domain.user.entity.User;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Entity
 @Table(name = "problems")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Problems extends BaseTimeEntity {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "problem_id")

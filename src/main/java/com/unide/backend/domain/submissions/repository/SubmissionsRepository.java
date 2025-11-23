@@ -2,18 +2,18 @@
 
 package com.unide.backend.domain.submissions.repository;
 
-import java.util.List;
-import java.util.Optional;
+import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.domain.problems.entity.Problems;
+import com.unide.backend.domain.submissions.entity.Submissions;
+import com.unide.backend.domain.submissions.entity.SubmissionStatus;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import com.unide.backend.domain.problems.entity.Problems;
-import com.unide.backend.domain.submissions.entity.SubmissionStatus;
-import com.unide.backend.domain.submissions.entity.Submissions;
-import com.unide.backend.domain.user.entity.User;
+import java.util.List;
+import java.util.Optional;
 
 public interface SubmissionsRepository extends JpaRepository<Submissions, Long> {
     // 사용자, 문제, 상태로 제출 내역 조회

@@ -2,17 +2,16 @@
 
 package com.unide.backend.domain.problems.repository;
 
+import com.unide.backend.domain.problems.entity.ProblemDifficulty;
+import com.unide.backend.domain.problems.entity.Problems;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import com.unide.backend.domain.problems.entity.ProblemDifficulty;
-import com.unide.backend.domain.problems.entity.Problems;
-
 public interface ProblemsRepository extends JpaRepository<Problems, Long> {
-    
     Page<Problems> findByTitleContaining(String title, Pageable pageable);
     
     Page<Problems> findByDifficulty(ProblemDifficulty difficulty, Pageable pageable);
