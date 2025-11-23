@@ -1,5 +1,6 @@
 package com.unide.backend.domain.qna.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.unide.backend.domain.qna.entity.QnA;
 import lombok.*;
 
@@ -10,13 +11,17 @@ import lombok.*;
 @Builder
 public class QnADto {
 
-    private Long postId;
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)   // 🔒 요청에서 들어오는 값은 무시
     private Long authorId;
+
+    private Long postId;
     private boolean anonymous;
     private String title;
     private String contents;
     private boolean privatePost;
+     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private int likeCount;
+     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private int commentCount;
 
     // ← 문제 연동 정보
