@@ -1,26 +1,27 @@
 package com.unide.backend.domain.qna.entity;
 
-
+import com.unide.backend.common.entity.BaseTimeEntity;
+import com.unide.backend.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
-
 @Getter
 @Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
 @Entity
 @Table(name = "qna")
-public class QnA {
+public class QnA extends BaseTimeEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "post_id")
-    private Long postId;          // PK
+    private Long id;          // PK
 
-    @Column(name = "author_id", nullable = false)
-    private Long authorId;        // FK → users.id (지금은 Long으로만 둠)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;      // 작성자
 
     @Column(name = "is_anonymous", nullable = false)
     private boolean anonymous;    // 익명 여부
@@ -39,23 +40,4 @@ public class QnA {
 
     @Column(name = "comment_count", nullable = false)
     private int commentCount;     // 댓글 수
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;  // 작성 시간
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;  // 수정 시간
-
-    @PrePersist
-    public void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = this.createdAt;
-    }
-
-    @PreUpdate
-    public void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
-
-
 }
