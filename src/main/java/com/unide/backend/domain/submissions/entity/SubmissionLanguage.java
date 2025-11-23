@@ -4,6 +4,6 @@ package com.unide.backend.domain.submissions.entity;
 
 public enum SubmissionLanguage {
     CPP,
-    JAVA,
+    JAVA, 
     PYTHON
 }

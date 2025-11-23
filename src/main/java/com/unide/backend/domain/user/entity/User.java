@@ -2,19 +2,28 @@
 
 package com.unide.backend.domain.user.entity;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.unide.backend.common.entity.BaseTimeEntity;
 import com.unide.backend.domain.terms.entity.UserTermsConsent;
-import jakarta.persistence.*;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.time.LocalDateTime;
-import java.time.Duration;
 
 @Getter
 @Entity
@@ -129,5 +138,9 @@ public class User extends BaseTimeEntity {
 
     public void markAsSocialAccount() {
         this.isSocialAccount = true;
+    }
+
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
     }
 }
