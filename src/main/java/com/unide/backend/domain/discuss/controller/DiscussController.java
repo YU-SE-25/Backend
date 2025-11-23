@@ -4,6 +4,9 @@ import com.unide.backend.domain.discuss.dto.DiscussDto;
 import com.unide.backend.domain.discuss.service.DiscussService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import com.unide.backend.global.security.auth.PrincipalDetails;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+
 
 import java.util.List;
 
@@ -34,9 +37,14 @@ public class DiscussController {
 
     // 작성
     @PostMapping
-    public DiscussDto create(@RequestBody DiscussDto discussDto) {
-        return discussService.createDiscuss(discussDto);
-    }
+    public DiscussDto create(
+        @AuthenticationPrincipal PrincipalDetails userDetails,
+        @RequestBody DiscussDto discussDto) {
+
+    Long authorId = userDetails.getUser().getId(); // 🔥 로그인 유저 ID 자동 추출
+
+    return discussService.createDiscuss(discussDto, authorId);
+}
 
     // 수정
     @PutMapping("/{postId}")
