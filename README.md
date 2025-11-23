@@ -21,8 +21,8 @@
 | **JDK** | 22.0.2 (Temurin) | 실제 로컬 실행 환경 |
 | **Spring Boot** | 3.5.6 | `build.gradle.kts` 기준 |
 | **Gradle** | 8.14.3 | Wrapper 사용 (`./gradlew`로 실행) |
-| **MySQL** | 8.4.6 | 로컬 DB 또는 Docker 환경 |
-| **Docker** | 29.0.1 | |
+| **MySQL** | 8.4.6 | 로컬 DB |
+| **Docker** | 29.0.1 |  |
 
 ---
 
