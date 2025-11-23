@@ -40,10 +40,10 @@ public class QnAService {
         return QnADto.fromEntity(qna);
     }
     // ========== 생성 ==========
-    public QnADto createQnA(QnADto dto) {
+    public QnADto createQnA(QnADto dto,Long authorId) {
         // QnA 엔티티에 Builder 패턴이 적용되어 있다는 가정 하에 작성됩니다.
         QnA qna = QnA.builder()
-                .authorId(dto.getAuthorId())
+                .authorId(authorId)
                 .anonymous(dto.isAnonymous())
                 .title(dto.getTitle())
                 .contents(dto.getContents())
@@ -51,6 +51,7 @@ public class QnAService {
                 .likeCount(0)
                 .commentCount(0)
                 .build();
+                
         QnA savedQnA = qnaRepository.save(qna);
         return QnADto.fromEntity(savedQnA);
     }
