@@ -1,5 +1,4 @@
 // Docker 컨테이너를 이용해 안전하게 코드를 실행하는 서비스
-
 package com.unide.backend.domain.submissions.service;
 
 import com.github.dockerjava.api.DockerClient;
@@ -12,7 +11,6 @@ import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.unide.backend.domain.submissions.dto.CodeRunRequestDto;
 import com.unide.backend.domain.submissions.dto.CodeRunResponseDto;
 import com.unide.backend.domain.submissions.entity.SubmissionLanguage;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -138,20 +136,18 @@ public class DockerService {
             case JAVA -> "Main.java";
             case PYTHON -> "solution.py";
             case CPP -> "main.cpp";
-            case C -> "main.c";
             default -> "script.txt";
         };
     }
 
     private boolean needsCompilation(SubmissionLanguage language) {
-        return language == SubmissionLanguage.JAVA || language == SubmissionLanguage.CPP || language == SubmissionLanguage.C;
+        return language == SubmissionLanguage.JAVA || language == SubmissionLanguage.CPP;
     }
 
     private String getCompileCommand(SubmissionLanguage language, String fileName) {
         return switch (language) {
             case JAVA -> "javac " + fileName;
             case CPP -> "g++ " + fileName + " -o main";
-            case C -> "gcc " + fileName + " -o main";
             default -> "";
         };
     }
@@ -160,7 +156,7 @@ public class DockerService {
         String cmd = switch (language) {
             case JAVA -> "java Main";
             case PYTHON -> "python3 " + fileName;
-            case CPP, C -> "./main";
+            case CPP -> "./main";
             default -> "";
         };
         
