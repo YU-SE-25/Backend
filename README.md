@@ -22,6 +22,7 @@
 | **Spring Boot** | 3.5.6 | `build.gradle.kts` 기준 |
 | **Gradle** | 8.14.3 | Wrapper 사용 (`./gradlew`로 실행) |
 | **MySQL** | 8.4.6 | 로컬 DB 또는 Docker 환경 |
+| **Docker** | 29.0.1 | |
 
 ---
 
