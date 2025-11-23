@@ -5,6 +5,9 @@ import com.unide.backend.domain.qna.dto.QnADto;
 import com.unide.backend.domain.qna.service.QnAService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.unide.backend.global.security.auth.PrincipalDetails;
+
 
 import java.util.List;
 
@@ -36,10 +39,15 @@ public class QnAController {
     }
 
     // 작성
-    @PostMapping
-    public QnADto create(@RequestBody QnADto qnaDto) {
-        return qnaService.createQnA(qnaDto);
-    }
+     @PostMapping
+    public QnADto create(
+        @AuthenticationPrincipal PrincipalDetails userDetails,
+        @RequestBody QnADto qnaDto) {
+
+    Long authorId = userDetails.getUser().getId(); // 🔥 로그인 유저 ID 자동 추출
+
+    return qnaService.createQnA(qnaDto, authorId);
+}
 
     // 수정
     @PutMapping("/{postId}")

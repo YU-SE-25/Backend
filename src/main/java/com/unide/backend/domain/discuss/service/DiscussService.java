@@ -46,10 +46,10 @@ public class DiscussService {
     }
 
     // ========== 생성 ==========
-    public DiscussDto createDiscuss(DiscussDto dto) {
+    public DiscussDto createDiscuss(DiscussDto dto,Long authorId) {
         // Discuss 엔티티에 Builder 패턴이 적용되어 있다는 가정 하에 작성됩니다.
         Discuss discuss = Discuss.builder()
-                .authorId(dto.getAuthorId())
+                .authorId(authorId)
                 .anonymous(dto.isAnonymous())
                 .title(dto.getTitle())
                 .contents(dto.getContents())
@@ -57,6 +57,7 @@ public class DiscussService {
                 .likeCount(0)
                 .commentCount(0)
                 .build();
+
 
         Discuss saved = discussRepository.save(discuss);
         return DiscussDto.fromEntity(saved);
