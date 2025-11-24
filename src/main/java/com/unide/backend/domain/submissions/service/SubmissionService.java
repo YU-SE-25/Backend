@@ -106,19 +106,14 @@ public class SubmissionService {
             
             CodeRunResponseDto runResult = dockerService.runCode(runRequest);
 
-            if (!runResult.isSuccess()) {
-                if (runResult.getError() != null && runResult.getError().contains("Compilation Error")) {
-                    finalStatus = SubmissionStatus.CE;
+            if (runResult.getStatus() != SubmissionStatus.CA) {
+                finalStatus = runResult.getStatus();
+                if (finalStatus == SubmissionStatus.CE) {
                     compileOutput = runResult.getError();
-                    break;
-                } else {
-                    finalStatus = SubmissionStatus.RE;
-                    break;
                 }
+                break;
             }
 
-            // 시간 초과 체크 (DockerService가 시간 초과 시 isSuccess=false로 주거나 별도 처리 필요.
-            // 현재 구조상 runResult.getExecutionTimeMs()가 timeLimit을 넘으면 TLE 처리 가능)
             String actualOutput = runResult.getOutput().trim();
             String expectedOutput = testCase.getOutput().trim();
 
