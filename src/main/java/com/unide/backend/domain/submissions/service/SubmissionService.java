@@ -3,7 +3,9 @@
 package com.unide.backend.domain.submissions.service;
 
 import com.unide.backend.domain.problems.entity.Problems;
+import com.unide.backend.domain.problems.entity.TestCase;
 import com.unide.backend.domain.problems.repository.ProblemsRepository;
+import com.unide.backend.domain.problems.repository.TestCaseRepository;
 import com.unide.backend.domain.submissions.dto.*;
 import com.unide.backend.domain.submissions.entity.SubmissionStatus;
 import com.unide.backend.domain.submissions.entity.Submissions;
@@ -14,12 +16,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class SubmissionService {
     private final SubmissionsRepository submissionsRepository;
     private final ProblemsRepository problemsRepository;
+    private final TestCaseRepository testCaseRepository;
     private final DockerService dockerService;
 
     @Transactional
@@ -71,6 +76,11 @@ public class SubmissionService {
         Problems problem = problemsRepository.findById(requestDto.getProblemId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 문제 ID입니다: " + requestDto.getProblemId()));
 
+        List<TestCase> testCases = testCaseRepository.findAllByProblem(problem);
+        if (testCases.isEmpty()) {
+            throw new IllegalStateException("해당 문제에 대한 테스트 케이스가 존재하지 않습니다.");
+        }
+
         Submissions submission = Submissions.builder()
                 .user(user)
                 .problem(problem)
@@ -78,46 +88,54 @@ public class SubmissionService {
                 .language(requestDto.getLanguage())
                 .status(SubmissionStatus.GRADING)
                 .isShared(false)
-                .totalTestCases(1) // 임시 값, 실제로는 문제의 테스트 케이스 수로 설정 필요
+                .totalTestCases(testCases.size())
                 .build();
         submissionsRepository.save(submission);
 
-        // (실제로는 문제에 연결된 테스트 케이스를 DB에서 가져와서 반복 실행해야 함. 여기서는 임시 값 사용)
-        String testInput = "1 2"; 
-        String expectedOutput = "3"; // 예시 정답
-
-        CodeRunRequestDto runRequest = new CodeRunRequestDto(
-                requestDto.getCode(), 
-                requestDto.getLanguage(), 
-                testInput
-        );
-        
-        CodeRunResponseDto runResult = dockerService.runCode(runRequest);
-
-        SubmissionStatus finalStatus;
+        SubmissionStatus finalStatus = SubmissionStatus.CA;
+        long maxRuntime = 0;
+        int passedCount = 0;
         String compileOutput = null;
 
-        if (!runResult.isSuccess()) {
-            if (runResult.getError().contains("Compilation Error")) {
-                finalStatus = SubmissionStatus.CE;
-                compileOutput = runResult.getError();
-            } else {
-                finalStatus = SubmissionStatus.RE;
+        for (TestCase testCase : testCases) {
+            CodeRunRequestDto runRequest = new CodeRunRequestDto(
+                    requestDto.getCode(), 
+                    requestDto.getLanguage(), 
+                    testCase.getInput()
+            );
+            
+            CodeRunResponseDto runResult = dockerService.runCode(runRequest);
+
+            if (!runResult.isSuccess()) {
+                if (runResult.getError() != null && runResult.getError().contains("Compilation Error")) {
+                    finalStatus = SubmissionStatus.CE;
+                    compileOutput = runResult.getError();
+                    break;
+                } else {
+                    finalStatus = SubmissionStatus.RE;
+                    break;
+                }
             }
-        } else {
-            if (runResult.getOutput().trim().equals(expectedOutput)) {
-                finalStatus = SubmissionStatus.CA;
+
+            // 시간 초과 체크 (DockerService가 시간 초과 시 isSuccess=false로 주거나 별도 처리 필요.
+            // 현재 구조상 runResult.getExecutionTimeMs()가 timeLimit을 넘으면 TLE 처리 가능)
+            String actualOutput = runResult.getOutput().trim();
+            String expectedOutput = testCase.getOutput().trim();
+
+            if (actualOutput.equals(expectedOutput)) {
+                passedCount++;
+                maxRuntime = Math.max(maxRuntime, runResult.getExecutionTimeMs());
             } else {
                 finalStatus = SubmissionStatus.WA;
+                break; // 하나라도 틀리면 중단 (또는 끝까지 돌리고 틀린 개수만 셀 수도 있음)
             }
         }
-        
-        // (현재 DockerService는 성공/실패만 반환하므로, 필요시 DockerService 로직 고도화 필요. 여기서는 단순 성공/실패로직만 적용)
+
         submission.updateResult(
                 finalStatus,
-                (int) runResult.getExecutionTimeMs(),
-                0, // 메모리 사용량 (Docker Java API로 정확한 측정은 복잡하므로 일단 0)
-                finalStatus == SubmissionStatus.CA ? 1 : 0, // 맞은 테스트 케이스 수
+                (int) maxRuntime,
+                0, // 메모리 측정은 Java Docker Client로는 복잡하여 0으로 유지 (추후 cgroup 활용 필요)
+                passedCount,
                 compileOutput
         );
 
