@@ -5,6 +5,7 @@ package com.unide.backend.domain.submissions.service;
 import com.unide.backend.domain.submissions.dto.CodeRunRequestDto;
 import com.unide.backend.domain.submissions.dto.CodeRunResponseDto;
 import com.unide.backend.domain.submissions.entity.SubmissionLanguage;
+import com.unide.backend.domain.submissions.entity.SubmissionStatus;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
@@ -14,6 +15,8 @@ import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.zerodep.ZerodepDockerHttpClient;
 
+import lombok.Builder;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -58,25 +61,32 @@ public class DockerService {
                     return CodeRunResponseDto.builder()
                             .isSuccess(false)
                             .error("Compilation Error:\n" + compileResult.stderr)
+                            .status(SubmissionStatus.CE)
                             .build();
                 }
             }
 
             String runCmd = getRunCommand(request.getLanguage(), fileName, request.getInput());
             long startTime = System.currentTimeMillis();
-            ExecResult runResult = execCommand(containerId, "sh", "-c", runCmd);
+            int timeLimit = 5;
+            ExecResult runResult = execute(containerId, "sh", "-c", runCmd, timeLimit);
             long endTime = System.currentTimeMillis();
 
             return CodeRunResponseDto.builder()
-                    .isSuccess(runResult.exitCode == 0)
-                    .output(runResult.stdout)
-                    .error(runResult.stderr)
+                    .isSuccess(runResult.status == SubmissionStatus.CA)
+                    .output(runResult.output)
+                    .error(runResult.status == SubmissionStatus.RE ? runResult.output : null)
                     .executionTimeMs(endTime - startTime)
+                    .status(runResult.status)
                     .build();
 
         } catch (Exception e) {
             log.error("Docker execution failed", e);
-            return CodeRunResponseDto.builder().isSuccess(false).error("System Error: " + e.getMessage()).build();
+            return CodeRunResponseDto.builder()
+                    .isSuccess(false)
+                    .error("System Error: " + e.getMessage())
+                    .status(SubmissionStatus.RE)
+                    .build();
         } finally {
             if (containerId != null) {
                 try {
@@ -88,11 +98,11 @@ public class DockerService {
         }
     }
 
-    private ExecResult execCommand(String containerId, String... command) throws InterruptedException {
+    private ExecResult execute(String containerId, String shell, String option, String command, int timeLimit) throws InterruptedException {
         ExecCreateCmdResponse execResponse = dockerClient.execCreateCmd(containerId)
                 .withAttachStdout(true)
                 .withAttachStderr(true)
-                .withCmd(command)
+                .withCmd(shell, option, command)
                 .exec();
 
         ByteArrayOutputStream stdoutStream = new ByteArrayOutputStream();
@@ -111,29 +121,48 @@ public class DockerService {
                             log.error("Stream error", e);
                         }
                     }
-                }).awaitCompletion(5, TimeUnit.SECONDS);
+                }).awaitCompletion(timeLimit, TimeUnit.SECONDS);
 
         Long exitCode = dockerClient.inspectExecCmd(execResponse.getId()).exec().getExitCodeLong();
-        
-        return new ExecResult(
-                stdoutStream.toString(StandardCharsets.UTF_8).trim(),
-                stderrStream.toString(StandardCharsets.UTF_8).trim(),
-                exitCode != null ? exitCode.intValue() : -1
-        );
-    }
+        String stdout = stdoutStream.toString(StandardCharsets.UTF_8).trim();
+        String stderr = stderrStream.toString(StandardCharsets.UTF_8).trim();
 
-    private static class ExecResult {
-        String stdout;
-        String stderr;
-        int exitCode;
-
-        ExecResult(String stdout, String stderr, int exitCode) {
-            this.stdout = stdout;
-            this.stderr = stderr;
-            this.exitCode = exitCode;
+        if (exitCode == null) { 
+            return ExecResult.builder()
+                    .status(SubmissionStatus.TLE)
+                    .output("Time Limit Exceeded")
+                    .exitCode(-1)
+                    .build();
         }
+        
+        if (exitCode != 0) {
+            return ExecResult.builder()
+                    .status(SubmissionStatus.RE)
+                    .output(stderr.isEmpty() ? "Runtime Error (Exit code: " + exitCode + ")" : stderr)
+                    .exitCode(exitCode.intValue())
+                    .build();
+        }
+
+        return ExecResult.builder()
+                .status(SubmissionStatus.CA)
+                .output(stdout)
+                .exitCode(0)
+                .build();
+    }
+    
+    private ExecResult execCommand(String containerId, String... command) throws InterruptedException {
+        return execute(containerId, command[0], command[1], command[2], 10);
     }
 
+    @Getter
+    @Builder
+    private static class ExecResult {
+        private String output;
+        private String stderr;
+        private int exitCode;
+        private SubmissionStatus status;
+    }
+    
     private String getFileName(SubmissionLanguage language) {
         return switch (language) {
             case JAVA -> "Main.java";
