@@ -7,15 +7,6 @@ import java.time.LocalDateTime;
 import java.util.Random;
 import java.util.UUID;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-
-import lombok.RequiredArgsConstructor;
-import com.unide.backend.domain.auth.dto.LogoutRequestDto;
-import com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyRequestDto;
-import com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyResponseDto;
-import com.unide.backend.domain.auth.dto.TokenRefreshRequestDto;
-
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,22 +17,44 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import com.unide.backend.domain.admin.repository.BlacklistRepository;
-import com.unide.backend.domain.auth.dto.*;
-import com.unide.backend.domain.auth.entity.*;
-import com.unide.backend.domain.auth.repository.*;
+import com.unide.backend.domain.auth.dto.AvailabilityResponseDto;
+import com.unide.backend.domain.auth.dto.BlacklistCheckRequestDto;
+import com.unide.backend.domain.auth.dto.BlacklistCheckResponseDto;
+import com.unide.backend.domain.auth.dto.EmailRequestDto;
+import com.unide.backend.domain.auth.dto.LoginRequestDto;
+import com.unide.backend.domain.auth.dto.LoginResponseDto;
+import com.unide.backend.domain.auth.dto.LogoutRequestDto;
+import com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyRequestDto;
+import com.unide.backend.domain.auth.dto.PasswordResetCodeVerifyResponseDto;
+import com.unide.backend.domain.auth.dto.PasswordResetRequestDto;
+import com.unide.backend.domain.auth.dto.RegisterRequestDto;
+import com.unide.backend.domain.auth.dto.TokenRefreshRequestDto;
+import com.unide.backend.domain.auth.dto.WelcomeEmailRequestDto;
+import com.unide.backend.domain.auth.entity.EmailVerificationCode;
+import com.unide.backend.domain.auth.entity.PasswordResetToken;
+import com.unide.backend.domain.auth.entity.RefreshToken;
+import com.unide.backend.domain.auth.repository.EmailVerificationCodeRepository;
+import com.unide.backend.domain.auth.repository.PasswordResetTokenRepository;
+import com.unide.backend.domain.auth.repository.RefreshTokenRepository;
+import com.unide.backend.domain.instructor.entity.InstructorApplication;
+import com.unide.backend.domain.instructor.entity.UserPortfolioFile;
+import com.unide.backend.domain.instructor.repository.InstructorApplicationRepository;
+import com.unide.backend.domain.instructor.repository.UserPortfolioFileRepository;
+import com.unide.backend.domain.mypage.entity.MyPage;
+import com.unide.backend.domain.mypage.repository.MyPageRepository;
 import com.unide.backend.domain.terms.entity.UserTermsConsent;
 import com.unide.backend.domain.terms.repository.UserTermsConsentRepository;
 import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.domain.user.entity.UserRole;
 import com.unide.backend.domain.user.entity.UserStatus;
 import com.unide.backend.domain.user.repository.UserRepository;
 import com.unide.backend.domain.user.service.UserLoginService;
 import com.unide.backend.global.exception.AuthException;
 import com.unide.backend.global.security.jwt.JwtTokenProvider;
-import com.unide.backend.domain.instructor.entity.InstructorApplication;
-import com.unide.backend.domain.instructor.entity.UserPortfolioFile;
-import com.unide.backend.domain.instructor.repository.InstructorApplicationRepository;
-import com.unide.backend.domain.instructor.repository.UserPortfolioFileRepository;
-import com.unide.backend.domain.user.entity.UserRole;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -62,6 +75,7 @@ public class AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final UserPortfolioFileRepository userPortfolioFileRepository;
     private final InstructorApplicationRepository instructorApplicationRepository;
+    private final MyPageRepository myPageRepository;
 
     /**
      * 이메일 사용 가능 여부를 확인하는 메서드
@@ -141,6 +155,14 @@ public class AuthService {
         }
 
         User savedUser = userRepository.save(newUser);
+
+        // MyPage 자동 생성 (nickname은 User의 nickname을 사용)
+        MyPage myPage = MyPage.builder()
+                .user(savedUser)
+                .nickname(savedUser.getNickname())
+                .isPublic(true)
+                .build();
+        myPageRepository.save(myPage);
 
         // 요청 DTO의 role이 INSTRUCTOR일 때 지원서 저장
         if (requestDto.getRole() == UserRole.INSTRUCTOR) {
