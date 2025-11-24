@@ -70,6 +70,8 @@ tmp/
 # Docker / Deployment
 # Docker Compose
 docker-compose.override.yml
+/uploads/
+/temp/
 
 # Docker build artifacts
 *.tar
