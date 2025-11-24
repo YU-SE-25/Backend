@@ -1,37 +1,48 @@
 package com.unide.backend.domain.discuss.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.unide.backend.domain.discuss.entity.Discuss;
-import lombok.*;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.unide.backend.domain.discuss.entity.Discuss;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 
 @Getter
 @Setter
 @Builder
-@NoArgsConstructor // 기본 생성자
-@AllArgsConstructor // 모든 필드를 포함하는 생성자
-public class DiscussDto {
-    
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)   // 🔒 요청에서 들어오는 값은 무시
-    private Long authorId;
+@NoArgsConstructor
+@AllArgsConstructor
 
+public class DiscussDto {
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private Long authorId;
     private Long postId;
     private boolean anonymous;
     private String title;
     private String contents;
     private boolean privatePost;
-     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private int likeCount;
-     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private int commentCount;
-     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private LocalDateTime createdAt;
-     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private LocalDateTime updatedAt;
 
-    // DTO 내부에서 Entity로 변환하는 메서드를 Builder 패턴으로 구현
+    private String attachmentUrl; // ⭐ 추가된 부분
+
     public static DiscussDto fromEntity(Discuss discuss) {
         if (discuss == null) return null;
 
@@ -46,6 +57,7 @@ public class DiscussDto {
                 .commentCount(discuss.getCommentCount())
                 .createdAt(discuss.getCreatedAt())
                 .updatedAt(discuss.getUpdatedAt())
+                .attachmentUrl(discuss.getAttachmentUrl()) // ⭐ 여기도 추가
                 .build();
     }
 }
