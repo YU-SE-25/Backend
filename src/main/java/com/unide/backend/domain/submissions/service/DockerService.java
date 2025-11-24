@@ -1,5 +1,10 @@
 // Docker 컨테이너를 이용해 안전하게 코드를 실행하는 서비스
+
 package com.unide.backend.domain.submissions.service;
+
+import com.unide.backend.domain.submissions.dto.CodeRunRequestDto;
+import com.unide.backend.domain.submissions.dto.CodeRunResponseDto;
+import com.unide.backend.domain.submissions.entity.SubmissionLanguage;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
@@ -7,10 +12,8 @@ import com.github.dockerjava.api.command.ExecCreateCmdResponse;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
-import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
-import com.unide.backend.domain.submissions.dto.CodeRunRequestDto;
-import com.unide.backend.domain.submissions.dto.CodeRunResponseDto;
-import com.unide.backend.domain.submissions.entity.SubmissionLanguage;
+import com.github.dockerjava.zerodep.ZerodepDockerHttpClient;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -26,7 +29,7 @@ public class DockerService {
 
     public DockerService() {
         DefaultDockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
-        ApacheDockerHttpClient httpClient = new ApacheDockerHttpClient.Builder()
+        ZerodepDockerHttpClient httpClient = new ZerodepDockerHttpClient.Builder()
                 .dockerHost(config.getDockerHost())
                 .sslConfig(config.getSSLConfig())
                 .build();
