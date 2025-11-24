@@ -1,21 +1,26 @@
 package com.unide.backend.domain.qna.service;
 
-import com.unide.backend.domain.problems.entity.Problems;
-import com.unide.backend.domain.qna.dto.QnAProblemDto;
-import com.unide.backend.domain.qna.dto.QnADto;
-import com.unide.backend.domain.qna.entity.QnA;
-import com.unide.backend.domain.qna.repository.QnARepository;
-import com.unide.backend.domain.user.repository.UserRepository;
-import com.unide.backend.domain.user.entity.User;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.unide.backend.domain.problems.entity.Problems;
+import com.unide.backend.domain.qna.dto.QnADto;
+import com.unide.backend.domain.qna.dto.QnAProblemDto;
+import com.unide.backend.domain.qna.entity.QnA;
+import com.unide.backend.domain.qna.repository.QnARepository;
+import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.domain.user.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -114,5 +119,23 @@ public QnADto createQnA(QnADto dto, Long authorId) {
                 .stream()
                 .map(QnADto::fromEntity)
                 .collect(Collectors.toList());
+    }
+    
+    //첨부파일 첨가
+    @Transactional
+    public Map<String, Object> attachFile(Long postId, String fileUrl) {
+
+        QnA post = qnaRepository.findById(postId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("해당 게시물이 없습니다. postId=" + postId));
+
+        post.setAttachmentUrl(fileUrl);   // 첨부 URL 저장
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "첨부파일이 등록되었습니다.");
+        response.put("post_id", postId);
+        response.put("updated_at", LocalDateTime.now());
+
+        return response;
     }
 }

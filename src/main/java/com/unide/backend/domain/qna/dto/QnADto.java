@@ -28,6 +28,8 @@ public class QnADto {
     private Long problemId;            // problem_post.problem_id
     private QnAProblemDto problem;     // 문제 상세 DTO (선택)
 
+    private String attachmentUrl;
+
     /** QnA 엔티티만으로 만드는 기본 DTO */
     public static QnADto fromEntity(QnA qna) {
         return QnADto.builder()
@@ -39,6 +41,7 @@ public class QnADto {
                 .privatePost(qna.isPrivatePost())
                 .likeCount(qna.getLikeCount())
                 .commentCount(qna.getCommentCount())
+                .attachmentUrl(qna.getAttachmentUrl())   
                 .build();
     }
 
