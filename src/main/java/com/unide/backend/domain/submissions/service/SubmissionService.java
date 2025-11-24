@@ -106,23 +106,32 @@ public class SubmissionService {
             
             CodeRunResponseDto runResult = dockerService.runCode(runRequest);
 
-            if (runResult.getStatus() != SubmissionStatus.CA) {
-                finalStatus = runResult.getStatus();
-                if (finalStatus == SubmissionStatus.CE) {
-                    compileOutput = runResult.getError();
-                }
+            if (runResult.getStatus() == SubmissionStatus.CE) {
+                finalStatus = SubmissionStatus.CE;
+                compileOutput = runResult.getError();
+                passedCount = 0;
                 break;
             }
 
-            String actualOutput = runResult.getOutput().trim();
-            String expectedOutput = testCase.getOutput().trim();
-
-            if (actualOutput.equals(expectedOutput)) {
-                passedCount++;
-                maxRuntime = Math.max(maxRuntime, runResult.getExecutionTimeMs());
+            if (runResult.getStatus() != SubmissionStatus.CA) {
+                // 우선순위에 따라 최종 상태 업데이트 (RE > TLE > WA > CA)
+                if (finalStatus == SubmissionStatus.CA || finalStatus == SubmissionStatus.WA) {
+                    finalStatus = runResult.getStatus(); 
+                } else if (finalStatus == SubmissionStatus.TLE && runResult.getStatus() == SubmissionStatus.RE) {
+                    finalStatus = SubmissionStatus.RE;
+                }
             } else {
-                finalStatus = SubmissionStatus.WA;
-                break; // 하나라도 틀리면 중단 (또는 끝까지 돌리고 틀린 개수만 셀 수도 있음)
+                String actualOutput = runResult.getOutput().trim();
+                String expectedOutput = testCase.getOutput().trim();
+
+                if (actualOutput.equals(expectedOutput)) {
+                    passedCount++;
+                    maxRuntime = Math.max(maxRuntime, runResult.getExecutionTimeMs());
+                } else {
+                    if (finalStatus == SubmissionStatus.CA) {
+                        finalStatus = SubmissionStatus.WA;
+                    }
+                }
             }
         }
 
