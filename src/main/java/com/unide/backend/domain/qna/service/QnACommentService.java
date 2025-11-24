@@ -9,10 +9,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.unide.backend.domain.qna.dto.QnACommentRequest;
 import com.unide.backend.domain.qna.dto.QnACommentResponse;
+import com.unide.backend.domain.qna.entity.QnA;
 import com.unide.backend.domain.qna.entity.QnAComment;
 import com.unide.backend.domain.qna.entity.QnACommentLike;
 import com.unide.backend.domain.qna.repository.QnACommentLikeRepository;
 import com.unide.backend.domain.qna.repository.QnACommentRepository;
+import com.unide.backend.domain.qna.repository.QnARepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -22,7 +24,9 @@ import lombok.RequiredArgsConstructor;
 public class QnACommentService {
     
     private final QnACommentRepository qnaCommentRepository;
-    private final QnACommentLikeRepository likeRepository;   
+    private final QnACommentLikeRepository likeRepository;  
+    private final QnARepository qnaRepository;
+ 
 
     
     // ===== 특정 게시글 댓글 목록 조회 =====
@@ -59,36 +63,44 @@ public class QnACommentService {
 
         return QnACommentResponse.fromEntity(comment, viewerLiked, null);
     }
+// ===== 댓글 생성 (대댓글 포함) =====
+public QnACommentResponse createComment(Long postId,
+                                        Long authorId,
+                                        QnACommentRequest request) {
 
-    // ===== 댓글 생성 (대댓글 포함) =====
-    public QnACommentResponse createComment(Long postId,
-                                                Long authorId,
-                                                QnACommentRequest request) {
+    // 1) 게시글 존재하는지 확인 + comment_count 증가 대상
+    QnA post = qnaRepository.findById(postId)
+            .orElseThrow(() ->
+                    new IllegalArgumentException("게시글이 존재하지 않습니다. postId=" + postId));
 
-        boolean privatePost = request.getPrivatePost() != null
-                ? request.getPrivatePost()
-                : false;
+    // 2) privatePost 처리
+    boolean privatePost = request.getPrivatePost() != null
+            ? request.getPrivatePost()
+            : false;
 
-        QnAComment comment = QnAComment.builder()
-                .postId(postId)
-                .authorId(authorId)
-                .anonymous(request.isAnonymity())
-                .parentCommentId(request.getParentId())
-                // 👉 여기 DTO 메서드 이름을 네가 실제로 가진 걸로 맞춰라
-                .content(request.getContents())   // 만약 DTO가 getContent()면 이 줄을 바꿔
-                .privatePost(privatePost)
-                .likeCount(0)
-                .build();
+    // 3) 댓글 생성
+    QnAComment comment = QnAComment.builder()
+            .postId(postId)
+            .authorId(authorId)
+            .anonymous(request.isAnonymity())
+            .parentCommentId(request.getParentId())
+            .content(request.getContents())
+            .privatePost(privatePost)
+            .likeCount(0)
+            .build();
 
-        QnAComment saved = qnaCommentRepository.save(comment);
+    QnAComment saved = qnaCommentRepository.save(comment);
 
-        String message = (request.getParentId() == null)
-                ? "댓글이 등록되었습니다."
-                : "대댓글이 등록되었습니다.";
+    // 4) comment_count 증가
+    post.setCommentCount(post.getCommentCount() + 1);
 
-        return QnACommentResponse.fromEntity(saved, false, message);
-    }
-    
+    String message = (request.getParentId() == null)
+            ? "댓글이 등록되었습니다."
+            : "대댓글이 등록되었습니다.";
+
+    return QnACommentResponse.fromEntity(saved, false, message);
+}
+
 
     // ===== 댓글 수정 =====
     public QnACommentResponse updateComment(Long commentId,
@@ -114,7 +126,6 @@ public class QnACommentService {
 
         return QnACommentResponse.fromEntity(comment, false, "댓글이 수정되었습니다.");
     }
-    
     // ===== 댓글 삭제 =====
     public void deleteComment(Long commentId, Long authorId) {
         QnAComment comment = qnaCommentRepository.findById(commentId)
@@ -125,11 +136,17 @@ public class QnACommentService {
             throw new IllegalStateException("본인이 작성한 댓글만 삭제할 수 있습니다.");
         }
 
-        // 먼저 좋아요 레코드 제거 (FK 제약 때문)
-        likeRepository.deleteByCommentIdAndLikerId(commentId, authorId); // 작성자 것도 있으면 삭제
-        // 다른 사람 좋아요까지 지우려면 아래 메서드 하나 더 만들어야 함
-        // likeRepository.deleteAllByCommentId(commentId);
+        // 1) 게시글 댓글 수 -1
+        QnA post = qnaRepository.findById(comment.getPostId())
+                .orElseThrow(() ->
+                        new IllegalArgumentException("게시글이 존재하지 않습니다. postId=" + comment.getPostId()));
 
+        post.setCommentCount(Math.max(0, post.getCommentCount() - 1));
+
+        // 2) 좋아요 정리 (지금은 작성자 것만 지우지만, 필요하면 전체 삭제 메서드 추가)
+        likeRepository.deleteByCommentIdAndLikerId(commentId, authorId);
+
+        // 3) 댓글 삭제
         qnaCommentRepository.delete(comment);
     }
   // ===== 좋아요 토글 =====
