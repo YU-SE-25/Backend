@@ -8,10 +8,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.unide.backend.domain.discuss.dto.DiscussCommentRequest;
 import com.unide.backend.domain.discuss.dto.DiscussCommentResponse;
+import com.unide.backend.domain.discuss.entity.Discuss;
 import com.unide.backend.domain.discuss.entity.DiscussComment;
 import com.unide.backend.domain.discuss.entity.DiscussCommentLike;
 import com.unide.backend.domain.discuss.repository.DiscussCommentLikeRepository;
 import com.unide.backend.domain.discuss.repository.DiscussCommentRepository;
+import com.unide.backend.domain.discuss.repository.DiscussRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,7 +23,8 @@ import lombok.RequiredArgsConstructor;
 public class DiscussCommentService {
 
     private final DiscussCommentRepository discussCommentRepository;
-    private final DiscussCommentLikeRepository likeRepository;   // ⭐ 추가
+    private final DiscussCommentLikeRepository likeRepository;
+    private final DiscussRepository discussRepository;   // ⭐ 토론글(게시글) 저장소
 
     // ===== 특정 게시글 댓글 목록 조회 =====
     @Transactional(readOnly = true)
@@ -63,22 +66,30 @@ public class DiscussCommentService {
                                                 Long authorId,
                                                 DiscussCommentRequest request) {
 
+        // 1) 게시글 존재 확인 + commentCount 증가 대상
+        Discuss post = discussRepository.findById(postId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("게시글이 존재하지 않습니다. postId=" + postId));
+
         boolean privatePost = request.getPrivatePost() != null
                 ? request.getPrivatePost()
                 : false;
 
+        // 2) 댓글 생성 & 저장
         DiscussComment comment = DiscussComment.builder()
                 .postId(postId)
                 .authorId(authorId)
                 .anonymous(request.isAnonymity())
                 .parentCommentId(request.getParentId())
-                // 👉 여기 DTO 메서드 이름을 네가 실제로 가진 걸로 맞춰라
-                .content(request.getContents())   // 만약 DTO가 getContent()면 이 줄을 바꿔
+                .content(request.getContents())   // DTO가 contents 필드라고 가정
                 .privatePost(privatePost)
                 .likeCount(0)
                 .build();
 
         DiscussComment saved = discussCommentRepository.save(comment);
+
+        // 3) 게시글 댓글 수 +1
+        post.setCommentCount(post.getCommentCount() + 1);
 
         String message = (request.getParentId() == null)
                 ? "댓글이 등록되었습니다."
@@ -99,7 +110,6 @@ public class DiscussCommentService {
             throw new IllegalStateException("본인이 작성한 댓글만 수정할 수 있습니다.");
         }
 
-        // DTO 메서드 이름 맞추기
         comment.setContent(request.getContents());
         comment.setAnonymous(request.isAnonymity());
 
@@ -122,11 +132,18 @@ public class DiscussCommentService {
             throw new IllegalStateException("본인이 작성한 댓글만 삭제할 수 있습니다.");
         }
 
-        // 먼저 좋아요 레코드 제거 (FK 제약 때문)
-        likeRepository.deleteByCommentIdAndLikerId(commentId, authorId); // 작성자 것도 있으면 삭제
-        // 다른 사람 좋아요까지 지우려면 아래 메서드 하나 더 만들어야 함
-        // likeRepository.deleteAllByCommentId(commentId);
+        // 1) 게시글 댓글 수 -1
+        Discuss post = discussRepository.findById(comment.getPostId())
+                .orElseThrow(() ->
+                        new IllegalArgumentException("게시글이 존재하지 않습니다. postId=" + comment.getPostId()));
 
+        post.setCommentCount(Math.max(0, post.getCommentCount() - 1));
+
+        // 2) 좋아요 삭제 (지금은 작성자의 좋아요만, 필요하면 전체 삭제 메서드 추가)
+        likeRepository.deleteByCommentIdAndLikerId(commentId, authorId);
+        // 예: likeRepository.deleteAllByCommentId(commentId); 이런 것도 추가 가능
+
+        // 3) 댓글 삭제
         discussCommentRepository.delete(comment);
     }
 
@@ -156,7 +173,7 @@ public class DiscussCommentService {
                     .likerId(userId)
                     .build();
 
-            likeRepository.save(like);   // ⭐ 여기 수정
+            likeRepository.save(like);
             comment.setLikeCount(comment.getLikeCount() + 1);
 
             return DiscussCommentResponse.fromEntity(
