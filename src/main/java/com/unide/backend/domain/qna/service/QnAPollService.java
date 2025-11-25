@@ -16,7 +16,8 @@ import com.unide.backend.domain.qna.repository.QnAPollOptionRepository;
 import com.unide.backend.domain.qna.repository.QnAPollRepository;
 import com.unide.backend.domain.qna.repository.QnAPollVoteRepository;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
+
 
 @Service
 @Transactional
@@ -107,5 +108,22 @@ public QnAPollResponse createPoll(Long postId, Long authorId, QnAPollCreateReque
 
         return new QnAPollVoteResponse("투표가 정상적으로 반영되었습니다.");
     }
+    
+   @Transactional(readOnly = true)
+public QnAPollResponse getPollByPostId(Long postId, Long userId) {
+    QnAPoll poll = pollRepository.findByPostId(postId)
+            .orElseThrow(() -> new IllegalArgumentException("해당 게시글에는 투표가 없습니다. postId=" + postId));
+
+    QnAPollResponse response = QnAPollResponse.fromEntity(poll, userId);
+
+    // 내가 이미 투표했는지 여부
+    if (userId != null) {
+        boolean alreadyVoted = voteRepository.existsByPollAndVoterId(poll, userId); // ✅ poll 그대로 전달
+        response.setAlreadyVoted(alreadyVoted);
+    }
+
+    return response;
+}
+
     
 }

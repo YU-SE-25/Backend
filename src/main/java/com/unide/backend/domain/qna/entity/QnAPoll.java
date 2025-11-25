@@ -1,12 +1,16 @@
 package com.unide.backend.domain.qna.entity;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
@@ -18,8 +22,18 @@ public class QnAPoll {
     @Column(name = "poll_id")
     private Long id;
 
+    // 🔥 QnA 연관관계 잠시 제거 (postId만 사용)
+    // @ManyToOne(fetch = FetchType.LAZY)
+    // @JoinColumn(name = "post_id", nullable = false)
+    // private QnA qna;
+
     @Column(name = "post_id", nullable = false)
     private Long postId;
+
+    private String question;
+
+    @OneToMany(mappedBy = "poll", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<QnAPollOption> options = new ArrayList<>();
 
     @Column(name = "author_id", nullable = false)
     private Long authorId;
@@ -35,12 +49,9 @@ public class QnAPoll {
 
     @Column(name = "allows_multi", nullable = false)
     private boolean allowsMulti;
-    
+
     @Column(name = "created_at", nullable = false, updatable = false)
-private LocalDateTime createdAt = LocalDateTime.now();
-
-
-
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     protected QnAPoll() {}
 
@@ -59,7 +70,13 @@ private LocalDateTime createdAt = LocalDateTime.now();
         this.createdAt = LocalDateTime.now();
     }
 
-    // getter만 필요하면 setter는 안 만들어도 됨
+    // === 연관관계 편의 메서드 ===
+    public void addOption(QnAPollOption option) {
+        options.add(option);
+        option.setPoll(this);
+    }
+
+    // === Getter ===
     public Long getId() { return id; }
     public Long getPostId() { return postId; }
     public Long getAuthorId() { return authorId; }
@@ -67,7 +84,13 @@ private LocalDateTime createdAt = LocalDateTime.now();
     public LocalDateTime getEndTime() { return endTime; }
     public boolean isPrivatePoll() { return privatePoll; }
     public boolean isAllowsMulti() { return allowsMulti; }
-    public LocalDateTime getCreatedAt() {
-    return createdAt;
-}
+    public LocalDateTime getCreatedAt() { return createdAt; }
+
+    public String getQuestion() {
+        return question;
+    }
+
+    public List<QnAPollOption> getOptions() {
+        return options;
+    }
 }

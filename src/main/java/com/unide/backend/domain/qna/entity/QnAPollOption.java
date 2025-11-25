@@ -9,7 +9,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "qna_poll_option")
 public class QnAPollOption {
@@ -23,21 +29,23 @@ public class QnAPollOption {
     @JoinColumn(name = "poll_id", nullable = false)
     private QnAPoll poll;
 
+    @Column(name = "label", nullable = false)
+    private String label;          // "1", "2", ...
+
     @Column(name = "content", nullable = false, length = 200)
-    private String content;
+    private String content;        // 보기 내용
 
-    @Column(name = "label", nullable = false)   // 🔥 DB에 있는 label 컬럼
-    private String label;
+    @Column(name = "vote_count", nullable = false)
+    private int voteCount;         // 이 보기의 투표 수
 
-    protected QnAPollOption() {}
-
-     public QnAPollOption(QnAPoll poll, String label, String content) {
+    public QnAPollOption(QnAPoll poll, String label, String content) {
         this.poll = poll;
         this.label = label;
         this.content = content;
+        this.voteCount = 0;
     }
 
-    public Long getId() { return id; }
-    public QnAPoll getPoll() { return poll; }
-    public String getContent() { return content; }
+    public void setPoll(QnAPoll poll) {
+        this.poll = poll;
+    }
 }
