@@ -4,6 +4,8 @@ package com.unide.backend.domain.submissions.entity;
 
 import com.unide.backend.domain.problems.entity.Problems;
 import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.domain.submissions.entity.SubmissionLanguage;
+import com.unide.backend.domain.submissions.entity.SubmissionStatus;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -76,5 +78,13 @@ public class Submissions {
         this.code = code;
         this.language = language;
         this.submittedAt = LocalDateTime.now();
+    }
+
+    public void updateResult(SubmissionStatus status, Integer runtime, Integer memory, Integer passedTestCases, String compileOutput) {
+        this.status = status;
+        this.runtime = runtime;
+        this.memory = memory;
+        this.passedTestCases = passedTestCases;
+        this.compileOutput = compileOutput;
     }
 }

@@ -3,10 +3,10 @@
 package com.unide.backend.domain.submissions.service;
 
 import com.unide.backend.domain.problems.entity.Problems;
+import com.unide.backend.domain.problems.entity.TestCase;
 import com.unide.backend.domain.problems.repository.ProblemsRepository;
-import com.unide.backend.domain.submissions.dto.CodeDraftSaveRequestDto;
-import com.unide.backend.domain.submissions.dto.CodeDraftSaveResponseDto;
-import com.unide.backend.domain.submissions.dto.CodeDraftResponseDto;
+import com.unide.backend.domain.problems.repository.TestCaseRepository;
+import com.unide.backend.domain.submissions.dto.*;
 import com.unide.backend.domain.submissions.entity.SubmissionStatus;
 import com.unide.backend.domain.submissions.entity.Submissions;
 import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
@@ -16,12 +16,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class SubmissionService {
     private final SubmissionsRepository submissionsRepository;
     private final ProblemsRepository problemsRepository;
+    private final TestCaseRepository testCaseRepository;
+    private final DockerService dockerService;
 
     @Transactional
     public CodeDraftSaveResponseDto saveCodeDraft(User user, CodeDraftSaveRequestDto requestDto) {
@@ -64,6 +68,90 @@ public class SubmissionService {
         return CodeDraftResponseDto.builder()
                 .code(draftSubmission.getCode())
                 .language(draftSubmission.getLanguage())
+                .build();
+    }
+
+    @Transactional
+    public SubmissionResponseDto submitCode(User user, SubmissionRequestDto requestDto) {
+        Problems problem = problemsRepository.findById(requestDto.getProblemId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 문제 ID입니다: " + requestDto.getProblemId()));
+
+        List<TestCase> testCases = testCaseRepository.findAllByProblem(problem);
+        if (testCases.isEmpty()) {
+            throw new IllegalStateException("해당 문제에 대한 테스트 케이스가 존재하지 않습니다.");
+        }
+
+        Submissions submission = Submissions.builder()
+                .user(user)
+                .problem(problem)
+                .code(requestDto.getCode())
+                .language(requestDto.getLanguage())
+                .status(SubmissionStatus.GRADING)
+                .isShared(false)
+                .totalTestCases(testCases.size())
+                .build();
+        submissionsRepository.save(submission);
+
+        SubmissionStatus finalStatus = SubmissionStatus.CA;
+        long maxRuntime = 0;
+        int passedCount = 0;
+        String compileOutput = null;
+
+        for (TestCase testCase : testCases) {
+            CodeRunRequestDto runRequest = new CodeRunRequestDto(
+                    requestDto.getCode(), 
+                    requestDto.getLanguage(), 
+                    testCase.getInput()
+            );
+            
+            CodeRunResponseDto runResult = dockerService.runCode(runRequest);
+
+            if (runResult.getStatus() == SubmissionStatus.CE) {
+                finalStatus = SubmissionStatus.CE;
+                compileOutput = runResult.getError();
+                passedCount = 0;
+                break;
+            }
+
+            if (runResult.getStatus() != SubmissionStatus.CA) {
+                // 우선순위에 따라 최종 상태 업데이트 (RE > TLE > WA > CA)
+                if (finalStatus == SubmissionStatus.CA || finalStatus == SubmissionStatus.WA) {
+                    finalStatus = runResult.getStatus(); 
+                } else if (finalStatus == SubmissionStatus.TLE && runResult.getStatus() == SubmissionStatus.RE) {
+                    finalStatus = SubmissionStatus.RE;
+                }
+            } else {
+                String actualOutput = runResult.getOutput().trim();
+                String expectedOutput = testCase.getOutput().trim();
+
+                if (actualOutput.equals(expectedOutput)) {
+                    passedCount++;
+                    maxRuntime = Math.max(maxRuntime, runResult.getExecutionTimeMs());
+                } else {
+                    if (finalStatus == SubmissionStatus.CA) {
+                        finalStatus = SubmissionStatus.WA;
+                    }
+                }
+            }
+        }
+
+        submission.updateResult(
+                finalStatus,
+                (int) maxRuntime,
+                0, // 메모리 측정은 Java Docker Client로는 복잡하여 0으로 유지 (추후 cgroup 활용 필요)
+                passedCount,
+                compileOutput
+        );
+
+        return SubmissionResponseDto.builder()
+                .submissionId(submission.getId())
+                .status(finalStatus)
+                .runtime(submission.getRuntime())
+                .memory(submission.getMemory())
+                .passedTestCases(submission.getPassedTestCases())
+                .totalTestCases(submission.getTotalTestCases())
+                .compileOutput(submission.getCompileOutput())
+                .message("채점이 완료되었습니다.")
                 .build();
     }
 }

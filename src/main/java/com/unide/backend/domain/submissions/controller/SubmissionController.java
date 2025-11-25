@@ -2,9 +2,7 @@
 
 package com.unide.backend.domain.submissions.controller;
 
-import com.unide.backend.domain.submissions.dto.CodeDraftSaveRequestDto;
-import com.unide.backend.domain.submissions.dto.CodeDraftSaveResponseDto;
-import com.unide.backend.domain.submissions.dto.CodeDraftResponseDto;
+import com.unide.backend.domain.submissions.dto.*;
 import com.unide.backend.domain.submissions.service.SubmissionService;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
@@ -13,12 +11,7 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam; 
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -41,6 +34,15 @@ public class SubmissionController {
             @RequestParam Long problemId) {
         
         CodeDraftResponseDto response = submissionService.getDraftCode(principalDetails.getUser(), problemId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping
+    public ResponseEntity<SubmissionResponseDto> submitCode(
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @Valid @RequestBody SubmissionRequestDto requestDto) {
+        
+        SubmissionResponseDto response = submissionService.submitCode(principalDetails.getUser(), requestDto);
         return ResponseEntity.ok(response);
     }
 }
