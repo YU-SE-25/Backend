@@ -1,8 +1,13 @@
 package com.unide.backend.domain.qna.dto;
 
-import com.unide.backend.domain.problems.entity.Problems;
 import com.unide.backend.domain.problems.entity.ProblemDifficulty;
-import lombok.*;
+import com.unide.backend.domain.problems.entity.Problems;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -23,5 +28,15 @@ public class QnAProblemDto {
                 .title(problem.getTitle())
                 .difficulty(problem.getDifficulty())
                 .build();
+    }
+
+    public Long getProblemId() {
+        return problemId;
+    }
+    public String getTitle() {
+        return title;
+    }
+    public ProblemDifficulty getDifficulty() {
+        return difficulty;
     }
 }

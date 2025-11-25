@@ -3,18 +3,15 @@ package com.unide.backend.domain.discuss.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.unide.backend.domain.discuss.entity.Discuss;
 import lombok.*;
-import java.time.LocalDateTime;
-
-
 
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
-@NoArgsConstructor // 기본 생성자
-@AllArgsConstructor // 모든 필드를 포함하는 생성자
 public class DiscussDto {
-    
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)   // 🔒 요청에서 들어오는 값은 무시
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long authorId;
 
     private Long postId;
@@ -22,30 +19,46 @@ public class DiscussDto {
     private String title;
     private String contents;
     private boolean privatePost;
-     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    private int likeCount;
-     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    private int commentCount;
-     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    private LocalDateTime createdAt;
-     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    private LocalDateTime updatedAt;
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private String message;
 
-    // DTO 내부에서 Entity로 변환하는 메서드를 Builder 패턴으로 구현
-    public static DiscussDto fromEntity(Discuss discuss) {
-        if (discuss == null) return null;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private int likeCount;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private int commentCount;
+
+    // 첨부파일 URL
+    private String attachmentUrl;
+
+    // 현재 사용자 기준 좋아요 여부
+    @JsonProperty("viewerLiked")
+    private boolean viewerLiked;
+
+    /* ===================== 정적 팩토리 메서드 ===================== */
+
+    /** 기본 변환 */
+    public static DiscussDto fromEntity(Discuss entity) {
+        return fromEntity(entity, false);
+    }
+
+    /** viewerLiked 포함 변환 */
+    public static DiscussDto fromEntity(Discuss entity, boolean viewerLiked) {
+
+        if (entity == null) return null;
 
         return DiscussDto.builder()
-                .postId(discuss.getPostId())
-                .authorId(discuss.getAuthorId())
-                .anonymous(discuss.isAnonymous())
-                .title(discuss.getTitle())
-                .contents(discuss.getContents())
-                .privatePost(discuss.isPrivatePost())
-                .likeCount(discuss.getLikeCount())
-                .commentCount(discuss.getCommentCount())
-                .createdAt(discuss.getCreatedAt())
-                .updatedAt(discuss.getUpdatedAt())
+                .postId(entity.getPostId())
+                .authorId(entity.getAuthorId())
+                .anonymous(entity.isAnonymous())
+                .title(entity.getTitle())
+                .contents(entity.getContents())
+                .privatePost(entity.isPrivatePost())
+                .likeCount(entity.getLikeCount())
+                .commentCount(entity.getCommentCount())
+                .attachmentUrl(entity.getAttachmentUrl())
+                .viewerLiked(viewerLiked)
                 .build();
     }
 }

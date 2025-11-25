@@ -1,17 +1,24 @@
 package com.unide.backend.domain.discuss.service;
 
-import com.unide.backend.domain.discuss.dto.DiscussDto;
-import com.unide.backend.domain.discuss.entity.Discuss;
-import com.unide.backend.domain.discuss.repository.DiscussRepository;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.unide.backend.domain.discuss.dto.DiscussDto;
+import com.unide.backend.domain.discuss.entity.Discuss;
+import com.unide.backend.domain.discuss.entity.DiscussLike;
+import com.unide.backend.domain.discuss.repository.DiscussRepository;
+import com.unide.backend.domain.discuss.repository.DiscussLikeRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +26,8 @@ import java.util.stream.Collectors;
 public class DiscussService {
 
     private final DiscussRepository discussRepository;
+    private final DiscussLikeRepository discussLikeRepository;
+
 
     // 💡 참고: toDto private 메서드는 DiscussDto.fromEntity()로 대체되었습니다.
     // DTO 변환 로직은 DTO 클래스 내부에 정의하는 것이 더 좋습니다.
@@ -95,4 +104,58 @@ public class DiscussService {
                 .map(DiscussDto::fromEntity)
                 .collect(Collectors.toList());
     }
+    //첨부파일 첨가
+    @Transactional
+    public Map<String, Object> attachFile(Long postId, String fileUrl) {
+
+        Discuss post = discussRepository.findById(postId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("해당 게시물이 없습니다. postId=" + postId));
+
+        post.setAttachmentUrl(fileUrl);   // 첨부 URL 저장
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "첨부파일이 등록되었습니다.");
+        response.put("post_id", postId);
+        response.put("updated_at", LocalDateTime.now());
+
+        return response;
+    }
+    //좋아요// ===== 토론 게시글 좋아요 토글 =====
+public DiscussDto toggleLike(Long postId, Long userId) {
+
+    // 1) 게시글 조회
+    Discuss discuss = discussRepository.findById(postId)
+            .orElseThrow(() ->
+                    new IllegalArgumentException("해당 게시글이 없습니다. postId=" + postId));
+
+    // 2) 내가 이미 좋아요 눌렀는지 확인
+    boolean alreadyLiked = discussLikeRepository
+            .existsByIdPostIdAndIdLikerId(postId, userId);
+
+    boolean viewerLiked;
+
+    if (alreadyLiked) {
+        // 좋아요 취소
+        discussLikeRepository.deleteByIdPostIdAndIdLikerId(postId, userId);
+        discuss.setLikeCount(discuss.getLikeCount() - 1);
+        viewerLiked = false;
+    } else {
+        // 좋아요 추가
+        DiscussLike like = DiscussLike.of(postId, userId);
+        discussLikeRepository.save(like);
+        discuss.setLikeCount(discuss.getLikeCount() + 1);
+        viewerLiked = true;
+    }
+
+    // 3) DTO로 반환 (viewerLiked까지 세팅)
+   // 3) DTO로 반환 (viewerLiked + message까지 세팅)
+DiscussDto dto = DiscussDto.fromEntity(discuss, viewerLiked);
+dto.setMessage(viewerLiked ? "❤️ 좋아요가 추가되었습니다." 
+                           : "💔 좋아요가 취소되었습니다.");
+return dto;
+
+
+}
+
 }
