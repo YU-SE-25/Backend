@@ -78,6 +78,7 @@ public class DiscussController {
     @DeleteMapping("/{postId}")
     public void delete(@PathVariable("postId") Long postId) {
         discussService.deleteDiscuss(postId);
+        
     }
 
     // 검색

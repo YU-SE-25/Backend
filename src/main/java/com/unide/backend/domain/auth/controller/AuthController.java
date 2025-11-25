@@ -7,9 +7,6 @@ import com.unide.backend.domain.auth.dto.*;
 import com.unide.backend.domain.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import com.unide.backend.domain.auth.dto.LogoutRequestDto;
-import com.unide.backend.domain.auth.dto.PasswordResetRequestDto;
-import com.unide.backend.domain.auth.dto.TokenRefreshRequestDto;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -71,9 +68,12 @@ public class AuthController {
     }
 
     @GetMapping("/email/verify-link")
-    public String verifyEmail(@RequestParam("token") String token) {
+    public ResponseEntity<Void> verifyEmail(@RequestParam("token") String token) {
         authService.verifyEmail(token);
-        return "verify-success";
+        URI redirectUri = URI.create("http://localhost:5173/auth/verify-success");
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(redirectUri)
+                .build();
     }
 
     @PostMapping("/email/send-welcome")
