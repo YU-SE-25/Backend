@@ -91,6 +91,18 @@ public class QnAController {
     return qnaService.attachFile(postId, fileUrl);
 }
 
+  
+// ===== QnA 게시글 좋아요 토글 =====
+@PostMapping("/{postId}/like")
+public QnADto toggleLike(
+        @PathVariable Long postId,
+        @AuthenticationPrincipal PrincipalDetails userDetails
+) {
+    Long userId = userDetails.getUser().getId();
+    return qnaService.toggleLike(postId, userId);
+}
+
+
 
 
 }

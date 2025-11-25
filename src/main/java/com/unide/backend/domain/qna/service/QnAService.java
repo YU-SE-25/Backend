@@ -16,6 +16,8 @@ import com.unide.backend.domain.problems.entity.Problems;
 import com.unide.backend.domain.qna.dto.QnADto;
 import com.unide.backend.domain.qna.dto.QnAProblemDto;
 import com.unide.backend.domain.qna.entity.QnA;
+import com.unide.backend.domain.qna.entity.QnALike;
+import com.unide.backend.domain.qna.repository.QnALikeRepository;
 import com.unide.backend.domain.qna.repository.QnARepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
@@ -30,6 +32,7 @@ public class QnAService {
     private final QnARepository qnaRepository;
     private final QnAProblemPostService qnaProblemPostService;
     private final UserRepository userRepository; 
+    private final QnALikeRepository qnaLikeRepository;
 
     // ===== 목록 조회 =====
     @Transactional(readOnly = true)
@@ -138,4 +141,42 @@ public QnADto createQnA(QnADto dto, Long authorId) {
 
         return response;
     }
+        // ===== QnA 게시글 좋아요 토글 =====
+public QnADto toggleLike(Long postId, Long userId) {
+
+    // 1) 게시글 조회
+    QnA qna = qnaRepository.findById(postId)
+            .orElseThrow(() ->
+                    new IllegalArgumentException("해당 게시글이 없습니다. postId=" + postId));
+
+    // 2) 좋아요 확인
+    boolean alreadyLiked = qnaLikeRepository
+            .existsByIdPostIdAndIdLikerId(postId, userId);
+
+    boolean viewerLiked;
+
+    if (alreadyLiked) {
+        // 👍 좋아요 취소
+        qnaLikeRepository.deleteByIdPostIdAndIdLikerId(postId, userId);
+        qna.setLikeCount(qna.getLikeCount() - 1);
+        viewerLiked = false;
+    } else {
+        // ❤️ 좋아요 추가
+        QnALike like = QnALike.of(postId, userId);
+        qnaLikeRepository.save(like);
+        qna.setLikeCount(qna.getLikeCount() + 1);
+        viewerLiked = true;
+    }
+
+    // 3) DTO 생성 (viewerLiked 포함)
+    QnADto dto = QnADto.fromEntity(qna, null, viewerLiked);
+
+    // 4) 좋아요 메시지 추가 💗
+    dto.setMessage(viewerLiked ? "❤️ 좋아요가 추가되었습니다." 
+                               : "💔 좋아요가 취소되었습니다.");
+
+    return dto;
+}
+
+    
 }

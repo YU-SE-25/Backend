@@ -77,6 +77,7 @@ public class DiscussController {
     public List<DiscussDto> search(@RequestParam("keyword") String keyword) {
         return discussService.searchDiscusses(keyword);
     }
+    //첨부파일 첨가
     @PostMapping("/{postId}/attach")
     public Map<String, Object> attachFile(
         @PathVariable Long postId,
@@ -85,6 +86,16 @@ public class DiscussController {
     String fileUrl = request.get("contents");   // 문서에 맞춰 contents 로 받음
 
     return discussService.attachFile(postId, fileUrl);
+}
+
+// ===== QnA 게시글 좋아요 토글 =====
+@PostMapping("/{postId}/like")
+public DiscussDto toggleLike(
+        @PathVariable Long postId,
+        @AuthenticationPrincipal PrincipalDetails userDetails
+) {
+    Long userId = userDetails.getUser().getId();
+    return discussService.toggleLike(postId, userId);
 }
 
 
