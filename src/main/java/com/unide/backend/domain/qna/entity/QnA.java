@@ -2,8 +2,22 @@ package com.unide.backend.domain.qna.entity;
 
 import com.unide.backend.common.entity.BaseTimeEntity;
 import com.unide.backend.domain.user.entity.User;
-import jakarta.persistence.*;
-import lombok.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -40,4 +54,13 @@ public class QnA extends BaseTimeEntity {
 
     @Column(name = "comment_count", nullable = false)
     private int commentCount;     // 댓글 수
+    
+    @Column(name = "attachment_url", length = 500)
+    private String attachmentUrl;//url
+
+    
+     // ⭐ 수동으로 추가
+    public String getAttachmentUrl() {
+        return attachmentUrl;
+    }
 }

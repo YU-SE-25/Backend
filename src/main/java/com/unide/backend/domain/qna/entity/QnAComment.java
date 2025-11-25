@@ -1,4 +1,4 @@
-package com.unide.backend.domain.discuss.entity;
+package com.unide.backend.domain.qna.entity;
 
 import java.time.LocalDateTime;
 
@@ -22,43 +22,50 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "discuss")
-public class Discuss {
-
+@Table(name = "QnA_comment")
+public class QnAComment {
+    
+    // 댓글 ID (PK)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "post_id")
-    private Long postId;          // PK
+    @Column(name = "comment_id")
+    private Long commentId;
 
+    // 댓글이 달린 게시물 ID
+    @Column(name = "post_id", nullable = false)
+    private Long postId;
+
+    // 댓글 작성자 ID
     @Column(name = "author_id", nullable = false)
-    private Long authorId;        // FK → users.id (지금은 Long으로만 둠)
+    private Long authorId;
 
+    // 익명 여부
     @Column(name = "is_anonymous", nullable = false)
-    private boolean anonymous;    // 익명 여부
+    private boolean anonymous;
 
-    @Column(name = "title", nullable = false, length = 100)
-    private String title;         // 제목
+    // 부모 댓글 ID (대댓글용) – 최상위 댓글은 null
+    @Column(name = "parent_comment_id")
+    private Long parentCommentId;
 
-    @Column(name = "contents", nullable = false, columnDefinition = "TEXT")
-    private String contents;      // 내용
+    // 댓글 내용
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    private String content;
 
-    @Column(name = "is_private", nullable = false)
-    private boolean privatePost;  // 비공개 여부
-
+    // 좋아요 수
     @Column(name = "like_count", nullable = false)
-    private int likeCount;        // 좋아요 수
+    private int likeCount;
 
-    @Column(name = "comment_count", nullable = false)
-    private int commentCount;     // 댓글 수
+    // 댓글 공개 여부 (비공개도 포함)
+    @Column(name = "is_private", nullable = false)
+    private boolean privatePost;
 
+    // 작성 시각
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;  // 작성 시간
+    private LocalDateTime createdAt;
 
+    // 수정 시각
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;  // 수정 시간
-
-    @Column(name = "attachment_url", length = 500)
-    private String attachmentUrl;//url
+    private LocalDateTime updatedAt;
 
     @PrePersist
     public void onCreate() {
@@ -70,9 +77,5 @@ public class Discuss {
     public void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
-     // ⭐ 수동으로 추가
-    public String getAttachmentUrl() {
-        return attachmentUrl;
-    }
-    
+
 }
