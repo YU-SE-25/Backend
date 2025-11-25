@@ -62,7 +62,7 @@ public class MyPageService {
         List<String> preferredLanguageList = parsePreferredLanguages(myPage);
 
         return MyPageResponseDto.builder()
-                .userId(user.getId())
+                //.userId(user.getId())
                 .nickname(getNickname(myPage, user))
                 .avatarUrl(getAvatarUrl(myPage))
                 .bio(myPage != null ? myPage.getBio() : null)
@@ -202,7 +202,7 @@ public class MyPageService {
 
     private MyPage createDefaultMyPage(User user) {
         return MyPage.builder()
-                .userId(user.getId())
+                //.userId(user.getId())
                 .user(user)
                 .nickname(user.getNickname())
                 .isPublic(true)
