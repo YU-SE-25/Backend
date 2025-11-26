@@ -45,4 +45,16 @@ public class SubmissionController {
         SubmissionResponseDto response = submissionService.submitCode(principalDetails.getUser(), requestDto);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/{submissionId}/details")
+    public ResponseEntity<SubmissionDetailResponseDto> getSubmissionDetail(
+            @PathVariable Long submissionId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        
+        SubmissionDetailResponseDto response = submissionService.getSubmissionDetail(
+                submissionId,
+                principalDetails.getUser()
+        );
+        return ResponseEntity.ok(response);
+    }
 }
