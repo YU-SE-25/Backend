@@ -16,4 +16,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     
     // 로그아웃 시 토큰을 삭제하기 위해 사용
     void deleteByUser(User user);
+
+    // 특정 사용자의 모든 리프레시 토큰 삭제
+    void deleteByUserId(Long userId);
 }
