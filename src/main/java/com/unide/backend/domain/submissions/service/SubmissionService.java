@@ -188,4 +188,22 @@ public class SubmissionService {
                 .isShared(submission.isShared())
                 .build();
     }
+
+    @Transactional
+    public SubmissionShareResponseDto updateShareStatus(Long submissionId, User user, SubmissionShareRequestDto requestDto) {
+        Submissions submission = submissionsRepository.findById(submissionId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 제출 기록입니다: " + submissionId));
+
+        if (!submission.getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("본인의 제출 기록만 수정할 수 있습니다.");
+        }
+
+        submission.updateShareStatus(requestDto.getIsShared());
+
+        return SubmissionShareResponseDto.builder()
+                .submissionId(submission.getId())
+                .isShared(submission.isShared())
+                .message("공유 상태가 업데이트되었습니다.")
+                .build();
+    }
 }

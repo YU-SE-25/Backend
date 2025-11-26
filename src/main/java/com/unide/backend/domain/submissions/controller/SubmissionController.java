@@ -57,4 +57,18 @@ public class SubmissionController {
         );
         return ResponseEntity.ok(response);
     }
+
+    @PatchMapping("/{submissionId}/share")
+    public ResponseEntity<SubmissionShareResponseDto> updateShareStatus(
+            @PathVariable Long submissionId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @Valid @RequestBody SubmissionShareRequestDto requestDto) {
+        
+        SubmissionShareResponseDto response = submissionService.updateShareStatus(
+                submissionId,
+                principalDetails.getUser(),
+                requestDto
+        );
+        return ResponseEntity.ok(response);
+    }
 }
