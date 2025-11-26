@@ -28,6 +28,8 @@ import com.unide.backend.domain.problems.dto.ProblemUpdateRequestDto;
 import com.unide.backend.domain.problems.entity.ProblemDifficulty;
 import com.unide.backend.domain.problems.service.ProblemService;
 import com.unide.backend.global.security.auth.PrincipalDetails;
+import com.unide.backend.domain.submissions.dto.LongestTimeResponseDto;
+import com.unide.backend.domain.submissions.service.SubmissionService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,8 +38,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @RequestMapping("/api/problems")
 public class ProblemController {
-    
     private final ProblemService problemService;
+    private final SubmissionService submissionService;
     
     @PostMapping("/register")
     @PreAuthorize("hasAnyRole('MANAGER', 'INSTRUCTOR')")
@@ -90,5 +92,14 @@ public class ProblemController {
     public ResponseEntity<MessageResponseDto> deleteProblem(@PathVariable Long problemId) {
         problemService.deleteProblem(problemId);
         return ResponseEntity.ok(new MessageResponseDto("문제가 삭제되었습니다."));
+    }
+
+    @GetMapping("/{problemId}/stats/longest-time")
+    public ResponseEntity<LongestTimeResponseDto> getLongestRuntime(
+            @PathVariable Long problemId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        
+        LongestTimeResponseDto response = submissionService.getLongestRuntime(principalDetails.getUser(), problemId);
+        return ResponseEntity.ok(response);
     }
 }
