@@ -14,6 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.unide.backend.domain.problems.entity.Problems;
 import com.unide.backend.domain.qna.dto.QnADto;
+import com.unide.backend.domain.qna.dto.QnAPollCreateRequest;
+import com.unide.backend.domain.qna.dto.QnAPollResponse;
+import com.unide.backend.domain.qna.dto.QnAPollVoteRequest;
+import com.unide.backend.domain.qna.dto.QnAPollVoteResponse;
 import com.unide.backend.domain.qna.dto.QnAProblemDto;
 import com.unide.backend.domain.qna.entity.QnA;
 import com.unide.backend.domain.qna.entity.QnALike;
@@ -33,6 +37,7 @@ public class QnAService {
     private final QnAProblemPostService qnaProblemPostService;
     private final UserRepository userRepository; 
     private final QnALikeRepository qnaLikeRepository;
+
 
     // ===== 목록 조회 =====
     @Transactional(readOnly = true)
@@ -177,6 +182,14 @@ public QnADto toggleLike(Long postId, Long userId) {
 
     return dto;
 }
+
+    public QnAPollResponse createPoll(Long postId, Long authorId, QnAPollCreateRequest request) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public QnAPollVoteResponse vote(Long voterId, Long pollId, QnAPollVoteRequest request) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 
     
 }
