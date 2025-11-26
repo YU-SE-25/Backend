@@ -154,4 +154,16 @@ public class SubmissionService {
                 .message("채점이 완료되었습니다.")
                 .build();
     }
+
+    public LongestTimeResponseDto getLongestRuntime(User user, Long problemId) {
+        Problems problem = problemsRepository.findById(problemId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 문제 ID입니다: " + problemId));
+
+        Integer maxRuntime = submissionsRepository.findMaxRuntimeByUserAndProblemAndStatus(user, problem, SubmissionStatus.CA)
+                .orElse(0);
+
+        return LongestTimeResponseDto.builder()
+                .longestTimeMs(maxRuntime)
+                .build();
+    }
 }
