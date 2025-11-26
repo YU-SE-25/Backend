@@ -41,4 +41,10 @@ public interface SubmissionsRepository extends JpaRepository<Submissions, Long> 
     // 사용자가 해결한 문제 수
     @Query("SELECT COUNT(DISTINCT s.problem.id) FROM Submissions s WHERE s.user.id = :userId AND s.status = 'CA'")
     Long countSolvedByUserId(@Param("userId") Long userId);
+
+    // 특정 사용자, 특정 문제, 특정 상태(CA)인 제출 중 가장 긴 실행 시간(runtime) 조회
+    @Query("SELECT MAX(s.runtime) FROM Submissions s WHERE s.user = :user AND s.problem = :problem AND s.status = :status")
+    Optional<Integer> findMaxRuntimeByUserAndProblemAndStatus(@Param("user") User user, 
+                                                              @Param("problem") Problems problem, 
+                                                              @Param("status") SubmissionStatus status);
 }
