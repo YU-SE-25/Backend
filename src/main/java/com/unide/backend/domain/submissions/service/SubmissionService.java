@@ -13,6 +13,9 @@ import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
 import com.unide.backend.domain.user.entity.User;
 
 import lombok.RequiredArgsConstructor;
+import main.java.com.unide.backend.domain.submissions.dto.SubmissionShareRequestDto;
+import main.java.com.unide.backend.domain.submissions.dto.SubmissionShareResponseDto;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -186,6 +189,24 @@ public class SubmissionService {
                 .memory(submission.getMemory())
                 .submittedAt(submission.getSubmittedAt())
                 .isShared(submission.isShared())
+                .build();
+    }
+
+    @Transactional
+    public SubmissionShareResponseDto updateShareStatus(Long submissionId, User user, SubmissionShareRequestDto requestDto) {
+        Submissions submission = submissionsRepository.findById(submissionId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 제출 기록입니다: " + submissionId));
+
+        if (!submission.getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("본인의 제출 기록만 수정할 수 있습니다.");
+        }
+
+        submission.updateShareStatus(requestDto.getIsShared());
+
+        return SubmissionShareResponseDto.builder()
+                .submissionId(submission.getId())
+                .isShared(submission.isShared())
+                .message("공유 상태가 업데이트되었습니다.")
                 .build();
     }
 }
