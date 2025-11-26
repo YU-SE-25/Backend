@@ -15,20 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.Map;
-
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.unide.backend.domain.qna.dto.QnADto;
 import com.unide.backend.domain.qna.dto.QnAPollCreateRequest;
 import com.unide.backend.domain.qna.dto.QnAPollResponse;
@@ -101,29 +87,6 @@ public class QnAController {
     public List<QnADto> search(@RequestParam("keyword") String keyword) {
         return qnaService.searchQnAs(keyword);
     }
-    //첨부파일 첨가
-    @PostMapping("/{postId}/attach")
-    public Map<String, Object> attachFile(
-        @PathVariable Long postId,
-        @RequestBody Map<String, String> request
-) {
-    String fileUrl = request.get("contents");   // 문서에 맞춰 contents 로 받음
-
-    return qnaService.attachFile(postId, fileUrl);
-}
-
-  
-// ===== QnA 게시글 좋아요 토글 =====
-@PostMapping("/{postId}/like")
-public QnADto toggleLike(
-        @PathVariable Long postId,
-        @AuthenticationPrincipal PrincipalDetails userDetails
-) {
-    Long userId = userDetails.getUser().getId();
-    return qnaService.toggleLike(postId, userId);
-}
-
-
 
     // ===== 첨부파일 =====
     @PostMapping("/{postId}/attach")
@@ -178,5 +141,16 @@ public ResponseEntity<QnAPollVoteResponse> vote(
 
     return ResponseEntity.ok(response);
 }
+@GetMapping("/{postId}/poll")
+public ResponseEntity<QnAPollResponse> getPollByPost(
+        @PathVariable Long postId,
+        @AuthenticationPrincipal PrincipalDetails userDetails
+) {
+    Long userId = userDetails != null ? userDetails.getUser().getId() : null;
+
+    QnAPollResponse response = qnAPollService.getPollByPostId(postId, userId);
+    return ResponseEntity.ok(response);
+}
+
 
 }
