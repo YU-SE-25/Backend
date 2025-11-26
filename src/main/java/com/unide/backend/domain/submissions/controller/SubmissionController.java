@@ -87,4 +87,13 @@ public class SubmissionController {
         );
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/{problemId}/solutions")
+    public ResponseEntity<SubmissionSolutionListDto> getSharedSolutions(
+            @PathVariable Long problemId,
+            @PageableDefault(size = 10) Pageable pageable) {
+        
+        SubmissionSolutionListDto response = submissionService.getSharedSolutions(problemId, pageable);
+        return ResponseEntity.ok(response);
+    }
 }
