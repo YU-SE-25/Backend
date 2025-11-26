@@ -87,4 +87,8 @@ public class Submissions {
         this.passedTestCases = passedTestCases;
         this.compileOutput = compileOutput;
     }
+
+    public void updateShareStatus(boolean isShared) {
+        this.isShared = isShared;
+    }
 }
