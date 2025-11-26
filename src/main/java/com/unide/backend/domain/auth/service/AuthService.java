@@ -550,5 +550,6 @@ public class AuthService {
         refreshTokenRepository.deleteByUserId(user.getId());
 
         user.withdraw();
+        userRepository.save(user);
     }
 }
