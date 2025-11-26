@@ -5,6 +5,8 @@ package com.unide.backend.domain.auth.controller;
 import com.unide.backend.common.response.MessageResponseDto;
 import com.unide.backend.domain.auth.dto.*;
 import com.unide.backend.domain.auth.service.AuthService;
+import com.unide.backend.global.security.auth.PrincipalDetails;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 
 import java.net.URI;
 import java.util.Map;
@@ -120,5 +123,16 @@ public class AuthController {
     public ResponseEntity<MessageResponseDto> resetPassword(@Valid @RequestBody PasswordResetRequestDto requestDto) {
         authService.resetPassword(requestDto);
         return ResponseEntity.ok(new MessageResponseDto("비밀번호가 성공적으로 재설정되었습니다."));
+    }
+
+    @DeleteMapping("/withdraw")
+    public ResponseEntity<MessageResponseDto> withdraw(
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @RequestBody(required = false) WithdrawRequestDto requestDto) {
+        
+        WithdrawRequestDto dto = (requestDto != null) ? requestDto : new WithdrawRequestDto();
+        
+        authService.withdraw(principalDetails.getUser(), dto);
+        return ResponseEntity.ok(new MessageResponseDto("회원 탈퇴가 완료되었습니다."));
     }
 }
