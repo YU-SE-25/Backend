@@ -241,4 +241,32 @@ public class SubmissionService {
                 .submissions(historyDtos)
                 .build();
     }
+
+    public SubmissionSolutionListDto getSharedSolutions(Long problemId, Pageable pageable) {
+        if (!problemsRepository.existsById(problemId)) {
+            throw new IllegalArgumentException("존재하지 않는 문제 ID입니다: " + problemId);
+        }
+
+        Page<Submissions> submissionPage = submissionsRepository.findSharedSolutionsByProblem(problemId, pageable);
+
+        List<SubmissionSolutionDto> solutionDtos = submissionPage.getContent().stream()
+                .map(submission -> SubmissionSolutionDto.builder()
+                        .submissionId(submission.getId())
+                        .userId(submission.getUser().getId())
+                        .nickname(submission.getUser().getNickname())
+                        .language(submission.getLanguage())
+                        .status(submission.getStatus())
+                        .runtime(submission.getRuntime())
+                        .memory(submission.getMemory())
+                        .submittedAt(submission.getSubmittedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        return SubmissionSolutionListDto.builder()
+                .totalPages(submissionPage.getTotalPages())
+                .totalElements(submissionPage.getTotalElements())
+                .currentPage(submissionPage.getNumber())
+                .solutions(solutionDtos)
+                .build();
+    }
 }
