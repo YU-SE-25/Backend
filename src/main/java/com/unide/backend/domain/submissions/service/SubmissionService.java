@@ -166,4 +166,26 @@ public class SubmissionService {
                 .longestTimeMs(maxRuntime)
                 .build();
     }
+
+    public SubmissionDetailResponseDto getSubmissionDetail(Long submissionId, User user) {
+        Submissions submission = submissionsRepository.findById(submissionId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 제출 기록입니다: " + submissionId));
+
+        if (!submission.getUser().getId().equals(user.getId()) && !submission.isShared()) {
+            throw new IllegalArgumentException("해당 제출 기록을 볼 권한이 없습니다.");
+        }
+
+        return SubmissionDetailResponseDto.builder()
+                .submissionId(submission.getId())
+                .problemId(submission.getProblem().getId())
+                .problemTitle(submission.getProblem().getTitle())
+                .code(submission.getCode())
+                .language(submission.getLanguage())
+                .status(submission.getStatus())
+                .runtime(submission.getRuntime())
+                .memory(submission.getMemory())
+                .submittedAt(submission.getSubmittedAt())
+                .isShared(submission.isShared())
+                .build();
+    }
 }
