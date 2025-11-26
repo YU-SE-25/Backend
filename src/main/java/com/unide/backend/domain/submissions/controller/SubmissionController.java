@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 
 @RestController
 @RequiredArgsConstructor
@@ -68,6 +70,20 @@ public class SubmissionController {
                 submissionId,
                 principalDetails.getUser(),
                 requestDto
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<SubmissionHistoryListDto> getSubmissionHistory(
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @RequestParam(required = false) Long problemId, // 선택적 파라미터
+            @PageableDefault(size = 20) Pageable pageable) {
+        
+        SubmissionHistoryListDto response = submissionService.getSubmissionHistory(
+                principalDetails.getUser(), 
+                problemId, 
+                pageable
         );
         return ResponseEntity.ok(response);
     }
