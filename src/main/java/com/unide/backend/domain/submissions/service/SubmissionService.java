@@ -15,8 +15,11 @@ import com.unide.backend.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -204,6 +207,38 @@ public class SubmissionService {
                 .submissionId(submission.getId())
                 .isShared(submission.isShared())
                 .message("공유 상태가 업데이트되었습니다.")
+                .build();
+    }
+
+    public SubmissionHistoryListDto getSubmissionHistory(User user, Long problemId, Pageable pageable) {
+        Page<Submissions> submissionPage;
+
+        if (problemId != null) {
+            Problems problem = problemsRepository.findById(problemId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 문제 ID입니다: " + problemId));
+            submissionPage = submissionsRepository.findAllByUserAndProblem(user, problem, pageable);
+        } else {
+            submissionPage = submissionsRepository.findAllByUser(user, pageable);
+        }
+
+        List<SubmissionHistoryDto> historyDtos = submissionPage.getContent().stream()
+                .map(submission -> SubmissionHistoryDto.builder()
+                        .submissionId(submission.getId())
+                        .problemId(submission.getProblem().getId())
+                        .problemTitle(submission.getProblem().getTitle())
+                        .status(submission.getStatus())
+                        .language(submission.getLanguage())
+                        .runtime(submission.getRuntime())
+                        .memory(submission.getMemory())
+                        .submittedAt(submission.getSubmittedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        return SubmissionHistoryListDto.builder()
+                .totalPages(submissionPage.getTotalPages())
+                .totalElements(submissionPage.getTotalElements())
+                .currentPage(submissionPage.getNumber())
+                .submissions(historyDtos)
                 .build();
     }
 }
