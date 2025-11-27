@@ -7,6 +7,7 @@ import com.unide.backend.domain.problems.entity.Problems;
 import com.unide.backend.domain.submissions.entity.Submissions;
 import com.unide.backend.domain.submissions.entity.SubmissionStatus;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -47,4 +48,16 @@ public interface SubmissionsRepository extends JpaRepository<Submissions, Long> 
     Optional<Integer> findMaxRuntimeByUserAndProblemAndStatus(@Param("user") User user, 
                                                               @Param("problem") Problems problem, 
                                                               @Param("status") SubmissionStatus status);
+
+    // 내 모든 제출 이력 조회
+    @Query("SELECT s FROM Submissions s JOIN FETCH s.problem WHERE s.user = :user ORDER BY s.submittedAt DESC")
+    Page<Submissions> findAllByUser(@Param("user") User user, Pageable pageable);
+
+    // 특정 문제에 대한 내 제출 이력 조회
+    @Query("SELECT s FROM Submissions s JOIN FETCH s.problem WHERE s.user = :user AND s.problem = :problem ORDER BY s.submittedAt DESC")
+    Page<Submissions> findAllByUserAndProblem(@Param("user") User user, @Param("problem") Problems problem, Pageable pageable);
+
+    // 특정 문제에 대해 공유된(isShared=true) 제출 내역을 최신순으로 페이징 조회
+    @Query("SELECT s FROM Submissions s JOIN FETCH s.user WHERE s.problem.id = :problemId AND s.isShared = true ORDER BY s.submittedAt DESC")
+    Page<Submissions> findSharedSolutionsByProblem(@Param("problemId") Long problemId, Pageable pageable);
 }

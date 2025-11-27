@@ -30,6 +30,7 @@ import com.unide.backend.domain.auth.dto.PasswordResetRequestDto;
 import com.unide.backend.domain.auth.dto.RegisterRequestDto;
 import com.unide.backend.domain.auth.dto.TokenRefreshRequestDto;
 import com.unide.backend.domain.auth.dto.WelcomeEmailRequestDto;
+import com.unide.backend.domain.auth.dto.WithdrawRequestDto;
 import com.unide.backend.domain.auth.entity.EmailVerificationCode;
 import com.unide.backend.domain.auth.entity.PasswordResetToken;
 import com.unide.backend.domain.auth.entity.RefreshToken;
@@ -528,5 +529,27 @@ public class AuthService {
         User user = resetToken.getUser();
         String newEncodedPassword = passwordEncoder.encode(requestDto.getNewPassword());
         user.updatePassword(newEncodedPassword);
+    }
+
+    /**
+     * 회원 탈퇴 처리 메서드
+     * @param user 현재 로그인한 사용자
+     * @param requestDto 비밀번호가 담긴 DTO
+     */
+    @Transactional
+    public void withdraw(User user, WithdrawRequestDto requestDto) {
+        if (!user.isSocialAccount()) {
+            if (requestDto.getPassword() == null || requestDto.getPassword().isBlank()) {
+                throw new IllegalArgumentException("비밀번호를 입력해주세요.");
+            }
+            if (!passwordEncoder.matches(requestDto.getPassword(), user.getPasswordHash())) {
+                throw new AuthException("비밀번호가 일치하지 않습니다.");
+            }
+        }
+
+        refreshTokenRepository.deleteByUserId(user.getId());
+
+        user.withdraw();
+        userRepository.save(user);
     }
 }

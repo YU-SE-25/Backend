@@ -15,8 +15,11 @@ import com.unide.backend.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -164,6 +167,106 @@ public class SubmissionService {
 
         return LongestTimeResponseDto.builder()
                 .longestTimeMs(maxRuntime)
+                .build();
+    }
+
+    public SubmissionDetailResponseDto getSubmissionDetail(Long submissionId, User user) {
+        Submissions submission = submissionsRepository.findById(submissionId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 제출 기록입니다: " + submissionId));
+
+        if (!submission.getUser().getId().equals(user.getId()) && !submission.isShared()) {
+            throw new IllegalArgumentException("해당 제출 기록을 볼 권한이 없습니다.");
+        }
+
+        return SubmissionDetailResponseDto.builder()
+                .submissionId(submission.getId())
+                .problemId(submission.getProblem().getId())
+                .problemTitle(submission.getProblem().getTitle())
+                .code(submission.getCode())
+                .language(submission.getLanguage())
+                .status(submission.getStatus())
+                .runtime(submission.getRuntime())
+                .memory(submission.getMemory())
+                .submittedAt(submission.getSubmittedAt())
+                .isShared(submission.isShared())
+                .build();
+    }
+
+    @Transactional
+    public SubmissionShareResponseDto updateShareStatus(Long submissionId, User user, SubmissionShareRequestDto requestDto) {
+        Submissions submission = submissionsRepository.findById(submissionId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 제출 기록입니다: " + submissionId));
+
+        if (!submission.getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("본인의 제출 기록만 수정할 수 있습니다.");
+        }
+
+        submission.updateShareStatus(requestDto.getIsShared());
+
+        return SubmissionShareResponseDto.builder()
+                .submissionId(submission.getId())
+                .isShared(submission.isShared())
+                .message("공유 상태가 업데이트되었습니다.")
+                .build();
+    }
+
+    public SubmissionHistoryListDto getSubmissionHistory(User user, Long problemId, Pageable pageable) {
+        Page<Submissions> submissionPage;
+
+        if (problemId != null) {
+            Problems problem = problemsRepository.findById(problemId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 문제 ID입니다: " + problemId));
+            submissionPage = submissionsRepository.findAllByUserAndProblem(user, problem, pageable);
+        } else {
+            submissionPage = submissionsRepository.findAllByUser(user, pageable);
+        }
+
+        List<SubmissionHistoryDto> historyDtos = submissionPage.getContent().stream()
+                .map(submission -> SubmissionHistoryDto.builder()
+                        .submissionId(submission.getId())
+                        .problemId(submission.getProblem().getId())
+                        .problemTitle(submission.getProblem().getTitle())
+                        .status(submission.getStatus())
+                        .language(submission.getLanguage())
+                        .runtime(submission.getRuntime())
+                        .memory(submission.getMemory())
+                        .submittedAt(submission.getSubmittedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        return SubmissionHistoryListDto.builder()
+                .totalPages(submissionPage.getTotalPages())
+                .totalElements(submissionPage.getTotalElements())
+                .currentPage(submissionPage.getNumber())
+                .submissions(historyDtos)
+                .build();
+    }
+
+    public SubmissionSolutionListDto getSharedSolutions(Long problemId, Pageable pageable) {
+        if (!problemsRepository.existsById(problemId)) {
+            throw new IllegalArgumentException("존재하지 않는 문제 ID입니다: " + problemId);
+        }
+
+        Page<Submissions> submissionPage = submissionsRepository.findSharedSolutionsByProblem(problemId, pageable);
+
+        List<SubmissionSolutionDto> solutionDtos = submissionPage.getContent().stream()
+                .map(submission -> SubmissionSolutionDto.builder()
+                        .submissionId(submission.getId())
+                        .userId(submission.getUser().getId())
+                        .nickname(submission.getUser().getNickname())
+                        .language(submission.getLanguage())
+                        .status(submission.getStatus())
+                        .runtime(submission.getRuntime())
+                        .memory(submission.getMemory())
+                        .submittedAt(submission.getSubmittedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        return SubmissionSolutionListDto.builder()
+                .totalPages(submissionPage.getTotalPages())
+                .totalElements(submissionPage.getTotalElements())
+                .currentPage(submissionPage.getNumber())
+                .solutions(solutionDtos)
                 .build();
     }
 }

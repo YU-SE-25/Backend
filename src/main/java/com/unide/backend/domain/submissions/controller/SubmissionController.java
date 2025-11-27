@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 
 @RestController
 @RequiredArgsConstructor
@@ -43,6 +45,55 @@ public class SubmissionController {
             @Valid @RequestBody SubmissionRequestDto requestDto) {
         
         SubmissionResponseDto response = submissionService.submitCode(principalDetails.getUser(), requestDto);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{submissionId}/details")
+    public ResponseEntity<SubmissionDetailResponseDto> getSubmissionDetail(
+            @PathVariable Long submissionId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        
+        SubmissionDetailResponseDto response = submissionService.getSubmissionDetail(
+                submissionId,
+                principalDetails.getUser()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{submissionId}/share")
+    public ResponseEntity<SubmissionShareResponseDto> updateShareStatus(
+            @PathVariable Long submissionId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @Valid @RequestBody SubmissionShareRequestDto requestDto) {
+        
+        SubmissionShareResponseDto response = submissionService.updateShareStatus(
+                submissionId,
+                principalDetails.getUser(),
+                requestDto
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<SubmissionHistoryListDto> getSubmissionHistory(
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @RequestParam(required = false) Long problemId, // 선택적 파라미터
+            @PageableDefault(size = 20) Pageable pageable) {
+        
+        SubmissionHistoryListDto response = submissionService.getSubmissionHistory(
+                principalDetails.getUser(), 
+                problemId, 
+                pageable
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{problemId}/solutions")
+    public ResponseEntity<SubmissionSolutionListDto> getSharedSolutions(
+            @PathVariable Long problemId,
+            @PageableDefault(size = 10) Pageable pageable) {
+        
+        SubmissionSolutionListDto response = submissionService.getSharedSolutions(problemId, pageable);
         return ResponseEntity.ok(response);
     }
 }
