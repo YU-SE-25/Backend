@@ -5,7 +5,6 @@ import java.io.Serializable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,9 +13,8 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @Embeddable
-public class StudyGroupMemberId implements Serializable {
+public class GroupStudyMemberId implements Serializable {
 
     @Column(name = "group_id")
     private Long groupId;
