@@ -8,7 +8,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -17,13 +16,12 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-@Entity
+@Entity(name = "GroupStudyMember")
 @Table(name = "study_group_member")
-public class StudyGroupMember {
+public class GroupStudyMember {
 
     @EmbeddedId
-    private StudyGroupMemberId id;
+    private GroupStudyMemberId id;
 
     @Column(name = "joined_at", nullable = false, updatable = false)
     private LocalDateTime joinedAt;
@@ -33,12 +31,12 @@ public class StudyGroupMember {
         this.joinedAt = LocalDateTime.now();
     }
 
-    public static StudyGroupMember of(Long groupId, Long memberId) {
-        return StudyGroupMember.builder()
-                .id(StudyGroupMemberId.builder()
-                        .groupId(groupId)
-                        .memberId(memberId)
-                        .build())
-                .build();
+    public static GroupStudyMember of(Long groupId, Long memberId) {
+        GroupStudyMemberId id = new GroupStudyMemberId(groupId, memberId);
+
+        GroupStudyMember member = new GroupStudyMember();
+        member.setId(id);
+        // joinedAt 은 @PrePersist에서 자동 세팅
+        return member;
     }
 }

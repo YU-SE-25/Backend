@@ -13,8 +13,8 @@ import com.unide.backend.domain.studygroup.group.dto.StudyGroupListItemResponse;
 import com.unide.backend.domain.studygroup.group.dto.StudyGroupMemberSummary;
 import com.unide.backend.domain.studygroup.group.dto.StudyGroupUpdateRequest;
 import com.unide.backend.domain.studygroup.group.entity.StudyGroup;
-import com.unide.backend.domain.studygroup.group.entity.StudyGroupMember;
-import com.unide.backend.domain.studygroup.group.repository.StudyGroupMemberRepository;
+import com.unide.backend.domain.studygroup.group.entity.GroupStudyMember;
+import com.unide.backend.domain.studygroup.group.repository.StudyGroupMemberQueryRepository;
 import com.unide.backend.domain.studygroup.group.repository.StudyGroupRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class StudyGroupService {
 
     private final StudyGroupRepository groupRepository;
-    private final StudyGroupMemberRepository memberRepository;
+    private final StudyGroupMemberQueryRepository memberRepository;
     // 필요하면 UserRepository 주입해서 이름 채우기
 
     // ===== 그룹 생성 =====
@@ -47,7 +47,7 @@ public class StudyGroupService {
         StudyGroup saved = groupRepository.save(group);
 
         // 리더를 멤버로 추가
-        memberRepository.save(StudyGroupMember.of(saved.getGroupId(), leaderId));
+        memberRepository.save(GroupStudyMember.of(saved.getGroupId(), leaderId));
 
         // leader / members 응답 구성 (이름은 일단 null)
         StudyGroupMemberSummary leaderSummary = StudyGroupMemberSummary.builder()
@@ -93,7 +93,7 @@ public class StudyGroupService {
                 .orElseThrow(() ->
                         new IllegalArgumentException("해당 스터디 그룹이 없습니다. groupId=" + groupId));
 
-        List<StudyGroupMember> members =
+        List<GroupStudyMember> members =
                 memberRepository.findByIdGroupId(groupId);
 
         List<StudyGroupMemberSummary> memberDtos = members.stream()
@@ -148,7 +148,7 @@ public class StudyGroupService {
         if (request.getGroupMemberIds() != null) {
             for (Long userId : request.getGroupMemberIds()) {
                 if (!memberRepository.existsByIdGroupIdAndIdMemberId(groupId, userId)) {
-                    memberRepository.save(StudyGroupMember.of(groupId, userId));
+                    memberRepository.save(GroupStudyMember.of(groupId, userId));
                     group.setMemberCount(group.getMemberCount() + 1);
                 }
             }
