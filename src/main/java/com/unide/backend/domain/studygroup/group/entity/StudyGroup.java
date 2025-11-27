@@ -16,6 +16,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -67,23 +69,9 @@ public class StudyGroup {
             this.groupTo = 2;
         }
     }
+
     @PreUpdate
     protected void onUpdate() {
         this.lastTime = LocalDateTime.now();
     }
-
-    public Long getGroupId() {
-        return groupId;
-    }
-
-    public int getGroupTo() {
-        return groupTo;
-    }
-
-    public int getMemberCount() {
-        return memberCount;
-    }
-
-    public void setMemberCount(int memberCount) {
-        this.memberCount = memberCount;
-    }}
+}

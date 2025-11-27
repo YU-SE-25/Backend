@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.unide.backend.domain.mainpage.dto.CodeReviewRankDto;
 import com.unide.backend.domain.mainpage.dto.MainProblemViewRankDto;
 import com.unide.backend.domain.mainpage.service.MainpageService;
-import com.unide.backend.domain.mypage.dto.UserStats;
+import com.unide.backend.domain.mypage.dto.UserStatsResponseDto;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,7 +25,7 @@ public class MainpageController {
 
     // 사용자 평판 순위
     @GetMapping("/user/reputation")
-    public List<UserStats> getReputationRank(
+    public List<UserStatsResponseDto> getReputationRank(
             @RequestParam(name = "size", defaultValue = "10") int size
     ) {
         return mainpageService.getReputationRankList(size);
