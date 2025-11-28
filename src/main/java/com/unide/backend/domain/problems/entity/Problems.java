@@ -51,7 +51,7 @@ public class Problems extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ProblemVisibility visibility;
+    private ProblemStatus status;
 
     @Column(name = "view_count", nullable = false)
     private Integer viewCount;
@@ -68,7 +68,7 @@ public class Problems extends BaseTimeEntity {
 
     @Builder
     public Problems(User createdBy, String title, String description, String inputOutputExample, ProblemDifficulty difficulty,
-                    Integer timeLimit, Integer memoryLimit, ProblemVisibility visibility, List<ProblemTag> tags,
+                    Integer timeLimit, Integer memoryLimit, ProblemStatus status, List<ProblemTag> tags,
                     String hint, String source) {
         this.createdBy = createdBy;
         this.title = title;
@@ -77,7 +77,7 @@ public class Problems extends BaseTimeEntity {
         this.difficulty = difficulty;
         this.timeLimit = timeLimit;
         this.memoryLimit = memoryLimit;
-        this.visibility = (visibility != null) ? visibility : ProblemVisibility.PUBLIC;
+        this.status = (status != null) ? status : ProblemStatus.PENDING;
         this.viewCount = 0;
         this.tags = (tags != null) ? tags : new ArrayList<>();
         this.hint = hint;
@@ -109,8 +109,8 @@ public class Problems extends BaseTimeEntity {
         this.memoryLimit = memoryLimit;
     }
     
-    public void updateVisibility(ProblemVisibility visibility) {
-        this.visibility = visibility;
+    public void updateStatus(ProblemStatus status) {
+        this.status = status;
     }
     
     public void increaseViewCount() {

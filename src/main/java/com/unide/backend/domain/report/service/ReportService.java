@@ -25,6 +25,30 @@ public class ReportService {
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
     private final ProblemsRepository problemsRepository;
+    private final com.unide.backend.common.mail.MailService mailService;
+    
+    /** 신고 상태 변경 및 이메일 전송 */
+    @Transactional
+    public void updateReportStatus(Long reportId, ReportStatus status) {
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new IllegalArgumentException("신고 정보를 찾을 수 없습니다."));
+        report.setStatus(status);
+        report.setResolvedAt(LocalDateTime.now());
+        reportRepository.save(report);
+
+        // 이메일 전송
+        User reporter = userRepository.findById(report.getReporterId()).orElse(null);
+        if (reporter != null && reporter.getEmail() != null) {
+            String subject = "[UnIDE] 신고 처리 결과 안내";
+            String body;
+            if (status == ReportStatus.REJECTED) {
+                body = String.format("안녕하세요, %s님.\n\n신고하신 내용이 거절되었습니다.\n\n감사합니다.", reporter.getNickname());
+            } else {
+                body = String.format("안녕하세요, %s님.\n\n신고 상태가 승인되었습니다.\n\n감사합니다.", reporter.getNickname());
+            }
+            mailService.sendEmail(reporter.getEmail(), subject, body);
+        }
+    }
 
     /**
      * 신고 생성

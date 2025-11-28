@@ -34,13 +34,45 @@ import com.unide.backend.domain.submissions.service.SubmissionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/problems")
 public class ProblemController {
     private final ProblemService problemService;
     private final SubmissionService submissionService;
+
+    /**등록 문제 조회 (매니저용) */
+    @GetMapping("/list/pending")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<Page<ProblemResponseDto>> getPendingProblems(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<ProblemResponseDto> problems = problemService.getProblemsByStatus(com.unide.backend.domain.problems.entity.ProblemStatus.PENDING, pageable);
+        return ResponseEntity.ok(problems);
+    }
+
+    /** 문제 태그 조회 */
+    @GetMapping("/tags")
+    public ResponseEntity<List<String>> getProblemTags() {
+        List<String> tags = new java.util.ArrayList<>();
+        for (com.unide.backend.domain.problems.entity.ProblemTag tag : com.unide.backend.domain.problems.entity.ProblemTag.values()) {
+            tags.add(tag.name());
+        }
+        return ResponseEntity.ok(tags);
+    }
     
+    /** 내가 만든 문제 조회 */
+    @GetMapping("/list/me")
+    public ResponseEntity<Page<ProblemResponseDto>> getMyProblems(
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Long userId = principalDetails.getUser().getId();
+        Page<ProblemResponseDto> problems = problemService.getProblemsByCreator(userId, pageable);
+        return ResponseEntity.ok(problems);
+    }
+    
+    /** 문제 등록 */
     @PostMapping("/register")
     @PreAuthorize("hasAnyRole('MANAGER', 'INSTRUCTOR')")
     public ResponseEntity<ProblemCreateResponseDto> createProblem(
@@ -50,8 +82,9 @@ public class ProblemController {
         return ResponseEntity.ok(ProblemCreateResponseDto.of("문제가 성공적으로 등록되었습니다.", problemId));
     }
     
+    /** 문제 수정 */
     @PutMapping("/{problemId}")
-    @PreAuthorize("hasAnyRole('MANAGER', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('MANAGER')")
     public ResponseEntity<ProblemCreateResponseDto> updateProblem(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
             @PathVariable Long problemId,
@@ -60,6 +93,7 @@ public class ProblemController {
         return ResponseEntity.ok(ProblemCreateResponseDto.of("문제가 성공적으로 수정되었습니다.", problemId));
     }
     
+    /** 문제 리스트 조회 */
     @GetMapping("/list")
     public ResponseEntity<Page<ProblemResponseDto>> getProblems(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
@@ -79,6 +113,7 @@ public class ProblemController {
         return ResponseEntity.ok(problems);
     }
     
+    /** 문제 상세 조회 */
     @GetMapping("/detail/{problemId}")
     public ResponseEntity<ProblemDetailResponseDto> getProblemDetail(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
@@ -87,6 +122,7 @@ public class ProblemController {
         return ResponseEntity.ok(response);
     }
     
+    /** 문제 삭제 */
     @DeleteMapping("/{problemId}")
     @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<MessageResponseDto> deleteProblem(@PathVariable Long problemId) {
@@ -94,6 +130,7 @@ public class ProblemController {
         return ResponseEntity.ok(new MessageResponseDto("문제가 삭제되었습니다."));
     }
 
+    /** 문제 삭제 권한 검증 */
     @GetMapping("/{problemId}/stats/longest-time")
     public ResponseEntity<LongestTimeResponseDto> getLongestRuntime(
             @PathVariable Long problemId,
