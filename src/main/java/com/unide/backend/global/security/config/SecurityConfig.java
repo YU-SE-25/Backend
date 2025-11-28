@@ -59,12 +59,15 @@ public class SecurityConfig {
                 // 포트폴리오 업로드 경로는 누구나 접근 가능하도록 허용
                 .requestMatchers("/api/upload/portfolio").permitAll()
                 // 닉네임으로 마이페이지 조회는 누구나 접근 가능 (GET만 허용)
-                .requestMatchers("GET", "/api/mypage/**").permitAll()
+                .requestMatchers("GET", "/api/mypage/{nickname}").permitAll()
+                // 나머지 stats/me, goals/me 등은 인증 필요
+                .requestMatchers("/api/mypage/stats/**").permitAll()
+                .requestMatchers("/api/mypage/goals/**").authenticated()
                 // MANAGER 역할을 가진 사용자만 접근 가능
                 .requestMatchers("/api/admin/**").hasRole("MANAGER")
-                // 마이페이지 수정/삭제는 인증 필요 (PUT, DELETE)
-                .requestMatchers("PUT", "/api/mypage").authenticated()
-                .requestMatchers("DELETE", "/api/mypage").authenticated()
+                // 마이페이지 수정/삭제는 인증 필요 (PATCH, DELETE)
+                .requestMatchers("PATCH", "/api/mypage/me").authenticated()
+                .requestMatchers("DELETE", "/api/mypage/me").authenticated()
                 // 나머지 모든 요청은 일단 인증된 사용자만 접근 가능하도록 설정
                 .anyRequest().authenticated()
             )
@@ -104,4 +107,5 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
 }

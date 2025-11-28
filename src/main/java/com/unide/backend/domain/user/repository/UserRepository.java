@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.domain.user.entity.UserRole;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     // 이메일이 존재하는지 확인하는 메서드
@@ -26,4 +27,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // 특정 ID를 제외하고 닉네임이 존재하는지 확인하는 메서드
     boolean existsByNicknameAndIdNot(String nickname, Long id);
+
+    // 특정 역할이 아닌 사용자 수를 세는 메서드
+    long countByRoleNot(UserRole role);
 }
