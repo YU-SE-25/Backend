@@ -12,11 +12,6 @@ import com.unide.backend.domain.report.dto.ReportResolveRequestDto;
 import com.unide.backend.domain.report.entity.Report;
 import com.unide.backend.domain.report.entity.ReportStatus;
 import com.unide.backend.domain.report.repository.ReportRepository;
-import com.unide.backend.domain.request.dto.RequestDetailDto;
-import com.unide.backend.domain.request.dto.RequestListDto;
-import com.unide.backend.domain.request.entity.Request;
-import com.unide.backend.domain.request.entity.RequestStatus;
-import com.unide.backend.domain.request.repository.RequestRepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
 
@@ -28,7 +23,6 @@ import lombok.RequiredArgsConstructor;
 public class AdminPageService {
 
     private final ReportRepository reportRepository;
-    private final RequestRepository requestRepository;
     private final UserRepository userRepository;
 
     // =========================================
@@ -69,47 +63,6 @@ public class AdminPageService {
         reportRepository.deleteById(id);
     }
 
-
-    // =========================================
-    // 🔥 등록 요청 관리 기능 (Requests)
-    // =========================================
-
-    public List<RequestListDto> getAllRequests() {
-        return requestRepository.findAll().stream()
-                .map(this::toRequestListDto)
-                .toList();
-    }
-
-    public RequestDetailDto getRequestDetail(Long id) {
-        return toRequestDetailDto(findRequest(id));
-    }
-
-    @Transactional
-    public RequestDetailDto approveRequest(Long id) {
-        Request req = findRequest(id);
-
-        req.setStatus(RequestStatus.APPROVED);
-        req.setApprovedAt(LocalDateTime.now());
-
-        return toRequestDetailDto(requestRepository.save(req));
-    }
-
-    @Transactional
-    public RequestDetailDto rejectRequest(Long id) {
-        Request req = findRequest(id);
-
-        req.setStatus(RequestStatus.REJECTED);
-
-        return toRequestDetailDto(requestRepository.save(req));
-    }
-
-    @Transactional
-    public void deleteRequest(Long id) {
-        requestRepository.deleteById(id);
-    }
-
-
-
     // =========================================
     // 🔥 내부 공통 함수들
     // =========================================
@@ -118,12 +71,6 @@ public class AdminPageService {
         return reportRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("신고 정보를 찾을 수 없습니다."));
     }
-
-    private Request findRequest(Long id) {
-        return requestRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("등록 요청을 찾을 수 없습니다."));
-    }
-
 
 
     // =========================================
@@ -165,37 +112,6 @@ public class AdminPageService {
                 .resolvedAt(r.getResolvedAt())
                 .build();
     }
-
-
-    private RequestListDto toRequestListDto(Request req) {
-
-        String requesterName = getUserName(req.getRequesterId());
-
-        return RequestListDto.builder()
-                .id(req.getId())
-                .title(req.getTitle())
-                .status(req.getStatus())
-                .createdAt(req.getCreatedAt())
-                .requesterName(requesterName)
-                .build();
-    }
-
-    private RequestDetailDto toRequestDetailDto(Request req) {
-
-        String requesterName = getUserName(req.getRequesterId());
-
-        return RequestDetailDto.builder()
-                .id(req.getId())
-                .title(req.getTitle())
-                .content(req.getContent())
-                .requesterId(req.getRequesterId())
-                .requesterName(requesterName)
-                .status(req.getStatus())
-                .createdAt(req.getCreatedAt())
-                .approvedAt(req.getApprovedAt())
-                .build();
-    }
-
 
     private String getUserName(Long userId) {
         return userRepository.findById(userId)
