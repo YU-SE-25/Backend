@@ -2,65 +2,60 @@ package com.unide.backend.domain.mypage.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import com.unide.backend.common.response.MessageResponseDto;
 import com.unide.backend.domain.mypage.dto.MyPageResponseDto;
 import com.unide.backend.domain.mypage.dto.MyPageUpdateRequestDto;
+import com.unide.backend.domain.mypage.dto.MyPageUpdateResponseDto;
 import com.unide.backend.domain.mypage.service.MyPageService;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/mypage")
+@RequiredArgsConstructor
 public class MyPageController {
+
     private final MyPageService myPageService;
 
+    /** 내 마이페이지 조회 */
+    @GetMapping("/me")
+    public ResponseEntity<MyPageResponseDto> getMyPage(
+            @AuthenticationPrincipal PrincipalDetails principal
+    ) {
+        Long userId = principal.getUser().getId();
+        return ResponseEntity.ok(myPageService.getMyPage(userId));
+    }
+
+    /** 닉네임으로 마이페이지 조회 */
     @GetMapping("/{nickname}")
     public ResponseEntity<MyPageResponseDto> getMyPageByNickname(
             @PathVariable String nickname,
-            @AuthenticationPrincipal PrincipalDetails principalDetails) {
-        Long requestUserId = principalDetails != null ? principalDetails.getUser().getId() : null;
-        MyPageResponseDto response = myPageService.getMyPageByNickname(nickname, requestUserId);
-        return ResponseEntity.ok(response);
+            @AuthenticationPrincipal PrincipalDetails principal
+    ) {
+        Long requestUserId = (principal != null) ? principal.getUser().getId() : null;
+        return ResponseEntity.ok(myPageService.getMyPageByNickname(nickname, requestUserId));
     }
 
-    @GetMapping
-    public ResponseEntity<MyPageResponseDto> getMyPage(@AuthenticationPrincipal PrincipalDetails principalDetails) {
-        Long userId = principalDetails.getUser().getId();
-        MyPageResponseDto response = myPageService.getMyPage(userId);
-        return ResponseEntity.ok(response);
-    }
-
-    @PutMapping
-    public ResponseEntity<MessageResponseDto> updateMyPage(
+    /** 내 프로필 업데이트 */
+    @PatchMapping("/me")
+    public ResponseEntity<MyPageUpdateResponseDto> updateMyPage(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
             @RequestBody MyPageUpdateRequestDto requestDto) {
         Long userId = principalDetails.getUser().getId();
-        myPageService.updateMyPage(userId, requestDto);
-        return ResponseEntity.ok(new MessageResponseDto("마이페이지가 성공적으로 수정되었습니다."));
+        MyPageResponseDto result = myPageService.updateMyPage(userId, requestDto);
+        LocalDateTime updatedAt = result.getUpdatedAt(); // ISO 포맷 등
+        return ResponseEntity.ok(new MyPageUpdateResponseDto("마이페이지가 성공적으로 수정되었습니다.", updatedAt));
     }
 
-    @DeleteMapping
-    public ResponseEntity<MessageResponseDto> deleteMyPage(@AuthenticationPrincipal PrincipalDetails principalDetails) {
+    @PostMapping("/me/initialize")
+    public ResponseEntity<MyPageUpdateResponseDto> initializeMyPage(@AuthenticationPrincipal PrincipalDetails principalDetails) {
         Long userId = principalDetails.getUser().getId();
-        myPageService.deleteMyPage(userId);
-        return ResponseEntity.ok(new MessageResponseDto("마이페이지가 삭제되었습니다."));
+        MyPageResponseDto result = myPageService.initializeMyPage(userId);
+        LocalDateTime updatedAt = result.getUpdatedAt();
+        return ResponseEntity.ok(new MyPageUpdateResponseDto("마이페이지가 초기화되었습니다.", updatedAt));
     }
-
-    @PostMapping("/initialize")
-    public ResponseEntity<MessageResponseDto> initializeMyPage(@AuthenticationPrincipal PrincipalDetails principalDetails) {
-        Long userId = principalDetails.getUser().getId();
-        myPageService.initializeMyPage(userId);
-        return ResponseEntity.ok(new MessageResponseDto("마이페이지가 시작되었습니다."));
-    }
+    
 }

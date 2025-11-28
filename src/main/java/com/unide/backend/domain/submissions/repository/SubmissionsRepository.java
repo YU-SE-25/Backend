@@ -60,4 +60,8 @@ public interface SubmissionsRepository extends JpaRepository<Submissions, Long> 
     // 특정 문제에 대해 공유된(isShared=true) 제출 내역을 최신순으로 페이징 조회
     @Query("SELECT s FROM Submissions s JOIN FETCH s.user WHERE s.problem.id = :problemId AND s.isShared = true ORDER BY s.submittedAt DESC")
     Page<Submissions> findSharedSolutionsByProblem(@Param("problemId") Long problemId, Pageable pageable);
+
+    // 특정 사용자의 모든 제출 내역을 제출 시간 내림차순으로 조회
+    @Query("SELECT s FROM Submissions s WHERE s.user.id = :userId ORDER BY s.submittedAt DESC")
+    List<Submissions> findAllByUserIdOrderBySubmittedAtDesc(@Param("userId") Long userId);
 }
