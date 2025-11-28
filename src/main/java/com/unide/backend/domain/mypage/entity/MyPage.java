@@ -7,10 +7,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.MapsId;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -23,23 +22,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class MyPage extends BaseTimeEntity {
 
-    @PrePersist
-    public void prePersist() {
-        if (this.isPublic == null) {
-            this.isPublic = true;
-        }
-    }
-    
     @Id
     @Column(name = "user_id")
     private Long userId;
-    
-    // @OneToOne(fetch = FetchType.LAZY)
-    // @JoinColumn(name = "user_id", insertable = false, updatable = false)
-    // private User user;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @MapsId // User의 PK를 이 엔티티의 PK로 사용
+    @MapsId
     @JoinColumn(name = "user_id")
     private User user;
 
@@ -49,7 +37,7 @@ public class MyPage extends BaseTimeEntity {
     @Column(length = 500)
     private String avatarUrl;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(length = 1000)
     private String bio;
 
     @Column(columnDefinition = "JSON")
@@ -58,26 +46,15 @@ public class MyPage extends BaseTimeEntity {
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT true")
     private Boolean isPublic;
 
-    // @Builder
-    // public MyPage(Long userId, User user, String nickname, String avatarUrl, String bio, String preferredLanguage, Boolean isPublic) {
-    //     this.userId = userId;
-    //     this.user = user;
-    //     this.nickname = nickname;
-    //     this.avatarUrl = avatarUrl;
-    //     this.bio = bio;
-    //     this.preferredLanguage = preferredLanguage;
-    //     this.isPublic = (isPublic != null) ? isPublic : true;
-    // }
-
     @Builder
-    public MyPage(User user, String nickname, String avatarUrl, String bio, String preferredLanguage, Boolean isPublic) {
+    public MyPage(User user, String nickname, String avatarUrl, String bio,
+                  String preferredLanguage, Boolean isPublic) {
         this.user = user;
         this.nickname = nickname;
         this.avatarUrl = avatarUrl;
         this.bio = bio;
         this.preferredLanguage = preferredLanguage;
         this.isPublic = (isPublic != null) ? isPublic : true;
-        // userId는 @MapsId 덕분에 user.getId()와 자동으로 동기화됨
     }
 
     public void updateNickname(String nickname) {

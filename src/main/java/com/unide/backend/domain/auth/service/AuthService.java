@@ -41,8 +41,12 @@ import com.unide.backend.domain.instructor.entity.InstructorApplication;
 import com.unide.backend.domain.instructor.entity.UserPortfolioFile;
 import com.unide.backend.domain.instructor.repository.InstructorApplicationRepository;
 import com.unide.backend.domain.instructor.repository.UserPortfolioFileRepository;
+import com.unide.backend.domain.mypage.entity.Goals;
 import com.unide.backend.domain.mypage.entity.MyPage;
+import com.unide.backend.domain.mypage.entity.Stats;
 import com.unide.backend.domain.mypage.repository.MyPageRepository;
+import com.unide.backend.domain.mypage.repository.StatsRepository;
+import com.unide.backend.domain.mypage.repository.GoalsRepository;
 import com.unide.backend.domain.terms.entity.UserTermsConsent;
 import com.unide.backend.domain.terms.repository.UserTermsConsentRepository;
 import com.unide.backend.domain.user.entity.User;
@@ -77,6 +81,8 @@ public class AuthService {
     private final UserPortfolioFileRepository userPortfolioFileRepository;
     private final InstructorApplicationRepository instructorApplicationRepository;
     private final MyPageRepository myPageRepository;
+    private final StatsRepository statsRepository;
+    private final GoalsRepository goalsRepository;
 
     /**
      * 이메일 사용 가능 여부를 확인하는 메서드
@@ -164,6 +170,27 @@ public class AuthService {
                 .isPublic(true)
                 .build();
         myPageRepository.save(myPage);
+
+        Stats stats = Stats.builder()
+                .user(savedUser)
+                .totalSolved(0)
+                .totalSubmitted(0)
+                .acceptanceRate(0.0)
+                .streakDays(0)
+                .ranking((int) userRepository.countByRoleNot(UserRole.MANAGER)) // ranking을 메니저 제외한 회원 수로 초기화
+                .rating(0)
+                .build();
+        statsRepository.save(stats);
+
+        Goals goals = Goals.builder()
+                .user(savedUser)
+                .dailyMinimumStudyMinutes(0)
+                .weeklyStudyGoalMinutes(0)
+                .reminderTimes("[]") // 빈 JSON 배열
+                .isReminderEnabled(false)
+                .studyTimeByLanguage("{}") // 빈 JSON 객체
+                .build();
+        goalsRepository.save(goals);
 
         // 요청 DTO의 role이 INSTRUCTOR일 때 지원서 저장
         if (requestDto.getRole() == UserRole.INSTRUCTOR) {
