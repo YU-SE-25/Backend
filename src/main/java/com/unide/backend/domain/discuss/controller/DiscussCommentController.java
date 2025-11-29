@@ -105,15 +105,24 @@ public class DiscussCommentController {
     ) {
         Long userId = userDetails.getUser().getId();
         return discussCommentService.toggleLike(commentId, userId);
-    } // POST /api/dis_board/comment/{commentId}/reports
-    @PostMapping("/comment/{commentId}/reports")
-    public ResponseEntity<Void> reportComment(
-            @PathVariable("commentId") Long commentId,
-            @AuthenticationPrincipal PrincipalDetails userDetails,
-            @RequestBody DiscussCommentReportCreateRequestDto request   // ✅ 타입 변경
-    ) {
-        Long reporterId = userDetails.getUser().getId();
-        discussCommentReportService.reportPost(commentId, reporterId, request);  // ✅ 이제 시그니처와 일치
-        return ResponseEntity.ok().build();
-    }
+    } 
+    // POST /api/dis_board/comment/{commentId}/reports
+@PostMapping("/comment/{commentId}/reports")
+public ResponseEntity<Map<String, Object>> reportComment(
+        @PathVariable("commentId") Long commentId,
+        @AuthenticationPrincipal PrincipalDetails userDetails,
+        @RequestBody DiscussCommentReportCreateRequestDto request
+) {
+    Long reporterId = userDetails.getUser().getId();
+
+    // 신고 저장
+    discussCommentReportService.reportPost(commentId, reporterId, request);
+
+    // 응답 JSON 만들기
+    Map<String, Object> response = new HashMap<>();
+    response.put("message", "신고가 접수되었습니다.");
+
+    return ResponseEntity.ok(response);
+}
+
 }

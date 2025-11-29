@@ -1,5 +1,6 @@
 package com.unide.backend.domain.discuss.controller;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -157,15 +158,23 @@ public class DiscussController {
         return ResponseEntity.ok(response);
     }
 // 🔹 게시글 신고하기
-    // POST /api/dis_board/{postId}/reports
-    @PostMapping("/{postId}/reports")
-    public ResponseEntity<Void> reportPost(
-            @PathVariable("postId") Long postId,
-            @AuthenticationPrincipal PrincipalDetails userDetails,
-            @RequestBody DiscussReportCreateRequestDto request
-    ) {
-        Long reporterId = userDetails.getUser().getId();
-        discussReportService.reportPost(postId, reporterId, request);
-        return ResponseEntity.ok().build();
-    }
+   // POST /api/dis_board/{postId}/reports
+@PostMapping("/{postId}/reports")
+public ResponseEntity<Map<String, Object>> reportPost(
+        @PathVariable("postId") Long postId,
+        @AuthenticationPrincipal PrincipalDetails userDetails,
+        @RequestBody DiscussReportCreateRequestDto request
+) {
+    Long reporterId = userDetails.getUser().getId();
+
+    // 신고 저장
+    discussReportService.reportPost(postId, reporterId, request);
+
+    // 성공 메시지 반환
+    Map<String, Object> response = new HashMap<>();
+    response.put("message", "신고가 접수되었습니다.");
+
+    return ResponseEntity.ok(response);
+}
+
 }
