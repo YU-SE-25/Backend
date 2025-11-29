@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.unide.backend.common.mail.MailService;
 
 import com.unide.backend.domain.problems.dto.ProblemCreateRequestDto;
 import com.unide.backend.domain.problems.dto.ProblemDetailResponseDto;
@@ -25,10 +26,24 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ProblemService {
+    private final MailService mailService;
     
     private final ProblemsRepository problemsRepository;
     private final SubmissionsRepository submissionsRepository;
     
+    /** 상태별 문제 조회 (매니저용) */
+    public Page<ProblemResponseDto> getProblemsByStatus(com.unide.backend.domain.problems.entity.ProblemStatus status, Pageable pageable) {
+        return problemsRepository.findByStatus(status, pageable)
+                .map(ProblemResponseDto::from);
+    }
+
+    /** 내가 만든 문제 조회 */
+    public Page<ProblemResponseDto> getProblemsByCreator(Long userId, Pageable pageable) {
+        return problemsRepository.findByCreatedById(userId, pageable)
+                .map(ProblemResponseDto::from);
+    }
+    
+    /** 문제 등록 */
     @Transactional
     public Long createProblem(User user, ProblemCreateRequestDto requestDto) {
         validateInstructorOrManager(user);
@@ -41,7 +56,7 @@ public class ProblemService {
                 .difficulty(requestDto.getDifficulty())
                 .timeLimit(requestDto.getTimeLimit())
                 .memoryLimit(requestDto.getMemoryLimit())
-                .visibility(requestDto.getVisibility())
+                .status(requestDto.getStatus())   
                 .tags(requestDto.getTags())
                 .hint(requestDto.getHint())
                 .source(requestDto.getSource())
@@ -51,6 +66,7 @@ public class ProblemService {
         return savedProblem.getId();
     }
     
+    /** 문제 수정 */
     @Transactional
     public void updateProblem(User user, Long problemId, ProblemUpdateRequestDto requestDto) {
         validateInstructorOrManager(user);
@@ -76,8 +92,8 @@ public class ProblemService {
         if (requestDto.getMemoryLimit() != null) {
             problem.updateMemoryLimit(requestDto.getMemoryLimit());
         }
-        if (requestDto.getVisibility() != null) {
-            problem.updateVisibility(requestDto.getVisibility());
+        if (requestDto.getStatus() != null) {
+            problem.updateStatus(requestDto.getStatus());
         }
         if (requestDto.getTags() != null) {
             problem.updateTags(requestDto.getTags());
@@ -88,15 +104,26 @@ public class ProblemService {
         if (requestDto.getSource() != null) {
             problem.updateSource(requestDto.getSource());
         }
+
+        // 매니저가 수정한 경우 등록한 강사에게 이메일 전송
+        if (user.getRole() == UserRole.MANAGER) {
+            User creator = problem.getCreatedBy();
+            String to = creator.getEmail();
+            String subject = "[UnIDE] 등록한 문제가 수정되었습니다";
+            String body = String.format("안녕하세요, %s님.\n\n등록하신 문제 '%s'가 매니저에 의해 수정되었습니다.\n\n확인 부탁드립니다.", creator.getName(), problem.getTitle());
+            mailService.sendEmail(to, subject, body);
+        }
     }
     
+    /** 승인된 문제 조회 */
     public Page<ProblemResponseDto> getProblems(Pageable pageable) {
-        return problemsRepository.findAll(pageable)
+        return problemsRepository.findByStatus(com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable)
                 .map(ProblemResponseDto::from);
     }
     
+    /** 승인된 문제 조회 (사용자용) */
     public Page<ProblemResponseDto> getProblems(Long userId, Pageable pageable) {
-        return problemsRepository.findAll(pageable)
+        return problemsRepository.findByStatus(com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable)
                 .map(problem -> {
                     if (userId != null) {
                         boolean isSolved = problemsRepository.isSolvedByUser(userId, problem.getId());
@@ -106,19 +133,18 @@ public class ProblemService {
                 });
     }
     
+    /** 승인된 문제 검색 (사용자용) */
     public Page<ProblemResponseDto> searchProblems(Long userId, String title, ProblemDifficulty difficulty, Pageable pageable) {
         Page<Problems> problems;
-        
         if (title != null && difficulty != null) {
-            problems = problemsRepository.findByTitleContainingAndDifficulty(title, difficulty, pageable);
+            problems = problemsRepository.findByTitleContainingAndDifficultyAndStatus(title, difficulty, com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable);
         } else if (title != null) {
-            problems = problemsRepository.findByTitleContaining(title, pageable);
+            problems = problemsRepository.findByTitleContainingAndStatus(title, com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable);
         } else if (difficulty != null) {
-            problems = problemsRepository.findByDifficulty(difficulty, pageable);
+            problems = problemsRepository.findByDifficultyAndStatus(difficulty, com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable);
         } else {
-            problems = problemsRepository.findAll(pageable);
+            problems = problemsRepository.findByStatus(com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable);
         }
-        
         return problems.map(problem -> {
             if (userId != null) {
                 boolean isSolved = problemsRepository.isSolvedByUser(userId, problem.getId());
@@ -128,28 +154,34 @@ public class ProblemService {
         });
     }
     
+    /** 문제 상세 조회 */
     @Transactional
     public ProblemDetailResponseDto getProblemDetail(Long problemId, PrincipalDetails principalDetails) {
         Problems problem = problemsRepository.findById(problemId)
                 .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다"));
-        
-        problem.increaseViewCount();
-        
-        Long totalSubmissions = submissionsRepository.countByProblemId(problemId);
-        Long acceptedSubmissions = submissionsRepository.countAcceptedByProblemId(problemId);
-        
-        // 작성자 본인이거나 관리자인 경우 수정 가능
-        boolean canEdit = false;
+
+        // 일반 사용자는 APPROVED 상태만 조회 가능, 작성자나 매니저는 예외
+        boolean isOwner = false;
+        boolean isManager = false;
         if (principalDetails != null) {
             User user = principalDetails.getUser();
-            boolean isOwner = problem.getCreatedBy().getId().equals(user.getId());
-            boolean isManager = user.getRole() == UserRole.MANAGER;
-            canEdit = isOwner || isManager;
+            isOwner = problem.getCreatedBy().getId().equals(user.getId());
+            isManager = user.getRole() == UserRole.MANAGER;
         }
-        
+        if (problem.getStatus() != com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED && !isOwner && !isManager) {
+            throw new IllegalArgumentException("승인된 문제만 조회할 수 있습니다");
+        }
+
+        problem.increaseViewCount();
+
+        Long totalSubmissions = submissionsRepository.countByProblemId(problemId);
+        Long acceptedSubmissions = submissionsRepository.countAcceptedByProblemId(problemId);
+
+        boolean canEdit = isOwner || isManager;
         return ProblemDetailResponseDto.from(problem, totalSubmissions, acceptedSubmissions, canEdit);
     }
     
+    /** 문제 삭제 */
     @Transactional
     public void deleteProblem(Long problemId) {
         Problems problem = problemsRepository.findById(problemId)
@@ -158,6 +190,7 @@ public class ProblemService {
         problemsRepository.delete(problem);
     }
     
+    /** 문제 삭제 권한 검증 */
     private void validateInstructorOrManager(User user) {
         if (user.getRole() != UserRole.INSTRUCTOR && user.getRole() != UserRole.MANAGER) {
             throw new IllegalArgumentException("문제 등록/수정 권한이 없습니다. (강사 또는 관리자만 가능)");

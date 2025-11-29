@@ -2,7 +2,8 @@
 
 package com.unide.backend.domain.problems.entity;
 
-public enum ProblemVisibility {
-    PUBLIC,
-    PRIVATE
+public enum ProblemStatus {
+    PENDING,
+    REJECTED,
+    APPROVED
 }
