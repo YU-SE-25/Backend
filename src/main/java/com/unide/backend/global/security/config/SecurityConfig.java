@@ -53,6 +53,7 @@ public class SecurityConfig {
                 .requestMatchers(SWAGGER_URL_PATTERNS).permitAll()
                 // 인증 관련 경로는 누구나 접근 가능하도록 허용
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/error").permitAll()
                 // 문제 목록 조회와 상세 조회는 누구나 접근 가능
                 .requestMatchers("GET", "/api/problems/list").permitAll()
                 .requestMatchers("GET", "/api/problems/detail/**").permitAll()
