@@ -38,7 +38,11 @@ public class StudyGroupLog {
     private StudyGroupActivityType activityType;
 
     @ManyToOne(fetch = FetchType.LAZY)
+<<<<<<< HEAD
     @JoinColumn(name = "actor_user_id")
+=======
+    @JoinColumn(name = "actor_user_id") // nullable 여부는 스키마에 맞추면 됨
+>>>>>>> bc4f78f ([추가]스터디그룹 로그)
     private User actorUser;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -56,7 +60,11 @@ public class StudyGroupLog {
     private String message;
 
     @Column(name = "payload", columnDefinition = "json")
+<<<<<<< HEAD
     private String payload; // 필요하면 나중에 JsonNode 로 변경 가능
+=======
+    private String payload;
+>>>>>>> bc4f78f ([추가]스터디그룹 로그)
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
