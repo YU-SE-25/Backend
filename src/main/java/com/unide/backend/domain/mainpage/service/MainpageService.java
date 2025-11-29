@@ -18,11 +18,7 @@ import com.unide.backend.domain.mainpage.repository.CodeReviewRankRepository;
 import com.unide.backend.domain.mainpage.repository.MainProblemViewRankRepository;
 import com.unide.backend.domain.mainpage.repository.ReputationRankProjection;
 import com.unide.backend.domain.mainpage.repository.ReputationRankRepository;
-<<<<<<< HEAD
 import com.unide.backend.domain.mypage.dto.UserStatsResponseDto;
-=======
-import com.unide.backend.domain.mypage.dto.UserStats;
->>>>>>> 5f34fd702810fe86351e09b810b61985a7b86361
 
 import lombok.RequiredArgsConstructor;
 
@@ -91,23 +87,13 @@ public class MainpageService {
     // 2. 사용자 평판 랭킹 (UserStats)
     // ===========================
     @Transactional(readOnly = true)
-<<<<<<< HEAD
     public List<UserStatsResponseDto> getReputationRankList(int size) {
-=======
-    public List<UserStats> getReputationRankList(int size) {
->>>>>>> 5f34fd702810fe86351e09b810b61985a7b86361
 
         List<ReputationRankProjection> rows =
                 reputationRankRepository.findLatestRankTop(size);
 
-        // 지금은 UserStats에 delta 같은 게 없으니까,
-        // reputation_events.rank만 이용해서 rank, rating=0 으로 매핑
         return rows.stream()
-<<<<<<< HEAD
                 .map(r -> new UserStatsResponseDto(
-=======
-                .map(r -> new UserStats(
->>>>>>> 5f34fd702810fe86351e09b810b61985a7b86361
                         0,                // totalSolved
                         0,                // totalSubmitted
                         0.0,              // acceptanceRate
