@@ -36,9 +36,9 @@ public class StudyGroupMemberController {
         return studyGroupMemberService.join(groupId, userId);
     }
 
-    // ===== 내 탈퇴 =====
-    // DELETE /api/studygroup/{groupId}/members/me
-    @DeleteMapping("/{groupId}/members/me")
+    // ===== 내가 속한 그룹에서 탈퇴 =====
+    // DELETE /api/studygroup/{groupId}/membership
+    @DeleteMapping("/{groupId}/membership")
     public StudyGroupLeaveResponse leave(
             @PathVariable Long groupId,
             @AuthenticationPrincipal PrincipalDetails principal
@@ -47,7 +47,7 @@ public class StudyGroupMemberController {
         return studyGroupMemberService.leave(groupId, userId);
     }
 
-    // ===== 멤버 강퇴 (그룹장만) =====
+    // ===== 그룹장이 특정 멤버 강퇴 =====
     // DELETE /api/studygroup/{groupId}/members/{targetUserId}
     @DeleteMapping("/{groupId}/members/{targetUserId}")
     public StudyGroupKickResponse kick(
@@ -58,14 +58,14 @@ public class StudyGroupMemberController {
         Long actorUserId = principal.getUser().getId();
         return studyGroupMemberService.kick(groupId, actorUserId, targetUserId);
     }
-    
+
     // ===== 활동 로그 조회 =====
-    // GET /api/studygroup/{groupId}/activities?page=1&size=20
+    // GET /api/studygroup/{groupId}/activities?page=1&size=10
     @GetMapping("/{groupId}/activities")
     public StudyGroupActivityPageResponse getActivities(
             @PathVariable Long groupId,
-            @RequestParam(value = "page", defaultValue = "1") int page,
-            @RequestParam(value = "size", defaultValue = "20") int size
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
     ) {
         return studyGroupMemberService.getActivities(groupId, page, size);
     }

@@ -32,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class StudyGroupMemberService {
 
     private final StudyGroupRepository studyGroupRepository;
@@ -42,7 +43,6 @@ public class StudyGroupMemberService {
     /**
      * 스터디 그룹 가입
      */
-    @Transactional
     public StudyGroupJoinResponse join(Long groupId, Long userId) {
 
         StudyGroup group = studyGroupRepository.findById(groupId)
@@ -51,7 +51,7 @@ public class StudyGroupMemberService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
 
-        // 이미 가입 여부
+        // 이미 가입 여부 체크
         if (studyGroupMemberRepository.existsByGroup_GroupIdAndMember_Id(groupId, userId)) {
             throw new IllegalStateException("이미 가입된 스터디 그룹입니다.");
         }
@@ -76,7 +76,7 @@ public class StudyGroupMemberService {
                 group,
                 StudyGroupActivityType.JOIN,
                 user,                         // actor
-                null,                         // target (자기 자신이지만 nullable 이라 null 처리)
+                null,                         // target (자기 자신이지만 nullable 이라 null)
                 StudyGroupRefEntityType.MEMBERSHIP,
                 null,
                 user.getName() + " 스터디 그룹에 가입"
@@ -101,7 +101,6 @@ public class StudyGroupMemberService {
     /**
      * 내가 속한 그룹에서 탈퇴
      */
-    @Transactional
     public StudyGroupLeaveResponse leave(Long groupId, Long userId) {
 
         StudyGroupMember member = studyGroupMemberRepository
@@ -141,7 +140,6 @@ public class StudyGroupMemberService {
     /**
      * 그룹장에 의한 멤버 강퇴
      */
-    @Transactional
     public StudyGroupKickResponse kick(Long groupId, Long actorUserId, Long targetUserId) {
 
         StudyGroup group = studyGroupRepository.findById(groupId)
@@ -196,31 +194,26 @@ public class StudyGroupMemberService {
 
     /**
      * 활동 로그 조회 (페이지네이션)
-     *//**
- * 활동 로그 조회 (페이지네이션)
- */
-@Transactional
-public StudyGroupActivityPageResponse getActivities(Long groupId, int page, int size) {
+     */
+    public StudyGroupActivityPageResponse getActivities(Long groupId, int page, int size) {
 
-    int pageIndex = Math.max(0, page - 1);
-    Pageable pageable = PageRequest.of(pageIndex, size);
+        int pageIndex = Math.max(0, page - 1);
+        Pageable pageable = PageRequest.of(pageIndex, size);
 
-    Page<StudyGroupLog> logPage =
-            studyGroupLogRepository.findByGroup_GroupIdOrderByCreatedAtDesc(groupId, pageable);
+        Page<StudyGroupLog> logPage =
+                studyGroupLogRepository.findByGroup_GroupIdOrderByCreatedAtDesc(groupId, pageable);
 
-    List<StudyGroupActivityItemResponse> content = logPage.getContent().stream()
-            .map(StudyGroupActivityItemResponse::fromEntity)
-            .collect(Collectors.toList());
+        List<StudyGroupActivityItemResponse> content = logPage.getContent().stream()
+                .map(StudyGroupActivityItemResponse::fromEntity)
+                .collect(Collectors.toList());
 
-    // 🔥 여기서부터: 생성자에 값 안 넣고, 기본 생성자 + setter 로 채우기
-    StudyGroupActivityPageResponse response = new StudyGroupActivityPageResponse();
-    response.setContent(content);
-    response.setPage(page);                         // 1-base 페이지 번호
-    response.setSize(size);
-    response.setTotalPages(logPage.getTotalPages());
-    response.setTotalElements(logPage.getTotalElements());
+        StudyGroupActivityPageResponse response = new StudyGroupActivityPageResponse();
+        response.setContent(content);
+        response.setPage(page);                         // 1-base 페이지 번호
+        response.setSize(size);
+        response.setTotalPages(logPage.getTotalPages());
+        response.setTotalElements(logPage.getTotalElements());
 
-    return response;
-}
-
+        return response;
+    }
 }

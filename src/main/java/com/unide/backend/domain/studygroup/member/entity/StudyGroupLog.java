@@ -18,10 +18,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
 @Table(name = "study_group_log")
+@NoArgsConstructor
 public class StudyGroupLog {
 
     @Id
@@ -38,7 +40,7 @@ public class StudyGroupLog {
     private StudyGroupActivityType activityType;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "actor_user_id") // nullable 여부는 스키마에 맞추면 됨
+    @JoinColumn(name = "actor_user_id")
     private User actorUser;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -59,14 +61,11 @@ public class StudyGroupLog {
     private String payload;
 
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
-
-    protected StudyGroupLog() {
-    }
 
     private StudyGroupLog(
             StudyGroup group,
@@ -95,6 +94,14 @@ public class StudyGroupLog {
             Long refEntityId,
             String message
     ) {
-        return new StudyGroupLog(group, activityType, actorUser, targetUser, refEntityType, refEntityId, message);
+        return new StudyGroupLog(
+                group,
+                activityType,
+                actorUser,
+                targetUser,
+                refEntityType,
+                refEntityId,
+                message
+        );
     }
 }
