@@ -9,7 +9,6 @@ import com.unide.backend.domain.user.entity.User;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -36,7 +35,7 @@ public class StudyGroupLog {
     @JoinColumn(name = "group_id", nullable = false)
     private StudyGroup group;
 
-    @Enumerated(EnumType.STRING)
+    @Enumerated(jakarta.persistence.EnumType.STRING)
     @Column(name = "activity_type", nullable = false)
     private StudyGroupActivityType activityType;
 
@@ -48,7 +47,7 @@ public class StudyGroupLog {
     @JoinColumn(name = "target_user_id")
     private User targetUser;
 
-    @Enumerated(EnumType.STRING)
+    @Enumerated(jakarta.persistence.EnumType.STRING)
     @Column(name = "ref_entity_type")
     private StudyGroupRefEntityType refEntityType;
 
