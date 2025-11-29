@@ -6,7 +6,7 @@ import java.util.List;
 
 import com.unide.backend.domain.problems.entity.ProblemDifficulty;
 import com.unide.backend.domain.problems.entity.ProblemTag;
-import com.unide.backend.domain.problems.entity.ProblemVisibility;
+import com.unide.backend.domain.problems.entity.ProblemStatus;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -38,7 +38,7 @@ public class ProblemCreateRequestDto {
     @Positive(message = "메모리 제한은 양수여야 합니다")
     private Integer memoryLimit;
     
-    private ProblemVisibility visibility;
+    private ProblemStatus status;
     
     private List<ProblemTag> tags;
     

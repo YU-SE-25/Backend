@@ -12,6 +12,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ProblemsRepository extends JpaRepository<Problems, Long> {
+    Page<Problems> findByTitleContainingAndStatus(String title, com.unide.backend.domain.problems.entity.ProblemStatus status, Pageable pageable);
+    Page<Problems> findByDifficultyAndStatus(com.unide.backend.domain.problems.entity.ProblemDifficulty difficulty, com.unide.backend.domain.problems.entity.ProblemStatus status, Pageable pageable);
+    Page<Problems> findByTitleContainingAndDifficultyAndStatus(String title, com.unide.backend.domain.problems.entity.ProblemDifficulty difficulty, com.unide.backend.domain.problems.entity.ProblemStatus status, Pageable pageable);
+    Page<Problems> findByStatus(com.unide.backend.domain.problems.entity.ProblemStatus status, Pageable pageable);
+    Page<Problems> findByCreatedById(Long userId, Pageable pageable);
     Page<Problems> findByTitleContaining(String title, Pageable pageable);
     
     Page<Problems> findByDifficulty(ProblemDifficulty difficulty, Pageable pageable);

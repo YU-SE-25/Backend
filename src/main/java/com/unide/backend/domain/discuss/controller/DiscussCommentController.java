@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,10 +15,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.unide.backend.domain.discuss.dto.DiscussCommentReportCreateRequestDto;
 import com.unide.backend.domain.discuss.dto.DiscussCommentRequest;
 import com.unide.backend.domain.discuss.dto.DiscussCommentResponse;
+import com.unide.backend.domain.discuss.dto.DiscussReportCreateRequestDto;
 import com.unide.backend.domain.discuss.service.DiscussCommentService;
 import com.unide.backend.global.security.auth.PrincipalDetails;
+import com.unide.backend.domain.discuss.service.DiscussCommentReportService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,6 +31,7 @@ import lombok.RequiredArgsConstructor;
 public class DiscussCommentController {
 
     private final DiscussCommentService discussCommentService;
+    private final DiscussCommentReportService discussCommentReportService;   // ✅ 신고 서비스 추가
 
     // ===== 특정 게시글 댓글 목록 조회 =====
     // GET /api/dis_board/{postId}/comments
@@ -100,5 +105,24 @@ public class DiscussCommentController {
     ) {
         Long userId = userDetails.getUser().getId();
         return discussCommentService.toggleLike(commentId, userId);
-    }
+    } 
+    // POST /api/dis_board/comment/{commentId}/reports
+@PostMapping("/comment/{commentId}/reports")
+public ResponseEntity<Map<String, Object>> reportComment(
+        @PathVariable("commentId") Long commentId,
+        @AuthenticationPrincipal PrincipalDetails userDetails,
+        @RequestBody DiscussCommentReportCreateRequestDto request
+) {
+    Long reporterId = userDetails.getUser().getId();
+
+    // 신고 저장
+    discussCommentReportService.reportPost(commentId, reporterId, request);
+
+    // 응답 JSON 만들기
+    Map<String, Object> response = new HashMap<>();
+    response.put("message", "신고가 접수되었습니다.");
+
+    return ResponseEntity.ok(response);
+}
+
 }

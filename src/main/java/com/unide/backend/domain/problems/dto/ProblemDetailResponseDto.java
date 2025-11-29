@@ -7,7 +7,7 @@ import java.util.List;
 
 import com.unide.backend.domain.problems.entity.ProblemDifficulty;
 import com.unide.backend.domain.problems.entity.ProblemTag;
-import com.unide.backend.domain.problems.entity.ProblemVisibility;
+import com.unide.backend.domain.problems.entity.ProblemStatus;
 import com.unide.backend.domain.problems.entity.Problems;
 
 import lombok.AllArgsConstructor;
@@ -26,7 +26,7 @@ public class ProblemDetailResponseDto {
     private ProblemDifficulty difficulty;
     private Integer timeLimit;
     private Integer memoryLimit;
-    private ProblemVisibility visibility;
+    private ProblemStatus status;
     private Integer viewCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -48,7 +48,7 @@ public class ProblemDetailResponseDto {
                 .difficulty(problem.getDifficulty())
                 .timeLimit(problem.getTimeLimit())
                 .memoryLimit(problem.getMemoryLimit())
-                .visibility(problem.getVisibility())
+                .status(problem.getStatus())
                 .viewCount(problem.getViewCount())
                 .createdAt(problem.getCreatedAt())
                 .updatedAt(problem.getUpdatedAt())
@@ -75,7 +75,7 @@ public class ProblemDetailResponseDto {
                 .difficulty(problem.getDifficulty())
                 .timeLimit(problem.getTimeLimit())
                 .memoryLimit(problem.getMemoryLimit())
-                .visibility(problem.getVisibility())
+                .status(problem.getStatus())
                 .viewCount(problem.getViewCount())
                 .createdAt(problem.getCreatedAt())
                 .updatedAt(problem.getUpdatedAt())
