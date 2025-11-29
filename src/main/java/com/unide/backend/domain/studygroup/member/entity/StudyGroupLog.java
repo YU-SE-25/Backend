@@ -9,6 +9,7 @@ import com.unide.backend.domain.user.entity.User;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -18,10 +19,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
 @Table(name = "study_group_log")
+@NoArgsConstructor
 public class StudyGroupLog {
 
     @Id
@@ -33,23 +36,19 @@ public class StudyGroupLog {
     @JoinColumn(name = "group_id", nullable = false)
     private StudyGroup group;
 
-    @Enumerated(jakarta.persistence.EnumType.STRING)
+    @Enumerated(EnumType.STRING)
     @Column(name = "activity_type", nullable = false)
     private StudyGroupActivityType activityType;
 
     @ManyToOne(fetch = FetchType.LAZY)
-<<<<<<< HEAD
     @JoinColumn(name = "actor_user_id")
-=======
-    @JoinColumn(name = "actor_user_id") // nullable 여부는 스키마에 맞추면 됨
->>>>>>> bc4f78f ([추가]스터디그룹 로그)
     private User actorUser;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "target_user_id")
     private User targetUser;
 
-    @Enumerated(jakarta.persistence.EnumType.STRING)
+    @Enumerated(EnumType.STRING)
     @Column(name = "ref_entity_type")
     private StudyGroupRefEntityType refEntityType;
 
@@ -60,11 +59,7 @@ public class StudyGroupLog {
     private String message;
 
     @Column(name = "payload", columnDefinition = "json")
-<<<<<<< HEAD
-    private String payload; // 필요하면 나중에 JsonNode 로 변경 가능
-=======
     private String payload;
->>>>>>> bc4f78f ([추가]스터디그룹 로그)
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -72,9 +67,6 @@ public class StudyGroupLog {
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
-
-    protected StudyGroupLog() {
-    }
 
     private StudyGroupLog(
             StudyGroup group,
@@ -103,6 +95,14 @@ public class StudyGroupLog {
             Long refEntityId,
             String message
     ) {
-        return new StudyGroupLog(group, activityType, actorUser, targetUser, refEntityType, refEntityId, message);
+        return new StudyGroupLog(
+                group,
+                activityType,
+                actorUser,
+                targetUser,
+                refEntityType,
+                refEntityId,
+                message
+        );
     }
 }
