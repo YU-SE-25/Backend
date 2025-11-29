@@ -20,7 +20,9 @@ import com.unide.backend.domain.discuss.dto.DiscussPollCreateRequest;
 import com.unide.backend.domain.discuss.dto.DiscussPollResponse;
 import com.unide.backend.domain.discuss.dto.DiscussPollVoteRequest;
 import com.unide.backend.domain.discuss.dto.DiscussPollVoteResponse;
+import com.unide.backend.domain.discuss.dto.DiscussReportCreateRequestDto;
 import com.unide.backend.domain.discuss.service.DiscussPollService;
+import com.unide.backend.domain.discuss.service.DiscussReportService;
 import com.unide.backend.domain.discuss.service.DiscussService;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
@@ -33,6 +35,7 @@ public class DiscussController {
 
     private final DiscussService discussService;
     private final DiscussPollService discussPollService;   // ✅ 투표 서비스 추가
+    private final DiscussReportService discussReportService;   // ✅ 신고 서비스 추가
 
     // 목록
     @GetMapping
@@ -152,5 +155,17 @@ public class DiscussController {
 
         DiscussPollResponse response = discussPollService.getPollByPostId(postId, userId);
         return ResponseEntity.ok(response);
+    }
+// 🔹 게시글 신고하기
+    // POST /api/dis_board/{postId}/reports
+    @PostMapping("/{postId}/reports")
+    public ResponseEntity<Void> reportPost(
+            @PathVariable("postId") Long postId,
+            @AuthenticationPrincipal PrincipalDetails userDetails,
+            @RequestBody DiscussReportCreateRequestDto request
+    ) {
+        Long reporterId = userDetails.getUser().getId();
+        discussReportService.reportPost(postId, reporterId, request);
+        return ResponseEntity.ok().build();
     }
 }
