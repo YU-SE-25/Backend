@@ -8,14 +8,15 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.EqualsAndHashCode;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Embeddable
+@EqualsAndHashCode
 public class QnALikeId implements Serializable {
-
     @Column(name = "post_id")
     private Long postId;
 
