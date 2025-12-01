@@ -1,6 +1,5 @@
 package com.unide.backend.domain.qna.service;
 
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -15,6 +14,8 @@ import com.unide.backend.domain.qna.entity.QnACommentLike;
 import com.unide.backend.domain.qna.repository.QnACommentLikeRepository;
 import com.unide.backend.domain.qna.repository.QnACommentRepository;
 import com.unide.backend.domain.qna.repository.QnARepository;
+import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.domain.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,30 +27,49 @@ public class QnACommentService {
     private final QnACommentRepository qnaCommentRepository;
     private final QnACommentLikeRepository likeRepository;  
     private final QnARepository qnaRepository;
- 
 
-    
-    // ===== 특정 게시글 댓글 목록 조회 =====
+    // ⭐ 추가: 작성자 이름 조회용
+    private final UserRepository userRepository;
+
+    private String resolveAuthorName(Long authorId) {
+        return userRepository.findById(authorId)
+                .map(User::getNickname) // ⚠ user.getName() 이면 변경
+                .orElse("알 수 없음");
+    }
+
+    // ================================
+    // 📌 특정 게시글 댓글 목록 조회
+    // ================================
     @Transactional(readOnly = true)
     public List<QnACommentResponse> getCommentsByPost(Long postId, Long viewerId) {
 
         List<QnAComment> commentList =
                 qnaCommentRepository.findByPostIdOrderByCreatedAtAsc(postId);
 
-        // viewerLiked 계산 (로그인 안 했으면 전부 false)
         return commentList.stream()
                 .map(c -> {
                     boolean viewerLiked = false;
+
                     if (viewerId != null) {
                         viewerLiked = likeRepository.existsByCommentIdAndLikerId(
                                 c.getCommentId(), viewerId);
                     }
-                    return QnACommentResponse.fromEntity(c, viewerLiked, null);
+
+                    String authorName = resolveAuthorName(c.getAuthorId());
+
+                    return QnACommentResponse.fromEntity(
+                            c,
+                            viewerLiked,
+                            null,
+                            authorName
+                    );
                 })
                 .collect(Collectors.toList());
     }
     
-    // ===== 단일 댓글 조회 =====
+    // ================================
+    // 📌 단일 댓글 조회
+    // ================================
     @Transactional(readOnly = true)
     public QnACommentResponse getComment(Long commentId, Long viewerId) {
         QnAComment comment = qnaCommentRepository.findById(commentId)
@@ -57,55 +77,71 @@ public class QnACommentService {
                         new IllegalArgumentException("해당 댓글이 없습니다. commentId=" + commentId));
 
         boolean viewerLiked = false;
+
         if (viewerId != null) {
             viewerLiked = likeRepository.existsByCommentIdAndLikerId(commentId, viewerId);
         }
 
-        return QnACommentResponse.fromEntity(comment, viewerLiked, null);
+        String authorName = resolveAuthorName(comment.getAuthorId());
+
+        return QnACommentResponse.fromEntity(
+                comment,
+                viewerLiked,
+                null,
+                authorName
+        );
     }
-// ===== 댓글 생성 (대댓글 포함) =====
-public QnACommentResponse createComment(Long postId,
-                                        Long authorId,
-                                        QnACommentRequest request) {
 
-    // 1) 게시글 존재하는지 확인 + comment_count 증가 대상
-    QnA post = qnaRepository.findById(postId)
-            .orElseThrow(() ->
-                    new IllegalArgumentException("게시글이 존재하지 않습니다. postId=" + postId));
+    // ================================
+    // 📌 댓글 생성
+    // ================================
+    public QnACommentResponse createComment(Long postId,
+                                            Long authorId,
+                                            QnACommentRequest request) {
 
-    // 2) privatePost 처리
-    boolean privatePost = request.getPrivatePost() != null
-            ? request.getPrivatePost()
-            : false;
+        QnA post = qnaRepository.findById(postId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("게시글이 존재하지 않습니다. postId=" + postId));
 
-    // 3) 댓글 생성
-    QnAComment comment = QnAComment.builder()
-            .postId(postId)
-            .authorId(authorId)
-            .anonymous(request.isAnonymity())
-            .parentCommentId(request.getParentId())
-            .content(request.getContents())
-            .privatePost(privatePost)
-            .likeCount(0)
-            .build();
+        boolean privatePost = request.getPrivatePost() != null
+                ? request.getPrivatePost()
+                : false;
 
-    QnAComment saved = qnaCommentRepository.save(comment);
+        QnAComment comment = QnAComment.builder()
+                .postId(postId)
+                .authorId(authorId)
+                .anonymous(request.isAnonymity())
+                .parentCommentId(request.getParentId())
+                .content(request.getContents())
+                .privatePost(privatePost)
+                .likeCount(0)
+                .build();
 
-    // 4) comment_count 증가
-    post.setCommentCount(post.getCommentCount() + 1);
+        QnAComment saved = qnaCommentRepository.save(comment);
 
-    String message = (request.getParentId() == null)
-            ? "댓글이 등록되었습니다."
-            : "대댓글이 등록되었습니다.";
+        post.setCommentCount(post.getCommentCount() + 1);
 
-    return QnACommentResponse.fromEntity(saved, false, message);
-}
+        String message = (request.getParentId() == null)
+                ? "댓글이 등록되었습니다."
+                : "대댓글이 등록되었습니다.";
 
+        String authorName = resolveAuthorName(saved.getAuthorId());
 
-    // ===== 댓글 수정 =====
+        return QnACommentResponse.fromEntity(
+                saved,
+                false,
+                message,
+                authorName
+        );
+    }
+
+    // ================================
+    // 📌 댓글 수정
+    // ================================
     public QnACommentResponse updateComment(Long commentId,
-                                                Long authorId,
-                                                QnACommentRequest request) {
+                                            Long authorId,
+                                            QnACommentRequest request) {
+
         QnAComment comment = qnaCommentRepository.findById(commentId)
                 .orElseThrow(() ->
                         new IllegalArgumentException("해당 댓글이 없습니다. commentId=" + commentId));
@@ -113,8 +149,7 @@ public QnACommentResponse createComment(Long postId,
         if (!comment.getAuthorId().equals(authorId)) {
             throw new IllegalStateException("본인이 작성한 댓글만 수정할 수 있습니다.");
         }
-        
-        // DTO 메서드 이름 맞추기
+
         comment.setContent(request.getContents());
         comment.setAnonymous(request.isAnonymity());
 
@@ -124,10 +159,21 @@ public QnACommentResponse createComment(Long postId,
 
         comment.setPrivatePost(privatePost);
 
-        return QnACommentResponse.fromEntity(comment, false, "댓글이 수정되었습니다.");
+        String authorName = resolveAuthorName(comment.getAuthorId());
+
+        return QnACommentResponse.fromEntity(
+                comment,
+                false,
+                "댓글이 수정되었습니다.",
+                authorName
+        );
     }
-    // ===== 댓글 삭제 =====
+
+    // ================================
+    // 📌 댓글 삭제
+    // ================================
     public void deleteComment(Long commentId, Long authorId) {
+
         QnAComment comment = qnaCommentRepository.findById(commentId)
                 .orElseThrow(() ->
                         new IllegalArgumentException("해당 댓글이 없습니다. commentId=" + commentId));
@@ -136,20 +182,20 @@ public QnACommentResponse createComment(Long postId,
             throw new IllegalStateException("본인이 작성한 댓글만 삭제할 수 있습니다.");
         }
 
-        // 1) 게시글 댓글 수 -1
         QnA post = qnaRepository.findById(comment.getPostId())
                 .orElseThrow(() ->
                         new IllegalArgumentException("게시글이 존재하지 않습니다. postId=" + comment.getPostId()));
 
         post.setCommentCount(Math.max(0, post.getCommentCount() - 1));
 
-        // 2) 좋아요 정리 (지금은 작성자 것만 지우지만, 필요하면 전체 삭제 메서드 추가)
         likeRepository.deleteByCommentIdAndLikerId(commentId, authorId);
 
-        // 3) 댓글 삭제
         qnaCommentRepository.delete(comment);
     }
-  // ===== 좋아요 토글 =====
+
+    // ================================
+    // 📌 좋아요 토글
+    // ================================
     public QnACommentResponse toggleLike(Long commentId, Long userId) {
 
         QnAComment comment = qnaCommentRepository.findById(commentId)
@@ -158,32 +204,30 @@ public QnACommentResponse createComment(Long postId,
 
         boolean alreadyLiked = likeRepository.existsByCommentIdAndLikerId(commentId, userId);
 
+        boolean viewerLiked;
+
         if (alreadyLiked) {
-            // 좋아요 삭제
             likeRepository.deleteByCommentIdAndLikerId(commentId, userId);
             comment.setLikeCount(comment.getLikeCount() - 1);
-
-            return QnACommentResponse.fromEntity(
-                    comment,
-                    false,
-                    "좋아요가 취소되었습니다."
-            );
+            viewerLiked = false;
         } else {
-            // 좋아요 추가
             QnACommentLike like = QnACommentLike.builder()
                     .commentId(commentId)
                     .likerId(userId)
                     .build();
 
-            likeRepository.save(like);   
+            likeRepository.save(like);
             comment.setLikeCount(comment.getLikeCount() + 1);
-
-            return QnACommentResponse.fromEntity(
-                    comment,
-                    true,
-                    "좋아요가 추가되었습니다."
-            );
+            viewerLiked = true;
         }
-    }
 
+        String authorName = resolveAuthorName(comment.getAuthorId());
+
+        return QnACommentResponse.fromEntity(
+                comment,
+                viewerLiked,
+                viewerLiked ? "좋아요가 추가되었습니다." : "좋아요가 취소되었습니다.",
+                authorName
+        );
+    }
 }

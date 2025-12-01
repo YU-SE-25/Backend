@@ -15,8 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 import com.unide.backend.domain.discuss.dto.DiscussDto;
 import com.unide.backend.domain.discuss.entity.Discuss;
 import com.unide.backend.domain.discuss.entity.DiscussLike;
-import com.unide.backend.domain.discuss.repository.DiscussRepository;
 import com.unide.backend.domain.discuss.repository.DiscussLikeRepository;
+import com.unide.backend.domain.discuss.repository.DiscussRepository;
+import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.domain.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -28,35 +30,58 @@ public class DiscussService {
     private final DiscussRepository discussRepository;
     private final DiscussLikeRepository discussLikeRepository;
 
+    // 🔹 authorId -> authorName 조회용
+    private final UserRepository userRepository;
 
-    // 💡 참고: toDto private 메서드는 DiscussDto.fromEntity()로 대체되었습니다.
-    // DTO 변환 로직은 DTO 클래스 내부에 정의하는 것이 더 좋습니다.
+    // ==================== 공통 유틸 ====================
 
-    // ========== 목록 조회 ==========
+    /**
+     * authorId 로부터 작성자 이름(닉네임)을 조회합니다.
+     *  - User 엔티티의 필드명이 name 이면 getName() 으로 변경하세요.
+     */
+    private String resolveAuthorName(Long authorId) {
+        if (authorId == null) return "알 수 없음";
+
+        return userRepository.findById(authorId)
+                .map(User::getNickname)   // 🔹 getName() / getNickname() 등 프로젝트에 맞게 수정
+                .orElse("알 수 없음");
+    }
+
+    // ==================== 목록 조회 ====================
+
     @Transactional(readOnly = true)
     public List<DiscussDto> getDiscussList(int pageNum) {
-        PageRequest pageRequest = PageRequest.of(pageNum - 1, 10,
-                Sort.by(Sort.Direction.DESC, "postId"));
+        PageRequest pageRequest = PageRequest.of(
+                pageNum - 1,
+                10,
+                Sort.by(Sort.Direction.DESC, "postId")
+        );
 
         Page<Discuss> page = discussRepository.findAll(pageRequest);
 
         return page.stream()
-                .map(DiscussDto::fromEntity) // DTO의 정적 팩토리 메서드 사용
+                .map(entity -> {
+                    String authorName = resolveAuthorName(entity.getAuthorId());
+                    return DiscussDto.fromEntity(entity, authorName);
+                })
                 .collect(Collectors.toList());
     }
 
-    // ========== 단건 조회 ==========
+    // ==================== 단건 조회 ====================
+
     @Transactional(readOnly = true)
     public DiscussDto getDiscuss(Long postId) {
         Discuss discuss = discussRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 토론글이 없습니다. postId=" + postId));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("해당 토론글이 없습니다. postId=" + postId));
 
-        return DiscussDto.fromEntity(discuss);
+        String authorName = resolveAuthorName(discuss.getAuthorId());
+        return DiscussDto.fromEntity(discuss, authorName);
     }
 
-    // ========== 생성 ==========
-    public DiscussDto createDiscuss(DiscussDto dto,Long authorId) {
-        // Discuss 엔티티에 Builder 패턴이 적용되어 있다는 가정 하에 작성됩니다.
+    // ==================== 생성 ====================
+
+    public DiscussDto createDiscuss(DiscussDto dto, Long authorId) {
         Discuss discuss = Discuss.builder()
                 .authorId(authorId)
                 .anonymous(dto.isAnonymous())
@@ -67,26 +92,30 @@ public class DiscussService {
                 .commentCount(0)
                 .build();
 
-
         Discuss saved = discussRepository.save(discuss);
-        return DiscussDto.fromEntity(saved);
+
+        String authorName = resolveAuthorName(saved.getAuthorId());
+        return DiscussDto.fromEntity(saved, authorName);
     }
 
-    // ========== 수정 ==========
+    // ==================== 수정 ====================
+
     public DiscussDto updateDiscuss(Long postId, DiscussDto dto) {
         Discuss discuss = discussRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 토론글이 없습니다. postId=" + postId));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("해당 토론글이 없습니다. postId=" + postId));
 
         discuss.setTitle(dto.getTitle());
         discuss.setContents(dto.getContents());
         discuss.setAnonymous(dto.isAnonymous());
         discuss.setPrivatePost(dto.isPrivatePost());
-        // Jpa는 트랜잭션(@Transactional) 내에서 엔티티가 변경되면 자동으로 DB에 반영합니다.
 
-        return DiscussDto.fromEntity(discuss);
+        String authorName = resolveAuthorName(discuss.getAuthorId());
+        return DiscussDto.fromEntity(discuss, authorName);
     }
 
-    // ========== 삭제 ==========
+    // ==================== 삭제 ====================
+
     public void deleteDiscuss(Long postId) {
         if (!discussRepository.existsById(postId)) {
             throw new IllegalArgumentException("해당 토론글이 없습니다. postId=" + postId);
@@ -94,17 +123,23 @@ public class DiscussService {
         discussRepository.deleteById(postId);
     }
 
-    // ========== 검색 ==========
+    // ==================== 검색 ====================
+
     @Transactional(readOnly = true)
     public List<DiscussDto> searchDiscusses(String keyword) {
         List<Discuss> list = discussRepository
                 .findByTitleContainingIgnoreCaseOrContentsContainingIgnoreCase(keyword, keyword);
 
         return list.stream()
-                .map(DiscussDto::fromEntity)
+                .map(entity -> {
+                    String authorName = resolveAuthorName(entity.getAuthorId());
+                    return DiscussDto.fromEntity(entity, authorName);
+                })
                 .collect(Collectors.toList());
     }
-    //첨부파일 첨가
+
+    // ==================== 첨부파일 추가 ====================
+
     @Transactional
     public Map<String, Object> attachFile(Long postId, String fileUrl) {
 
@@ -112,7 +147,7 @@ public class DiscussService {
                 .orElseThrow(() ->
                         new IllegalArgumentException("해당 게시물이 없습니다. postId=" + postId));
 
-        post.setAttachmentUrl(fileUrl);   // 첨부 URL 저장
+        post.setAttachmentUrl(fileUrl);
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "첨부파일이 등록되었습니다.");
@@ -121,41 +156,42 @@ public class DiscussService {
 
         return response;
     }
-    //좋아요// ===== 토론 게시글 좋아요 토글 =====
-public DiscussDto toggleLike(Long postId, Long userId) {
 
-    // 1) 게시글 조회
-    Discuss discuss = discussRepository.findById(postId)
-            .orElseThrow(() ->
-                    new IllegalArgumentException("해당 게시글이 없습니다. postId=" + postId));
+    // ==================== 좋아요 토글 ====================
 
-    // 2) 내가 이미 좋아요 눌렀는지 확인
-    boolean alreadyLiked = discussLikeRepository
-            .existsByIdPostIdAndIdLikerId(postId, userId);
+    public DiscussDto toggleLike(Long postId, Long userId) {
 
-    boolean viewerLiked;
+        // 1) 게시글 조회
+        Discuss discuss = discussRepository.findById(postId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("해당 게시글이 없습니다. postId=" + postId));
 
-    if (alreadyLiked) {
-        // 좋아요 취소
-        discussLikeRepository.deleteByIdPostIdAndIdLikerId(postId, userId);
-        discuss.setLikeCount(discuss.getLikeCount() - 1);
-        viewerLiked = false;
-    } else {
-        // 좋아요 추가
-        DiscussLike like = DiscussLike.of(postId, userId);
-        discussLikeRepository.save(like);
-        discuss.setLikeCount(discuss.getLikeCount() + 1);
-        viewerLiked = true;
+        // 2) 이미 좋아요 눌렀는지 확인
+        boolean alreadyLiked = discussLikeRepository
+                .existsByIdPostIdAndIdLikerId(postId, userId);
+
+        boolean viewerLiked;
+
+        if (alreadyLiked) {
+            // 좋아요 취소
+            discussLikeRepository.deleteByIdPostIdAndIdLikerId(postId, userId);
+            discuss.setLikeCount(discuss.getLikeCount() - 1);
+            viewerLiked = false;
+        } else {
+            // 좋아요 추가
+            DiscussLike like = DiscussLike.of(postId, userId);
+            discussLikeRepository.save(like);
+            discuss.setLikeCount(discuss.getLikeCount() + 1);
+            viewerLiked = true;
+        }
+
+        // 3) DTO 변환 (authorName + viewerLiked + message)
+        String authorName = resolveAuthorName(discuss.getAuthorId());
+        DiscussDto dto = DiscussDto.fromEntity(discuss, authorName, viewerLiked);
+        dto.setMessage(viewerLiked
+                ? "❤️ 좋아요가 추가되었습니다."
+                : "💔 좋아요가 취소되었습니다.");
+
+        return dto;
     }
-
-    // 3) DTO로 반환 (viewerLiked까지 세팅)
-   // 3) DTO로 반환 (viewerLiked + message까지 세팅)
-DiscussDto dto = DiscussDto.fromEntity(discuss, viewerLiked);
-dto.setMessage(viewerLiked ? "❤️ 좋아요가 추가되었습니다." 
-                           : "💔 좋아요가 취소되었습니다.");
-return dto;
-
-
-}
-
 }
