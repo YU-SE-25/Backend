@@ -66,6 +66,13 @@ public interface SubmissionsRepository extends JpaRepository<Submissions, Long> 
     List<Submissions> findAllByUserIdOrderBySubmittedAtDesc(@Param("userId") Long userId);
 
     // 효율 랭킹 계산용: 특정 문제의 공유된 제출 전체 리스트
-List<Submissions> findByProblemIdAndIsSharedTrue(Long problemId);
+    List<Submissions> findByProblemIdAndIsSharedTrue(Long problemId);
 
+    // 특정 문제에 대해 사용자의 정답 제출 수 조회
+    @Query("SELECT COUNT(s) FROM Submissions s WHERE s.problem.id = :problem AND s.user.id = :userId AND s.status = 'CA'")
+    Long countAcceptedByProblemIdAndUserId(@Param("problem") Long problemId, @Param("userId") Long userId);
+    
+    // 특정 문제에 대해 사용자의 오답 제출 수 조회
+    @Query("SELECT COUNT(s) FROM Submissions s WHERE s.problem.id = :problem AND s.user.id = :userId AND s.status = 'WA'")
+    Long countWrongByProblemIdAndUserId(@Param("problem") Long problemId, @Param("userId") Long userId);
 }

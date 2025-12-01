@@ -2,14 +2,14 @@
 
 package com.unide.backend.domain.problems.repository;
 
-import com.unide.backend.domain.problems.entity.ProblemDifficulty;
-import com.unide.backend.domain.problems.entity.Problems;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.unide.backend.domain.problems.entity.ProblemDifficulty;
+import com.unide.backend.domain.problems.entity.Problems;
 
 public interface ProblemsRepository extends JpaRepository<Problems, Long> {
     Page<Problems> findByTitleContainingAndStatus(String title, com.unide.backend.domain.problems.entity.ProblemStatus status, Pageable pageable);
@@ -26,4 +26,13 @@ public interface ProblemsRepository extends JpaRepository<Problems, Long> {
     @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END " +
            "FROM Submissions s WHERE s.user.id = :userId AND s.problem.id = :problemId AND s.status = 'CA'")
     boolean isSolvedByUser(@Param("userId") Long userId, @Param("problemId") Long problemId);
+
+    // 태그 포함 문제 조회
+    Page<Problems> findByTagsInAndStatus(java.util.List<com.unide.backend.domain.problems.entity.ProblemTag> tags, com.unide.backend.domain.problems.entity.ProblemStatus status, Pageable pageable);
+
+    Page<Problems> findByTagsInAndTitleContainingAndStatus(java.util.List<com.unide.backend.domain.problems.entity.ProblemTag> tags, String title, com.unide.backend.domain.problems.entity.ProblemStatus status, Pageable pageable);
+
+    Page<Problems> findByTagsInAndDifficultyAndStatus(java.util.List<com.unide.backend.domain.problems.entity.ProblemTag> tags, com.unide.backend.domain.problems.entity.ProblemDifficulty difficulty, com.unide.backend.domain.problems.entity.ProblemStatus status, Pageable pageable);
+
+    Page<Problems> findByTagsInAndTitleContainingAndDifficultyAndStatus(java.util.List<com.unide.backend.domain.problems.entity.ProblemTag> tags, String title, com.unide.backend.domain.problems.entity.ProblemDifficulty difficulty, com.unide.backend.domain.problems.entity.ProblemStatus status, Pageable pageable);
 }

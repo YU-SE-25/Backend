@@ -2,6 +2,8 @@
 
 package com.unide.backend.domain.problems.controller;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -27,14 +29,12 @@ import com.unide.backend.domain.problems.dto.ProblemResponseDto;
 import com.unide.backend.domain.problems.dto.ProblemUpdateRequestDto;
 import com.unide.backend.domain.problems.entity.ProblemDifficulty;
 import com.unide.backend.domain.problems.service.ProblemService;
-import com.unide.backend.global.security.auth.PrincipalDetails;
 import com.unide.backend.domain.submissions.dto.LongestTimeResponseDto;
 import com.unide.backend.domain.submissions.service.SubmissionService;
+import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -93,23 +93,21 @@ public class ProblemController {
         return ResponseEntity.ok(ProblemCreateResponseDto.of("문제가 성공적으로 수정되었습니다.", problemId));
     }
     
-    /** 문제 리스트 조회 */
+    /** 문제 리스트 조회 (태그 검색 포함) */
     @GetMapping("/list")
     public ResponseEntity<Page<ProblemResponseDto>> getProblems(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
             @RequestParam(required = false) String title,
             @RequestParam(required = false) ProblemDifficulty difficulty,
+            @RequestParam(required = false) List<String> tags,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        
         Long userId = principalDetails != null ? principalDetails.getUser().getId() : null;
         Page<ProblemResponseDto> problems;
-        
-        if (title != null || difficulty != null) {
-            problems = problemService.searchProblems(userId, title, difficulty, pageable);
+        if ((tags != null && !tags.isEmpty()) || title != null || difficulty != null) {
+            problems = problemService.searchProblems(userId, title, difficulty, tags, pageable);
         } else {
             problems = problemService.getProblems(userId, pageable);
         }
-        
         return ResponseEntity.ok(problems);
     }
     

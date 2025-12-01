@@ -6,8 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.unide.backend.common.mail.MailService;
 
+import com.unide.backend.common.mail.MailService;
 import com.unide.backend.domain.problems.dto.ProblemCreateRequestDto;
 import com.unide.backend.domain.problems.dto.ProblemDetailResponseDto;
 import com.unide.backend.domain.problems.dto.ProblemResponseDto;
@@ -121,36 +121,89 @@ public class ProblemService {
                 .map(ProblemResponseDto::from);
     }
     
-    /** 승인된 문제 조회 (사용자용) */
+    /** 승인된 문제 조회 (문제 리스트 전체 조회) */
     public Page<ProblemResponseDto> getProblems(Long userId, Pageable pageable) {
         return problemsRepository.findByStatus(com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable)
-                .map(problem -> {
-                    if (userId != null) {
-                        boolean isSolved = problemsRepository.isSolvedByUser(userId, problem.getId());
-                        return ProblemResponseDto.from(problem, isSolved);
+            .map(problem -> {
+                // 기본값: 안 푼 문제
+                com.unide.backend.domain.problems.dto.UserStatus userStatus = com.unide.backend.domain.problems.dto.UserStatus.NOT_SOLVED;
+
+                if (userId != null) {
+                    Long correctCount = submissionsRepository.countAcceptedByProblemIdAndUserId(problem.getId(), userId);
+                    Long wrongCount = submissionsRepository.countWrongByProblemIdAndUserId(problem.getId(), userId);
+
+                    if (correctCount != null && correctCount > 0) {
+                        userStatus = com.unide.backend.domain.problems.dto.UserStatus.CORRECT;
+                    } else if (wrongCount != null && wrongCount > 0) {
+                        userStatus = com.unide.backend.domain.problems.dto.UserStatus.INCORRECT;
                     }
-                    return ProblemResponseDto.from(problem);
-                });
+                }
+
+                // 문제 요약(설명 일부)
+                String summary = problem.getDescription() != null ? problem.getDescription().substring(0, Math.min(50, problem.getDescription().length())) : "";
+                // 푼 사람 수(정답 제출한 유저 수)
+                Long acceptedCount = submissionsRepository.countAcceptedByProblemId(problem.getId());
+                Integer solverCount = acceptedCount != null ? acceptedCount.intValue() : 0;
+                // 정답률
+                Long totalCount = submissionsRepository.countByProblemId(problem.getId());
+                Double correctRate = (totalCount != null && totalCount > 0) ? (acceptedCount.doubleValue() / totalCount.doubleValue() * 100) : null;
+
+                return ProblemResponseDto.from(problem, userStatus, summary, solverCount, correctRate);
+            });
     }
     
-    /** 승인된 문제 검색 (사용자용) */
-    public Page<ProblemResponseDto> searchProblems(Long userId, String title, ProblemDifficulty difficulty, Pageable pageable) {
+    /** 승인된 문제 검색 (검색 조건 및 태그 포함) */
+    public Page<ProblemResponseDto> searchProblems(Long userId, String title, ProblemDifficulty difficulty, java.util.List<String> tags, Pageable pageable) {
         Page<Problems> problems;
-        if (title != null && difficulty != null) {
-            problems = problemsRepository.findByTitleContainingAndDifficultyAndStatus(title, difficulty, com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable);
-        } else if (title != null) {
-            problems = problemsRepository.findByTitleContainingAndStatus(title, com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable);
-        } else if (difficulty != null) {
-            problems = problemsRepository.findByDifficultyAndStatus(difficulty, com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable);
+        java.util.List<com.unide.backend.domain.problems.entity.ProblemTag> tagEnums = null;
+        if (tags != null && !tags.isEmpty()) {
+            tagEnums = new java.util.ArrayList<>();
+            for (String tag : tags) {
+                try {
+                    tagEnums.add(com.unide.backend.domain.problems.entity.ProblemTag.valueOf(tag));
+                } catch (IllegalArgumentException e) {
+                    // 잘못된 태그는 무시
+                }
+            }
+        }
+        if (tagEnums != null && !tagEnums.isEmpty()) {
+            if (title != null && difficulty != null) {
+                problems = problemsRepository.findByTagsInAndTitleContainingAndDifficultyAndStatus(tagEnums, title, difficulty, com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable);
+            } else if (title != null) {
+                problems = problemsRepository.findByTagsInAndTitleContainingAndStatus(tagEnums, title, com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable);
+            } else if (difficulty != null) {
+                problems = problemsRepository.findByTagsInAndDifficultyAndStatus(tagEnums, difficulty, com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable);
+            } else {
+                problems = problemsRepository.findByTagsInAndStatus(tagEnums, com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable);
+            }
         } else {
-            problems = problemsRepository.findByStatus(com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable);
+            if (title != null && difficulty != null) {
+                problems = problemsRepository.findByTitleContainingAndDifficultyAndStatus(title, difficulty, com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable);
+            } else if (title != null) {
+                problems = problemsRepository.findByTitleContainingAndStatus(title, com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable);
+            } else if (difficulty != null) {
+                problems = problemsRepository.findByDifficultyAndStatus(difficulty, com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable);
+            } else {
+                problems = problemsRepository.findByStatus(com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable);
+            }
         }
         return problems.map(problem -> {
+            com.unide.backend.domain.problems.dto.UserStatus userStatus = com.unide.backend.domain.problems.dto.UserStatus.NOT_SOLVED;
             if (userId != null) {
-                boolean isSolved = problemsRepository.isSolvedByUser(userId, problem.getId());
-                return ProblemResponseDto.from(problem, isSolved);
+                Long correctCount = submissionsRepository.countAcceptedByProblemIdAndUserId(problem.getId(), userId);
+                Long wrongCount = submissionsRepository.countWrongByProblemIdAndUserId(problem.getId(), userId);
+                if (correctCount != null && correctCount > 0) {
+                    userStatus = com.unide.backend.domain.problems.dto.UserStatus.CORRECT;
+                } else if (wrongCount != null && wrongCount > 0) {
+                    userStatus = com.unide.backend.domain.problems.dto.UserStatus.INCORRECT;
+                }
             }
-            return ProblemResponseDto.from(problem);
+            String summary = problem.getDescription() != null ? problem.getDescription().substring(0, Math.min(50, problem.getDescription().length())) : "";
+            Long acceptedCount = submissionsRepository.countAcceptedByProblemId(problem.getId());
+            Integer solverCount = acceptedCount != null ? acceptedCount.intValue() : 0;
+            Long totalCount = submissionsRepository.countByProblemId(problem.getId());
+            Double correctRate = (totalCount != null && totalCount > 0) ? (acceptedCount.doubleValue() / totalCount.doubleValue() * 100) : null;
+            return ProblemResponseDto.from(problem, userStatus, summary, solverCount, correctRate);
         });
     }
     
