@@ -1,5 +1,7 @@
 package com.unide.backend.domain.discuss.dto;
 
+import java.time.LocalDateTime;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.unide.backend.domain.discuss.entity.Discuss;
 
@@ -19,7 +21,6 @@ public class DiscussDto {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long authorId;
 
-    // ⭐ 추가: 작성자 이름
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String authorName;
 
@@ -43,6 +44,13 @@ public class DiscussDto {
     @JsonProperty("viewerLiked")
     private boolean viewerLiked;
 
+    // ⭐ 추가한 부분
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private LocalDateTime createdAt;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private LocalDateTime updatedAt;
+
     /* ===================== 정적 팩토리 메서드 ===================== */
 
     public static DiscussDto fromEntity(Discuss entity, String authorName, boolean viewerLiked) {
@@ -60,6 +68,9 @@ public class DiscussDto {
                 .commentCount(entity.getCommentCount())
                 .attachmentUrl(entity.getAttachmentUrl())
                 .viewerLiked(viewerLiked)
+                // ⭐ 추가: 시간 필드 매핑
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
                 .build();
     }
 

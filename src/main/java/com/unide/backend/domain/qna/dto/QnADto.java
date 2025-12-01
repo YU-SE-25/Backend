@@ -1,5 +1,7 @@
 package com.unide.backend.domain.qna.dto;
 
+import java.time.LocalDateTime;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.unide.backend.domain.qna.entity.QnA;
 
@@ -42,6 +44,13 @@ public class QnADto {
 
     // 첨부파일 URL
     private String attachmentUrl;
+
+    // 🕒 작성/수정 시간 (엔티티 타입이랑 맞춰라: LocalDateTime/LocalDate 등)
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private LocalDateTime createdAt;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private LocalDateTime updatedAt;
 
     // 현재 사용자 기준 좋아요 여부
     @JsonProperty("viewerLiked")
@@ -90,6 +99,9 @@ public class QnADto {
                 .likeCount(qna.getLikeCount())
                 .commentCount(qna.getCommentCount())
                 .attachmentUrl(qna.getAttachmentUrl())
+                // 🕒 시간 매핑 다시 추가
+                .createdAt(qna.getCreatedAt())
+                .updatedAt(qna.getUpdatedAt())
                 .viewerLiked(viewerLiked)
                 .build();
 
