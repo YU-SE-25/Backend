@@ -19,6 +19,7 @@ import com.unide.backend.domain.discuss.repository.DiscussLikeRepository;
 import com.unide.backend.domain.discuss.repository.DiscussRepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
+import com.unide.backend.global.dto.PageResponse;
 
 import lombok.RequiredArgsConstructor;
 
@@ -50,7 +51,7 @@ public class DiscussService {
     // ==================== 목록 조회 ====================
 
     @Transactional(readOnly = true)
-    public List<DiscussDto> getDiscussList(int pageNum) {
+    public PageResponse<DiscussDto> getDiscussList(int pageNum) {
         PageRequest pageRequest = PageRequest.of(
                 pageNum - 1,
                 10,
@@ -59,12 +60,21 @@ public class DiscussService {
 
         Page<Discuss> page = discussRepository.findAll(pageRequest);
 
-        return page.stream()
+        List<DiscussDto> content = page.stream()
                 .map(entity -> {
                     String authorName = resolveAuthorName(entity.getAuthorId());
                     return DiscussDto.fromEntity(entity, authorName);
                 })
                 .collect(Collectors.toList());
+
+        return PageResponse.<DiscussDto>builder()
+                .content(content)
+                .page(pageNum)                          // 1-based 페이지 번호
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .last(page.isLast())
+                .build();
     }
 
     // ==================== 단건 조회 ====================
