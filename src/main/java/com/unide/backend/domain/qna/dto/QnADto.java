@@ -19,6 +19,10 @@ public class QnADto {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long authorId;
 
+    // ⭐ 추가: 작성자 이름
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private String authorName;
+
     private Long postId;
     private boolean anonymous;
     private String title;
@@ -66,9 +70,19 @@ public class QnADto {
 
         if (qna == null) return null;
 
+        Long authorId = null;
+        String authorName = null;
+
+        if (qna.getAuthor() != null) {
+            authorId = qna.getAuthor().getId();
+            // ⚠ 여기서 User 닉네임/이름 필드 맞춰서 변경
+            authorName = qna.getAuthor().getNickname(); // or getName()
+        }
+
         QnADto dto = QnADto.builder()
                 .postId(qna.getId())
-                .authorId(qna.getAuthor() != null ? qna.getAuthor().getId() : null)
+                .authorId(authorId)
+                .authorName(authorName)
                 .anonymous(qna.isAnonymous())
                 .title(qna.getTitle())
                 .contents(qna.getContents())

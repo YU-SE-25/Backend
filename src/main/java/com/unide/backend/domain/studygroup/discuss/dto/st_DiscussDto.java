@@ -2,7 +2,12 @@ package com.unide.backend.domain.studygroup.discuss.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.unide.backend.domain.studygroup.discuss.entity.st_Discuss;
-import lombok.*;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -20,7 +25,10 @@ public class st_DiscussDto {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long authorId;
 
-    private boolean anonymous;
+    // ⭐ 작성자 이름 (닉네임 등)
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private String authorName;
+
     private String title;
     private String contents;
     private boolean privatePost;
@@ -41,21 +49,29 @@ public class st_DiscussDto {
 
     /* ===================== 정적 팩토리 메서드 ===================== */
 
-    /** 기본 변환 */
+    /** 기본 변환 (authorName 없이) */
     public static st_DiscussDto fromEntity(st_Discuss entity) {
-        return fromEntity(entity, false);
+        return fromEntity(entity, null, false);
     }
 
-    /** viewerLiked 포함 변환 */
+    /** viewerLiked 포함, authorName 없이 */
     public static st_DiscussDto fromEntity(st_Discuss entity, boolean viewerLiked) {
+        return fromEntity(entity, null, viewerLiked);
+    }
 
+    /** 🔥 authorName + viewerLiked 모두 사용하는 풀옵션 */
+    public static st_DiscussDto fromEntity(
+            st_Discuss entity,
+            String authorName,
+            boolean viewerLiked
+    ) {
         if (entity == null) return null;
 
         return st_DiscussDto.builder()
                 .postId(entity.getPostId())
                 .groupId(entity.getGroupId())
                 .authorId(entity.getAuthorId())
-                .anonymous(entity.isAnonymous())
+                .authorName(authorName)
                 .title(entity.getTitle())
                 .contents(entity.getContents())
                 .privatePost(entity.isPrivatePost())
