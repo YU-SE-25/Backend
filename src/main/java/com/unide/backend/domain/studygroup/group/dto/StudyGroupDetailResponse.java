@@ -4,8 +4,12 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.unide.backend.domain.studygroup.group.entity.StudyGroup;
-import lombok.*;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
@@ -34,9 +38,15 @@ public class StudyGroupDetailResponse {
     @JsonProperty("members")
     private List<StudyGroupMemberSummary> members;
 
-    public static StudyGroupDetailResponse fromEntity(StudyGroup group,
-                                                      StudyGroupMemberSummary leader,
-                                                      List<StudyGroupMemberSummary> members) {
+    @JsonProperty("myRole")
+    private String myRole; // "LEADER" / "MEMBER" / "NONE"
+
+    public static StudyGroupDetailResponse fromEntity(
+            StudyGroup group,
+            StudyGroupMemberSummary leader,
+            List<StudyGroupMemberSummary> members,
+            String myRole
+    ) {
         return StudyGroupDetailResponse.builder()
                 .groupId(group.getGroupId())
                 .groupName(group.getGroupName())
@@ -45,6 +55,7 @@ public class StudyGroupDetailResponse {
                 .currentMembers(group.getMemberCount())
                 .leader(leader)
                 .members(members)
+                .myRole(myRole)
                 .build();
     }
 }

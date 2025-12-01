@@ -65,10 +65,15 @@ public class StudyGroupController {
     // GET /api/studygroup/list/{group_id}
     @GetMapping("/list/{groupId}")
     public ResponseEntity<StudyGroupDetailResponse> getGroupDetail(
-            @PathVariable("groupId") Long groupId
+            @PathVariable("groupId") Long groupId,
+            @AuthenticationPrincipal PrincipalDetails userDetails
     ) {
+        Long currentUserId = (userDetails != null)
+                ? userDetails.getUser().getId()
+                : null;
+
         StudyGroupDetailResponse response =
-                studyGroupService.getGroupDetail(groupId);
+                studyGroupService.getGroupDetail(groupId, currentUserId);
         return ResponseEntity.ok(response);
     }
 
