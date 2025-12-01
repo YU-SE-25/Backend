@@ -1,6 +1,8 @@
 package com.unide.backend.domain.studygroup.group.service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
@@ -12,10 +14,12 @@ import com.unide.backend.domain.studygroup.group.dto.StudyGroupDetailResponse;
 import com.unide.backend.domain.studygroup.group.dto.StudyGroupListItemResponse;
 import com.unide.backend.domain.studygroup.group.dto.StudyGroupMemberSummary;
 import com.unide.backend.domain.studygroup.group.dto.StudyGroupUpdateRequest;
-import com.unide.backend.domain.studygroup.group.entity.StudyGroup;
 import com.unide.backend.domain.studygroup.group.entity.GroupStudyMember;
+import com.unide.backend.domain.studygroup.group.entity.StudyGroup;
 import com.unide.backend.domain.studygroup.group.repository.StudyGroupMemberQueryRepository;
 import com.unide.backend.domain.studygroup.group.repository.StudyGroupRepository;
+import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.domain.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,7 +30,7 @@ public class StudyGroupService {
 
     private final StudyGroupRepository groupRepository;
     private final StudyGroupMemberQueryRepository memberRepository;
-    // 필요하면 UserRepository 주입해서 이름 채우기
+    private final UserRepository userRepository;
 
     // ===== 그룹 생성 =====
     public StudyGroupDetailResponse createGroup(Long leaderId,
@@ -47,17 +51,23 @@ public class StudyGroupService {
         StudyGroup saved = groupRepository.save(group);
 
         // 리더를 멤버로 추가
-        memberRepository.save(GroupStudyMember.of(saved.getGroupId(), leaderId));
+        GroupStudyMember leaderMembership =
+                memberRepository.save(GroupStudyMember.of(saved.getGroupId(), leaderId));
 
-        // leader / members 응답 구성 (이름은 일단 null)
-        StudyGroupMemberSummary leaderSummary = StudyGroupMemberSummary.builder()
-                .groupMemberId(leaderId)
-                .userId(leaderId)
-                .userName(null)
-                .role("LEADER")
-                .build();
+        // 리더 User 조회
+        User leaderUser = userRepository.findById(leaderId).orElse(null);
 
-        return StudyGroupDetailResponse.fromEntity(saved, leaderSummary, List.of(leaderSummary));
+        // 리더 요약 DTO
+        StudyGroupMemberSummary leaderSummary =
+                StudyGroupMemberSummary.from(leaderMembership, leaderUser, leaderId);
+
+        // 생성 직후 상세 응답 (myRole = LEADER)
+        return StudyGroupDetailResponse.fromEntity(
+                saved,
+                leaderSummary,
+                List.of(leaderSummary),
+                "LEADER"
+        );
     }
 
     // ===== 그룹 목록 조회 =====
@@ -87,37 +97,56 @@ public class StudyGroupService {
 
     // ===== 그룹 상세 조회 =====
     @Transactional(readOnly = true)
-    public StudyGroupDetailResponse getGroupDetail(Long groupId) {
+    public StudyGroupDetailResponse getGroupDetail(Long groupId, Long currentUserId) {
 
         StudyGroup group = groupRepository.findById(groupId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("해당 스터디 그룹이 없습니다. groupId=" + groupId));
+                .orElseThrow(() -> new IllegalArgumentException("그룹 없음: " + groupId));
 
-        List<GroupStudyMember> members =
+        // 1) 이 그룹에 속한 멤버십들 조회
+        List<GroupStudyMember> memberships =
                 memberRepository.findByIdGroupId(groupId);
 
-        List<StudyGroupMemberSummary> memberDtos = members.stream()
+        // 2) memberId → User 매핑
+        List<Long> memberIds = memberships.stream()
+                .map(m -> m.getId().getMemberId())
+                .toList();
+
+        Map<Long, User> userMap = userRepository.findAllById(memberIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        Long leaderId = group.getGroupLeader();
+
+        // 3) 전체 멤버 요약 DTO
+        List<StudyGroupMemberSummary> memberSummaries = memberships.stream()
                 .map(m -> {
-                    Long userId = m.getId().getMemberId();
-                    String role = (group.getGroupLeader() != null
-                            && group.getGroupLeader().equals(userId))
-                            ? "LEADER"
-                            : "MEMBER";
-                    return StudyGroupMemberSummary.builder()
-                            .groupMemberId(userId)
-                            .userId(userId)
-                            .userName(null) // UserRepository 있으면 채우기
-                            .role(role)
-                            .build();
+                    Long memberId = m.getId().getMemberId();
+                    User u = userMap.get(memberId);
+                    return StudyGroupMemberSummary.from(m, u, leaderId);
                 })
                 .collect(Collectors.toList());
 
-        StudyGroupMemberSummary leaderDto = memberDtos.stream()
-                .filter(m -> "LEADER".equals(m.getRole()))
+        // 4) 리더 DTO
+        StudyGroupMemberSummary leaderSummary = memberSummaries.stream()
+                .filter(ms -> "LEADER".equals(ms.getRole()))
                 .findFirst()
                 .orElse(null);
 
-        return StudyGroupDetailResponse.fromEntity(group, leaderDto, memberDtos);
+        // 5) 현재 로그인 유저의 역할
+        String myRole = "NONE";
+        if (currentUserId != null) {
+            myRole = memberSummaries.stream()
+                    .filter(ms -> ms.getUserId().equals(currentUserId))
+                    .map(StudyGroupMemberSummary::getRole)
+                    .findFirst()
+                    .orElse("NONE");
+        }
+
+        return StudyGroupDetailResponse.fromEntity(
+                group,
+                leaderSummary,
+                memberSummaries,
+                myRole
+        );
     }
 
     // ===== 그룹 수정 =====
@@ -154,8 +183,8 @@ public class StudyGroupService {
             }
         }
 
-        // 수정 후 상세 응답 재사용
-        return getGroupDetail(groupId);
+        // 수정 후 상세 응답 (요청자가 현재 사용자)
+        return getGroupDetail(groupId, requesterId);
     }
 
     // ===== 그룹 삭제 =====

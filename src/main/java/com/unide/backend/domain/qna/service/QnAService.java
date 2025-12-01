@@ -25,6 +25,7 @@ import com.unide.backend.domain.qna.repository.QnALikeRepository;
 import com.unide.backend.domain.qna.repository.QnARepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
+import com.unide.backend.global.dto.PageResponse;
 
 import lombok.RequiredArgsConstructor;
 
@@ -39,27 +40,34 @@ public class QnAService {
     private final QnALikeRepository qnaLikeRepository;
 
     // ===== 목록 조회 =====
-    @Transactional(readOnly = true)
-    public List<QnADto> getQnAList(int pageNum) {
-        PageRequest pageRequest = PageRequest.of(
-                pageNum - 1,
-                10,
-                Sort.by(Sort.Direction.DESC, "id")
-        );
+    public PageResponse<QnADto> getQnAList(int pageNum) {
+    PageRequest pageRequest = PageRequest.of(
+            pageNum - 1,
+            10,
+            Sort.by(Sort.Direction.DESC, "id")
+    );
 
-        Page<QnA> page = qnaRepository.findAll(pageRequest);
+    Page<QnA> page = qnaRepository.findAll(pageRequest);
 
-        return page.stream()
-                .map(qna -> {
-                    Problems linked = qnaProblemPostService
-                            .getLinkedProblem(qna.getId())
-                            .orElse(null);
+    List<QnADto> content = page.stream()
+            .map(qna -> {
+                Problems linked = qnaProblemPostService
+                        .getLinkedProblem(qna.getId())
+                        .orElse(null);
+                QnAProblemDto problemDto = QnAProblemDto.fromEntity(linked);
+                return QnADto.fromEntity(qna, problemDto);
+            })
+            .toList();
 
-                    QnAProblemDto problemDto = QnAProblemDto.fromEntity(linked);
-                    return QnADto.fromEntity(qna, problemDto);
-                })
-                .collect(Collectors.toList());
-    }
+    return PageResponse.<QnADto>builder()
+            .content(content)
+            .page(pageNum)                 // 1-based
+            .size(page.getSize())
+            .totalElements(page.getTotalElements())
+            .totalPages(page.getTotalPages())
+            .last(page.isLast())
+            .build();
+}
 
     // ===== 단건 조회 =====
     @Transactional(readOnly = true)

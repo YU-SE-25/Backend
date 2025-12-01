@@ -19,6 +19,7 @@ import com.unide.backend.domain.studygroup.discuss.repository.st_DiscussLikeRepo
 import com.unide.backend.domain.studygroup.discuss.repository.st_DiscussRepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
+import com.unide.backend.global.dto.PageResponse;   // ⭐ 페이지 공통 DTO
 
 import lombok.RequiredArgsConstructor;
 
@@ -43,10 +44,10 @@ public class st_DiscussService {
     }
 
     // ==========================
-    // 📌 목록 조회 (그룹별)
+    // 📌 목록 조회 (그룹별, 페이지네이션)
     // ==========================
     @Transactional(readOnly = true)
-    public List<st_DiscussDto> getDiscussList(Long groupId, int pageNum) {
+    public PageResponse<st_DiscussDto> getDiscussList(Long groupId, int pageNum) {
 
         PageRequest pageRequest = PageRequest.of(
                 pageNum - 1,
@@ -57,12 +58,21 @@ public class st_DiscussService {
         Page<st_Discuss> page =
                 discussRepository.findByGroupId(groupId, pageRequest);
 
-        return page.stream()
+        List<st_DiscussDto> content = page.stream()
                 .map(entity -> {
                     String authorName = resolveAuthorName(entity.getAuthorId());
                     return st_DiscussDto.fromEntity(entity, authorName, false);
                 })
                 .collect(Collectors.toList());
+
+        return PageResponse.<st_DiscussDto>builder()
+                .content(content)
+                .page(pageNum)                          // 1-based 페이지 번호
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .last(page.isLast())
+                .build();
     }
 
     // ==========================
