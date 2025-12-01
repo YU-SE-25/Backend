@@ -14,6 +14,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.http.HttpStatus;
 
 import com.unide.backend.global.security.jwt.JwtAuthenticationFilter;
 import com.unide.backend.global.security.oauth.CustomOAuth2UserService;
@@ -47,6 +50,13 @@ public class SecurityConfig {
             
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
+            .formLogin(AbstractHttpConfigurer::disable)
+            .httpBasic(AbstractHttpConfigurer::disable)
+
+            .exceptionHandling(exception -> exception
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+            )
+
             // HTTP 요청에 대한 접근 권한 설정
             .authorizeHttpRequests(authz -> authz
                 // Swagger UI 관련 경로는 누구나 접근 가능하도록 허용
@@ -72,9 +82,6 @@ public class SecurityConfig {
                 // 나머지 모든 요청은 일단 인증된 사용자만 접근 가능하도록 설정
                 .anyRequest().authenticated()
             )
-            
-            .formLogin(form -> form.disable())
-            .httpBasic(basic -> basic.disable())
 
             .oauth2Login(oauth2 -> oauth2
                 .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
