@@ -22,6 +22,7 @@ import com.unide.backend.domain.studygroup.discuss.dto.st_DiscussPollVoteRequest
 import com.unide.backend.domain.studygroup.discuss.dto.st_DiscussPollVoteResponse;
 import com.unide.backend.domain.studygroup.discuss.service.st_DiscussPollService;
 import com.unide.backend.domain.studygroup.discuss.service.st_DiscussService;
+import com.unide.backend.global.dto.PageResponse;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import lombok.RequiredArgsConstructor;
@@ -37,12 +38,15 @@ public class st_DiscussController {
     // ========= 목록 조회 =========
     // GET /api/studygroup/discuss/{groupId}?page=1
     @GetMapping("/{groupId}")
-    public List<st_DiscussDto> list(
-            @PathVariable Long groupId,
-            @RequestParam(value = "page", defaultValue = "1") Integer pageNum
-    ) {
-        return discussService.getDiscussList(groupId, pageNum);
-    }
+        public ResponseEntity<PageResponse<st_DiscussDto>> listGroupDiscuss(
+        @PathVariable Long groupId,
+        @RequestParam(name = "page", defaultValue = "1") int page
+) {PageResponse<st_DiscussDto> response =
+        discussService.getDiscussList(groupId, page);
+
+    return ResponseEntity.ok(response);
+}
+
 
     // ========= 단건 조회 =========
     // GET /api/studygroup/discuss/{groupId}/{postId}

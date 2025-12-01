@@ -25,6 +25,7 @@ import com.unide.backend.domain.discuss.dto.DiscussReportCreateRequestDto;
 import com.unide.backend.domain.discuss.service.DiscussPollService;
 import com.unide.backend.domain.discuss.service.DiscussReportService;
 import com.unide.backend.domain.discuss.service.DiscussService;
+import com.unide.backend.global.dto.PageResponse;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import lombok.RequiredArgsConstructor;
@@ -40,18 +41,14 @@ public class DiscussController {
 
     // 목록
     @GetMapping
-    public List<DiscussDto> list(
-            @RequestParam(value = "page", defaultValue = "1") Integer pageNum
-    ) {
-        return discussService.getDiscussList(pageNum);
-    }
+    
+    public ResponseEntity<PageResponse<DiscussDto>> listDiscuss(
+        @RequestParam(name = "page", defaultValue = "1") int page
+) {
+    PageResponse<DiscussDto> response = discussService.getDiscussList(page);
+    return ResponseEntity.ok(response);
+}
 
-    @GetMapping("/list")
-    public List<DiscussDto> listAll(
-            @RequestParam(value = "page", defaultValue = "1") Integer pageNum
-    ) {
-        return discussService.getDiscussList(pageNum);
-    }
 
     // 상세
     @GetMapping("/{postId}")

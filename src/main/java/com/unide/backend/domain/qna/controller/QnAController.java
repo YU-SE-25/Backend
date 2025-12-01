@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.unide.backend.domain.qna.service.QnAReportService;
 import com.unide.backend.domain.qna.dto.QnADto;
 import com.unide.backend.domain.qna.dto.QnAPollCreateRequest;
 import com.unide.backend.domain.qna.dto.QnAPollResponse;
@@ -24,42 +23,47 @@ import com.unide.backend.domain.qna.dto.QnAPollVoteRequest;
 import com.unide.backend.domain.qna.dto.QnAPollVoteResponse;
 import com.unide.backend.domain.qna.dto.QnAReportCreateRequestDto;
 import com.unide.backend.domain.qna.service.QnAPollService;
+import com.unide.backend.domain.qna.service.QnAReportService;
 import com.unide.backend.domain.qna.service.QnAService;
+import com.unide.backend.global.dto.PageResponse;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import lombok.RequiredArgsConstructor;
 
+
+
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/qna_board")
+@RequestMapping("/api/qna_board")   // 클래스 레벨 매핑 있다고 가정
 public class QnAController {
 
     private final QnAService qnaService;
     private final QnAPollService qnAPollService;
     private final QnAReportService qnaReportService;
 
-
-
-    // ===== QnA 목록 =====
+    // ===== QnA 목록 (페이지네이션) =====
+    // GET /api/qna?page=1
     @GetMapping
-    public List<QnADto> list(
-            @RequestParam(value = "page", defaultValue = "1") Integer pageNum
+    public ResponseEntity<PageResponse<QnADto>> listQna(
+            @RequestParam(name = "page", defaultValue = "1") int page
     ) {
-        return qnaService.getQnAList(pageNum);
-    }
-
-    @GetMapping("/list")
-    public List<QnADto> listAll(
-            @RequestParam(value = "page", defaultValue = "1") Integer pageNum
-    ) {
-        return qnaService.getQnAList(pageNum);
+        PageResponse<QnADto> response = qnaService.getQnAList(page);
+        return ResponseEntity.ok(response);
     }
 
     // ===== QnA 상세 =====
+    // GET /api/qna/{postId}
     @GetMapping("/{postId}")
-    public QnADto detail(@PathVariable("postId") Long postId) {
-        return qnaService.getQnA(postId);
+    public ResponseEntity<QnADto> detail(
+            @PathVariable("postId") Long postId
+    ) {
+        QnADto dto = qnaService.getQnA(postId);
+        return ResponseEntity.ok(dto);
     }
+
+   
+
+
 
     // ===== QnA 작성 =====
     @PostMapping
