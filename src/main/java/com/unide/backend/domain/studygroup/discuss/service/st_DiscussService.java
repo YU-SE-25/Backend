@@ -17,6 +17,8 @@ import com.unide.backend.domain.studygroup.discuss.entity.st_Discuss;
 import com.unide.backend.domain.studygroup.discuss.entity.st_DiscussLike;
 import com.unide.backend.domain.studygroup.discuss.repository.st_DiscussLikeRepository;
 import com.unide.backend.domain.studygroup.discuss.repository.st_DiscussRepository;
+import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.domain.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,6 +29,18 @@ public class st_DiscussService {
 
     private final st_DiscussRepository discussRepository;
     private final st_DiscussLikeRepository likeRepository;
+    private final UserRepository userRepository;
+
+    // ==========================
+    // 공통: authorName 조회
+    // ==========================
+    private String resolveAuthorName(Long authorId) {
+        if (authorId == null) return null;
+
+        return userRepository.findById(authorId)
+                .map(User::getNickname)   // ⚠ User 필드에 따라 getName() 등으로 바꿔도 됨
+                .orElse(null);
+    }
 
     // ==========================
     // 📌 목록 조회 (그룹별)
@@ -44,7 +58,10 @@ public class st_DiscussService {
                 discussRepository.findByGroupId(groupId, pageRequest);
 
         return page.stream()
-                .map(st_DiscussDto::fromEntity)
+                .map(entity -> {
+                    String authorName = resolveAuthorName(entity.getAuthorId());
+                    return st_DiscussDto.fromEntity(entity, authorName, false);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -62,7 +79,8 @@ public class st_DiscussService {
             throw new IllegalArgumentException("해당 그룹의 게시글이 아닙니다.");
         }
 
-        return st_DiscussDto.fromEntity(discuss);
+        String authorName = resolveAuthorName(discuss.getAuthorId());
+        return st_DiscussDto.fromEntity(discuss, authorName, false);
     }
 
     // ==========================
@@ -73,7 +91,7 @@ public class st_DiscussService {
         st_Discuss discuss = st_Discuss.builder()
                 .groupId(groupId)
                 .authorId(authorId)
-                .anonymous(dto.isAnonymous())
+                // 🔥 익명 사용 안 함 (entity에 필드가 있어도 기본값 false)
                 .title(dto.getTitle())
                 .contents(dto.getContents())
                 .privatePost(dto.isPrivatePost())
@@ -82,7 +100,9 @@ public class st_DiscussService {
                 .build();
 
         st_Discuss saved = discussRepository.save(discuss);
-        return st_DiscussDto.fromEntity(saved);
+
+        String authorName = resolveAuthorName(saved.getAuthorId());
+        return st_DiscussDto.fromEntity(saved, authorName, false);
     }
 
     // ==========================
@@ -100,10 +120,11 @@ public class st_DiscussService {
 
         discuss.setTitle(dto.getTitle());
         discuss.setContents(dto.getContents());
-        discuss.setAnonymous(dto.isAnonymous());
         discuss.setPrivatePost(dto.isPrivatePost());
+        // 🔥 익명 관련 수정 없음
 
-        return st_DiscussDto.fromEntity(discuss);
+        String authorName = resolveAuthorName(discuss.getAuthorId());
+        return st_DiscussDto.fromEntity(discuss, authorName, false);
     }
 
     // ==========================
@@ -135,7 +156,10 @@ public class st_DiscussService {
                 );
 
         return list.stream()
-                .map(st_DiscussDto::fromEntity)
+                .map(entity -> {
+                    String authorName = resolveAuthorName(entity.getAuthorId());
+                    return st_DiscussDto.fromEntity(entity, authorName, false);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -194,7 +218,8 @@ public class st_DiscussService {
             viewerLiked = true;
         }
 
-        st_DiscussDto dto = st_DiscussDto.fromEntity(discuss, viewerLiked);
+        String authorName = resolveAuthorName(discuss.getAuthorId());
+        st_DiscussDto dto = st_DiscussDto.fromEntity(discuss, authorName, viewerLiked);
         dto.setMessage(viewerLiked ? "❤️ 좋아요 추가" : "💔 좋아요 취소");
 
         return dto;

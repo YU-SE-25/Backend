@@ -76,6 +76,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/mypage/goals/**").authenticated()
                 // MANAGER 역할을 가진 사용자만 접근 가능
                 .requestMatchers("/api/admin/**").hasRole("MANAGER")
+                //메인화면 모두 조회 가능
+                .requestMatchers("/api/UNIDE/rank/**").permitAll()
+
                 // 마이페이지 수정/삭제는 인증 필요 (PATCH, DELETE)
                 .requestMatchers("PATCH", "/api/mypage/me").authenticated()
                 .requestMatchers("DELETE", "/api/mypage/me").authenticated()
