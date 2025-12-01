@@ -30,8 +30,9 @@ public class st_DiscussCommentResponse {
     @JsonProperty("author_id")
     private Long authorId;
 
-    @JsonProperty("anonymity")
-    private boolean anonymity;
+    // ⭐ 작성자 이름
+    @JsonProperty("author_name")
+    private String authorName;
 
     @JsonProperty("content")
     private String content;
@@ -59,7 +60,8 @@ public class st_DiscussCommentResponse {
     public static st_DiscussCommentResponse fromEntity(
             st_DiscussComment c,
             boolean viewerLiked,
-            String message
+            String message,
+            String authorName
     ) {
         if (c == null) return null;
 
@@ -68,7 +70,7 @@ public class st_DiscussCommentResponse {
                 .postId(c.getPostId())
                 .parentId(c.getParentCommentId())
                 .authorId(c.getAuthorId())
-                .anonymity(c.isAnonymous())
+                .authorName(authorName)
                 .content(c.getContent())
                 .privatePost(c.isPrivatePost())
                 .likeCount(c.getLikeCount())

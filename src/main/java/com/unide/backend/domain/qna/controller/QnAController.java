@@ -1,5 +1,6 @@
 package com.unide.backend.domain.qna.controller;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -15,11 +16,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.unide.backend.domain.qna.service.QnAReportService;
 import com.unide.backend.domain.qna.dto.QnADto;
 import com.unide.backend.domain.qna.dto.QnAPollCreateRequest;
 import com.unide.backend.domain.qna.dto.QnAPollResponse;
 import com.unide.backend.domain.qna.dto.QnAPollVoteRequest;
 import com.unide.backend.domain.qna.dto.QnAPollVoteResponse;
+import com.unide.backend.domain.qna.dto.QnAReportCreateRequestDto;
 import com.unide.backend.domain.qna.service.QnAPollService;
 import com.unide.backend.domain.qna.service.QnAService;
 import com.unide.backend.global.security.auth.PrincipalDetails;
@@ -33,6 +36,7 @@ public class QnAController {
 
     private final QnAService qnaService;
     private final QnAPollService qnAPollService;
+    private final QnAReportService qnaReportService;
 
 
 
@@ -152,5 +156,19 @@ public ResponseEntity<QnAPollResponse> getPollByPost(
     return ResponseEntity.ok(response);
 }
 
+   @PostMapping("/{postId}/reports")
+public ResponseEntity<Map<String, Object>> reportPost(
+        @PathVariable("postId") Long postId,
+        @AuthenticationPrincipal PrincipalDetails userDetails,
+        @RequestBody QnAReportCreateRequestDto request
+) {
+    Long reporterId = userDetails.getUser().getId();
+    qnaReportService.reportPost(postId, reporterId, request);
+
+    Map<String, Object> body = new HashMap<>();
+    body.put("message", "신고가 접수되었습니다.");
+
+    return ResponseEntity.ok(body);
+}
 
 }

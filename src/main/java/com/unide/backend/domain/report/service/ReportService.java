@@ -1,21 +1,24 @@
 package com.unide.backend.domain.report.service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.unide.backend.domain.problems.entity.Problems;
+import com.unide.backend.domain.problems.repository.ProblemsRepository;
 import com.unide.backend.domain.report.dto.ReportCreateRequestDto;
 import com.unide.backend.domain.report.dto.ReportDetailDto;
 import com.unide.backend.domain.report.dto.ReportListDto;
 import com.unide.backend.domain.report.entity.Report;
 import com.unide.backend.domain.report.entity.ReportStatus;
-import com.unide.backend.domain.report.repository.ReportRepository;
 import com.unide.backend.domain.report.entity.ReportType;
+import com.unide.backend.domain.report.repository.ReportRepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
-import com.unide.backend.domain.problems.entity.Problems;
-import com.unide.backend.domain.problems.repository.ProblemsRepository;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor

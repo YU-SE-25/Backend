@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,8 +17,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.unide.backend.domain.qna.dto.QnACommentRequest;
 import com.unide.backend.domain.qna.dto.QnACommentResponse;
+import com.unide.backend.domain.qna.service.QnACommentReportService;
 import com.unide.backend.domain.qna.service.QnACommentService;
 import com.unide.backend.global.security.auth.PrincipalDetails;
+import com.unide.backend.domain.discuss.dto.DiscussCommentReportCreateRequestDto;
+import com.unide.backend.domain.qna.dto.QnACommentReportCreateRequestDto;
+import com.unide.backend.domain.qna.entity.QnA;
+
 import lombok.RequiredArgsConstructor;
 
 
@@ -28,6 +34,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/qna_board")
 public class QnACommentController {
     private final QnACommentService qnaCommentService;
+    private final QnACommentReportService qnACommentReportService;   // ✅ 신고 서비스 추가
 
      // ===== 특정 게시글 댓글 목록 조회 =====
       @GetMapping("/{postId}/comments")
@@ -94,7 +101,20 @@ public class QnACommentController {
         Long userId = userDetails.getUser().getId();
         return qnaCommentService.toggleLike(commentId, userId);
     }
+    @PostMapping("/comment/{commentId}/reports")
+public ResponseEntity<Map<String, Object>> reportComment(
+        @PathVariable("commentId") Long commentId,
+        @AuthenticationPrincipal PrincipalDetails userDetails,
+        @RequestBody QnACommentReportCreateRequestDto request
+) {
+    Long reporterId = userDetails.getUser().getId();
+    qnACommentReportService.reportPost(commentId, reporterId, request);
 
+    Map<String, Object> body = new HashMap<>();
+    body.put("message", "신고가 접수되었습니다.");
+
+    return ResponseEntity.ok(body);
+}
 
 }
  

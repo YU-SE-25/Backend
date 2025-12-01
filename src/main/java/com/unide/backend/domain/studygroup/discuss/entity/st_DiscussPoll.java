@@ -49,6 +49,7 @@ public class st_DiscussPoll {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Builder.Default
     @OneToMany(mappedBy = "poll", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<st_DiscussPollOption> options = new ArrayList<>();
 

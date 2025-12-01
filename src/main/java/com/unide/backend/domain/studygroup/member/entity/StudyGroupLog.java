@@ -1,13 +1,29 @@
 package com.unide.backend.domain.studygroup.member.entity;
 
-import com.unide.backend.domain.studygroup.group.entity.StudyGroup;
-import com.unide.backend.domain.user.entity.User;
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
+
 import org.hibernate.annotations.CreationTimestamp;
 
+import com.unide.backend.domain.studygroup.group.entity.StudyGroup;
+import com.unide.backend.domain.user.entity.User;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
 @Entity
 @Table(name = "study_group_log")
+@NoArgsConstructor
 public class StudyGroupLog {
 
     @Id
@@ -19,19 +35,19 @@ public class StudyGroupLog {
     @JoinColumn(name = "group_id", nullable = false)
     private StudyGroup group;
 
-    @Enumerated(EnumType.STRING)
+    @Enumerated(jakarta.persistence.EnumType.STRING)
     @Column(name = "activity_type", nullable = false)
     private StudyGroupActivityType activityType;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "actor_user_id", nullable = false)
+    @JoinColumn(name = "actor_user_id")
     private User actorUser;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "target_user_id")
     private User targetUser;
 
-    @Enumerated(EnumType.STRING)
+    @Enumerated(jakarta.persistence.EnumType.STRING)
     @Column(name = "ref_entity_type")
     private StudyGroupRefEntityType refEntityType;
 
@@ -42,17 +58,14 @@ public class StudyGroupLog {
     private String message;
 
     @Column(name = "payload", columnDefinition = "json")
-    private String payload; // 필요하면 나중에 JsonNode 로 바꿔도 됨
+    private String payload;
 
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
-
-    protected StudyGroupLog() {
-    }
 
     private StudyGroupLog(
             StudyGroup group,
@@ -81,14 +94,14 @@ public class StudyGroupLog {
             Long refEntityId,
             String message
     ) {
-        return new StudyGroupLog(group, activityType, actorUser, targetUser, refEntityType, refEntityId, message);
-    }
-
-    public Long getActivityId() {
-        return activityId;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+        return new StudyGroupLog(
+                group,
+                activityType,
+                actorUser,
+                targetUser,
+                refEntityType,
+                refEntityId,
+                message
+        );
     }
 }

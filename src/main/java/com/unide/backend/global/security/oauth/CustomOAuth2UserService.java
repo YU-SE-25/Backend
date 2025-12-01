@@ -6,13 +6,18 @@ import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.entity.UserRole;
 import com.unide.backend.domain.user.repository.UserRepository;
 import com.unide.backend.global.security.auth.PrincipalDetails;
+import com.unide.backend.global.security.oauth.GitHubUserInfo;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -51,13 +56,26 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     return existingUser;
                 })
                 .orElseGet(() -> {
+                    String baseNickname = oAuth2UserInfo.getName();
+
+                    if (baseNickname == null || baseNickname.isEmpty()) {
+                        baseNickname = "User";
+                    }
+
+                    String uniqueNickname = baseNickname;
+
+                    while (userRepository.existsByNickname(uniqueNickname)) {
+                        String randomSuffix = UUID.randomUUID().toString().substring(0, 8);
+                        uniqueNickname = baseNickname + "_" + randomSuffix;
+                    }
+
                     String tempPhone = "social_" + provider + "_" + oAuth2UserInfo.getProviderId();
 
                     // 존재하지 않는 사용자인 경우, 회원가입 처리
                     User newUser = User.builder()
                             .email(email)
                             .name(oAuth2UserInfo.getName())
-                            .nickname(oAuth2UserInfo.getName()) // 닉네임은 임시로 이름으로 설정
+                            .nickname(uniqueNickname) // 닉네임은 임시로 이름으로 설정
                             .phone(tempPhone) // 소셜 로그인은 휴대폰 번호를 알 수 없으므로 임시 값 설정
                             .role(UserRole.LEARNER)
                             .build();

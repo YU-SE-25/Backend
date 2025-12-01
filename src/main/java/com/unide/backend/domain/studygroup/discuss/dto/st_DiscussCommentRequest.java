@@ -1,4 +1,5 @@
 package com.unide.backend.domain.studygroup.discuss.dto;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Getter;
@@ -11,10 +12,6 @@ public class st_DiscussCommentRequest {
     // 댓글 내용
     @JsonProperty("contents")
     private String contents;
-
-    // 익명 여부
-    @JsonProperty("anonymity")
-    private boolean anonymity;
 
     // 비공개 여부 (없으면 false 처리)
     @JsonProperty("is_private")

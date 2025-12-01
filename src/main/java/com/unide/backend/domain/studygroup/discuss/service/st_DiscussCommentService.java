@@ -14,6 +14,8 @@ import com.unide.backend.domain.studygroup.discuss.entity.st_DiscussCommentLike;
 import com.unide.backend.domain.studygroup.discuss.repository.st_DiscussCommentLikeRepository;
 import com.unide.backend.domain.studygroup.discuss.repository.st_DiscussCommentRepository;
 import com.unide.backend.domain.studygroup.discuss.repository.st_DiscussRepository;
+import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.domain.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,6 +27,16 @@ public class st_DiscussCommentService {
     private final st_DiscussCommentRepository discussCommentRepository;
     private final st_DiscussCommentLikeRepository likeRepository;
     private final st_DiscussRepository discussRepository;   // 토론글(게시글) 저장소
+    private final UserRepository userRepository;
+
+    // ================================
+    // 작성자 이름 조회 유틸
+    // ================================
+    private String resolveAuthorName(Long authorId) {
+        return userRepository.findById(authorId)
+                .map(User::getNickname) // 필요한 경우 getName() 등으로 변경
+                .orElse("알 수 없음");
+    }
 
     // ===== 특정 게시글 댓글 목록 조회 =====
     @Transactional(readOnly = true)
@@ -33,7 +45,6 @@ public class st_DiscussCommentService {
         List<st_DiscussComment> commentList =
                 discussCommentRepository.findByPostIdOrderByCreatedAtAsc(postId);
 
-        // viewerLiked 계산 (로그인 안 했으면 전부 false)
         return commentList.stream()
                 .map(c -> {
                     boolean viewerLiked = false;
@@ -41,7 +52,15 @@ public class st_DiscussCommentService {
                         viewerLiked = likeRepository.existsByCommentIdAndLikerId(
                                 c.getCommentId(), viewerId);
                     }
-                    return st_DiscussCommentResponse.fromEntity(c, viewerLiked, null);
+
+                    String authorName = resolveAuthorName(c.getAuthorId());
+
+                    return st_DiscussCommentResponse.fromEntity(
+                            c,
+                            viewerLiked,
+                            null,
+                            authorName
+                    );
                 })
                 .collect(Collectors.toList());
     }
@@ -57,7 +76,15 @@ public class st_DiscussCommentService {
         if (viewerId != null) {
             viewerLiked = likeRepository.existsByCommentIdAndLikerId(commentId, viewerId);
         }
-        return st_DiscussCommentResponse.fromEntity(comment, viewerLiked, null);
+
+        String authorName = resolveAuthorName(comment.getAuthorId());
+
+        return st_DiscussCommentResponse.fromEntity(
+                comment,
+                viewerLiked,
+                null,
+                authorName
+        );
     }
 
     // ===== 댓글 생성 (대댓글 포함) =====
@@ -78,7 +105,7 @@ public class st_DiscussCommentService {
         st_DiscussComment comment = st_DiscussComment.builder()
                 .postId(postId)
                 .authorId(authorId)
-                .anonymous(request.isAnonymity())
+                .anonymous(false) // ⭐ 익명 기능 사용 안 함
                 .parentCommentId(request.getParentId())
                 .content(request.getContents())
                 .privatePost(privatePost)
@@ -94,7 +121,14 @@ public class st_DiscussCommentService {
                 ? "댓글이 등록되었습니다."
                 : "대댓글이 등록되었습니다.";
 
-        return st_DiscussCommentResponse.fromEntity(saved, false, message);
+        String authorName = resolveAuthorName(saved.getAuthorId());
+
+        return st_DiscussCommentResponse.fromEntity(
+                saved,
+                false,
+                message,
+                authorName
+        );
     }
 
     // ===== 댓글 수정 =====
@@ -110,7 +144,6 @@ public class st_DiscussCommentService {
         }
 
         comment.setContent(request.getContents());
-        comment.setAnonymous(request.isAnonymity());
 
         boolean privatePost = request.getPrivatePost() != null
                 ? request.getPrivatePost()
@@ -118,7 +151,14 @@ public class st_DiscussCommentService {
 
         comment.setPrivatePost(privatePost);
 
-        return st_DiscussCommentResponse.fromEntity(comment, false, "댓글이 수정되었습니다.");
+        String authorName = resolveAuthorName(comment.getAuthorId());
+
+        return st_DiscussCommentResponse.fromEntity(
+                comment,
+                false,
+                "댓글이 수정되었습니다.",
+                authorName
+        );
     }
 
     // ===== 댓글 삭제 =====
@@ -140,7 +180,6 @@ public class st_DiscussCommentService {
 
         // 2) 좋아요 삭제 (현재는 이 유저가 누른 좋아요만)
         likeRepository.deleteByCommentIdAndLikerId(commentId, authorId);
-        // 필요하면 likeRepository.deleteAllByCommentId(commentId); 도 추가
 
         // 3) 댓글 삭제
         discussCommentRepository.delete(comment);
@@ -155,16 +194,13 @@ public class st_DiscussCommentService {
 
         boolean alreadyLiked = likeRepository.existsByCommentIdAndLikerId(commentId, userId);
 
+        boolean viewerLiked;
+
         if (alreadyLiked) {
             // 좋아요 취소
             likeRepository.deleteByCommentIdAndLikerId(commentId, userId);
             comment.setLikeCount(comment.getLikeCount() - 1);
-
-            return st_DiscussCommentResponse.fromEntity(
-                    comment,
-                    false,
-                    "좋아요가 취소되었습니다."
-            );
+            viewerLiked = false;
         } else {
             // 좋아요 추가
             st_DiscussCommentLike like = st_DiscussCommentLike.builder()
@@ -174,12 +210,16 @@ public class st_DiscussCommentService {
 
             likeRepository.save(like);
             comment.setLikeCount(comment.getLikeCount() + 1);
-
-            return st_DiscussCommentResponse.fromEntity(
-                    comment,
-                    true,
-                    "좋아요가 추가되었습니다."
-            );
+            viewerLiked = true;
         }
+
+        String authorName = resolveAuthorName(comment.getAuthorId());
+
+        return st_DiscussCommentResponse.fromEntity(
+                comment,
+                viewerLiked,
+                viewerLiked ? "좋아요가 추가되었습니다." : "좋아요가 취소되었습니다.",
+                authorName
+        );
     }
 }

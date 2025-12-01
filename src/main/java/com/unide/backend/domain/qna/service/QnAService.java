@@ -35,15 +35,17 @@ public class QnAService {
 
     private final QnARepository qnaRepository;
     private final QnAProblemPostService qnaProblemPostService;
-    private final UserRepository userRepository; 
+    private final UserRepository userRepository;
     private final QnALikeRepository qnaLikeRepository;
-
 
     // ===== 목록 조회 =====
     @Transactional(readOnly = true)
     public List<QnADto> getQnAList(int pageNum) {
-        PageRequest pageRequest = PageRequest.of(pageNum - 1, 10,
-                Sort.by(Sort.Direction.DESC, "id"));   // QnA PK 필드명
+        PageRequest pageRequest = PageRequest.of(
+                pageNum - 1,
+                10,
+                Sort.by(Sort.Direction.DESC, "id")
+        );
 
         Page<QnA> page = qnaRepository.findAll(pageRequest);
 
@@ -63,7 +65,8 @@ public class QnAService {
     @Transactional(readOnly = true)
     public QnADto getQnA(Long postId) {
         QnA qna = qnaRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 QnA글이 없습니다. postId=" + postId));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("해당 QnA글이 없습니다. postId=" + postId));
 
         Problems linked = qnaProblemPostService.getLinkedProblem(postId).orElse(null);
         QnAProblemDto problemDto = QnAProblemDto.fromEntity(linked);
@@ -71,36 +74,34 @@ public class QnAService {
         return QnADto.fromEntity(qna, problemDto);
     }
 
+    // ===== 생성 =====
+    public QnADto createQnA(QnADto dto, Long authorId) {
 
-    // 생성
-public QnADto createQnA(QnADto dto, Long authorId) {
+        // 1) 작성자 User 실제 엔티티 조회
+        User author = userRepository.findById(authorId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("작성자를 찾을 수 없습니다. authorId=" + authorId));
 
-    // 1) 작성자 User 실제 엔티티 조회
-    User author = userRepository.findById(authorId)
-            .orElseThrow(() ->
-                    new IllegalArgumentException("작성자를 찾을 수 없습니다. authorId=" + authorId));
+        // 2) QnA 엔티티 생성
+        QnA qna = QnA.builder()
+                .author(author)
+                .anonymous(dto.isAnonymous())
+                .title(dto.getTitle())
+                .contents(dto.getContents())
+                .privatePost(dto.isPrivatePost())
+                .likeCount(0)
+                .commentCount(0)
+                .build();
 
-    // 2) QnA 엔티티 생성
-    QnA qna = QnA.builder()
-            .author(author)                    
-            .anonymous(dto.isAnonymous())
-            .title(dto.getTitle())
-            .contents(dto.getContents())
-            .privatePost(dto.isPrivatePost())
-            .likeCount(0)
-            .commentCount(0)
-            .build();
+        QnA savedQnA = qnaRepository.save(qna);
+        return QnADto.fromEntity(savedQnA);
+    }
 
-    QnA savedQnA = qnaRepository.save(qna);
-    return QnADto.fromEntity(savedQnA);
-}
-
-
-
-    // 수정
+    // ===== 수정 =====
     public QnADto updateQnA(Long postId, QnADto dto) {
         QnA qna = qnaRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 QnA글이 없습니다. postId=" + postId));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("해당 QnA글이 없습니다. postId=" + postId));
 
         qna.setAnonymous(dto.isAnonymous());
         qna.setTitle(dto.getTitle());
@@ -110,16 +111,15 @@ public QnADto createQnA(QnADto dto, Long authorId) {
         return QnADto.fromEntity(qnaRepository.save(qna));
     }
 
-
-    // 삭제
+    // ===== 삭제 =====
     public void deleteQnA(Long postId) {
         QnA qna = qnaRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 QnA글이 없습니다. postId=" + postId));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("해당 QnA글이 없습니다. postId=" + postId));
         qnaRepository.delete(qna);
     }
 
-
-    // 검색
+    // ===== 검색 =====
     @Transactional(readOnly = true)
     public List<QnADto> searchQnAs(String keyword) {
         return qnaRepository
@@ -128,8 +128,8 @@ public QnADto createQnA(QnADto dto, Long authorId) {
                 .map(QnADto::fromEntity)
                 .collect(Collectors.toList());
     }
-    
-    //첨부파일 첨가
+
+    // ===== 첨부파일 첨가 =====
     @Transactional
     public Map<String, Object> attachFile(Long postId, String fileUrl) {
 
@@ -146,42 +146,44 @@ public QnADto createQnA(QnADto dto, Long authorId) {
 
         return response;
     }
-        // ===== QnA 게시글 좋아요 토글 =====
-public QnADto toggleLike(Long postId, Long userId) {
 
-    // 1) 게시글 조회
-    QnA qna = qnaRepository.findById(postId)
-            .orElseThrow(() ->
-                    new IllegalArgumentException("해당 게시글이 없습니다. postId=" + postId));
+    // ===== QnA 게시글 좋아요 토글 =====
+    public QnADto toggleLike(Long postId, Long userId) {
 
-    // 2) 좋아요 확인
-    boolean alreadyLiked = qnaLikeRepository
-            .existsByIdPostIdAndIdLikerId(postId, userId);
+        // 1) 게시글 조회
+        QnA qna = qnaRepository.findById(postId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("해당 게시글이 없습니다. postId=" + postId));
 
-    boolean viewerLiked;
+        // 2) 좋아요 확인
+        boolean alreadyLiked = qnaLikeRepository
+                .existsByIdPostIdAndIdLikerId(postId, userId);
 
-    if (alreadyLiked) {
-        // 👍 좋아요 취소
-        qnaLikeRepository.deleteByIdPostIdAndIdLikerId(postId, userId);
-        qna.setLikeCount(qna.getLikeCount() - 1);
-        viewerLiked = false;
-    } else {
-        // ❤️ 좋아요 추가
-        QnALike like = QnALike.of(postId, userId);
-        qnaLikeRepository.save(like);
-        qna.setLikeCount(qna.getLikeCount() + 1);
-        viewerLiked = true;
+        boolean viewerLiked;
+
+        if (alreadyLiked) {
+            // 👍 좋아요 취소
+            qnaLikeRepository.deleteByIdPostIdAndIdLikerId(postId, userId);
+            qna.setLikeCount(qna.getLikeCount() - 1);
+            viewerLiked = false;
+        } else {
+            // ❤️ 좋아요 추가
+            QnALike like = QnALike.of(postId, userId);
+            qnaLikeRepository.save(like);
+            qna.setLikeCount(qna.getLikeCount() + 1);
+            viewerLiked = true;
+        }
+
+        // 3) DTO 생성 (viewerLiked 포함)
+        QnADto dto = QnADto.fromEntity(qna, null, viewerLiked);
+
+        // 4) 좋아요 메시지 추가 💗
+        dto.setMessage(viewerLiked
+                ? "❤️ 좋아요가 추가되었습니다."
+                : "💔 좋아요가 취소되었습니다.");
+
+        return dto;
     }
-
-    // 3) DTO 생성 (viewerLiked 포함)
-    QnADto dto = QnADto.fromEntity(qna, null, viewerLiked);
-
-    // 4) 좋아요 메시지 추가 💗
-    dto.setMessage(viewerLiked ? "❤️ 좋아요가 추가되었습니다." 
-                               : "💔 좋아요가 취소되었습니다.");
-
-    return dto;
-}
 
     public QnAPollResponse createPoll(Long postId, Long authorId, QnAPollCreateRequest request) {
         throw new UnsupportedOperationException("Not supported yet.");
@@ -190,6 +192,4 @@ public QnADto toggleLike(Long postId, Long userId) {
     public QnAPollVoteResponse vote(Long voterId, Long pollId, QnAPollVoteRequest request) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
-
-    
 }

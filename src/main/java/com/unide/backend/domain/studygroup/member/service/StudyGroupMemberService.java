@@ -1,7 +1,19 @@
 package com.unide.backend.domain.studygroup.member.service;
 
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+
 import com.unide.backend.domain.studygroup.group.entity.StudyGroup;
 import com.unide.backend.domain.studygroup.group.repository.StudyGroupRepository;
+import com.unide.backend.domain.studygroup.member.dto.StudyGroupActivityItemResponse;
+import com.unide.backend.domain.studygroup.member.dto.StudyGroupActivityPageResponse;
 import com.unide.backend.domain.studygroup.member.dto.StudyGroupCapacityDto;
 import com.unide.backend.domain.studygroup.member.dto.StudyGroupJoinResponse;
 import com.unide.backend.domain.studygroup.member.dto.StudyGroupKickResponse;
@@ -14,14 +26,13 @@ import com.unide.backend.domain.studygroup.member.repository.StudyGroupLogReposi
 import com.unide.backend.domain.studygroup.member.repository.StudyGroupMemberRepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
+
 import jakarta.transaction.Transactional;
-import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class StudyGroupMemberService {
 
     private final StudyGroupRepository studyGroupRepository;
@@ -32,45 +43,42 @@ public class StudyGroupMemberService {
     /**
      * 스터디 그룹 가입
      */
-    @Transactional
     public StudyGroupJoinResponse join(Long groupId, Long userId) {
-        // 그룹 조회
+
         StudyGroup group = studyGroupRepository.findById(groupId)
                 .orElseThrow(() -> new NoSuchElementException("StudyGroup not found: " + groupId));
 
-        // 유저 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
 
-        // 이미 가입되어 있는지 체크
+        // 이미 가입 여부 체크
         if (studyGroupMemberRepository.existsByGroup_GroupIdAndMember_Id(groupId, userId)) {
             throw new IllegalStateException("이미 가입된 스터디 그룹입니다.");
         }
 
-        // 인원 체크
-        int max = group.getGroupTo();          // group_TO
-        int current = group.getMemberCount();  // member_count
-
+        // 정원 체크
+        int max = group.getGroupTo();
+        int current = group.getMemberCount();
         if (current >= max) {
             throw new IllegalStateException("정원이 가득 찼습니다.");
         }
 
-        // 멤버 생성 + 저장 (save 반환값 사용해서 joinedAt 포함된 객체 받기)
+        // 멤버 생성 + 저장
         StudyGroupMember savedMember = studyGroupMemberRepository.save(
                 StudyGroupMember.create(group, user)
         );
 
-        // 그룹 인원 수 증가
+        // 인원 수 증가
         group.setMemberCount(current + 1);
 
         // 활동 로그 (JOIN)
         StudyGroupLog log = StudyGroupLog.of(
                 group,
                 StudyGroupActivityType.JOIN,
-                user,                        // actor
-                user,                        // target
+                user,                         // actor
+                null,                         // target (자기 자신이지만 nullable 이라 null)
                 StudyGroupRefEntityType.MEMBERSHIP,
-                null,                        // refEntityId (멤버십 PK 없으니 null)
+                null,
                 user.getName() + " 스터디 그룹에 가입"
         );
         studyGroupLogRepository.save(log);
@@ -86,15 +94,15 @@ public class StudyGroupMemberService {
                 "MEMBER",
                 "JOINED",
                 capacityDto,
-                savedMember.getJoinedAt()    // ✅ 이제 null 안 나옴
+                savedMember.getJoinedAt()
         );
     }
 
     /**
      * 내가 속한 그룹에서 탈퇴
      */
-    @Transactional
     public StudyGroupLeaveResponse leave(Long groupId, Long userId) {
+
         StudyGroupMember member = studyGroupMemberRepository
                 .findByGroup_GroupIdAndMember_Id(groupId, userId)
                 .orElseThrow(() -> new NoSuchElementException("가입 정보가 없습니다."));
@@ -102,10 +110,15 @@ public class StudyGroupMemberService {
         StudyGroup group = member.getGroup();
         User user = member.getMember();
 
+        // 그룹장 탈퇴 방지
+        if (group.getGroupLeader() != null && group.getGroupLeader().equals(userId)) {
+            throw new IllegalStateException("그룹장은 먼저 권한을 위임하거나 그룹을 해체해야 탈퇴할 수 있습니다.");
+        }
+
         // 멤버 삭제
         studyGroupMemberRepository.delete(member);
 
-        // 인원 수 감소 (0 밑으로는 내려가지 않도록)
+        // 인원 수 감소
         int current = group.getMemberCount();
         group.setMemberCount(Math.max(0, current - 1));
 
@@ -113,8 +126,8 @@ public class StudyGroupMemberService {
         StudyGroupLog log = StudyGroupLog.of(
                 group,
                 StudyGroupActivityType.LEAVE,
-                user,                        // actor
-                user,                        // target
+                user,                         // actor
+                null,                         // target
                 StudyGroupRefEntityType.MEMBERSHIP,
                 null,
                 user.getName() + " 스터디 그룹에서 탈퇴"
@@ -127,15 +140,19 @@ public class StudyGroupMemberService {
     /**
      * 그룹장에 의한 멤버 강퇴
      */
-    @Transactional
     public StudyGroupKickResponse kick(Long groupId, Long actorUserId, Long targetUserId) {
+
         StudyGroup group = studyGroupRepository.findById(groupId)
                 .orElseThrow(() -> new NoSuchElementException("StudyGroup not found: " + groupId));
 
-        // 그룹장 권한 체크
-        Long leaderId = group.getGroupLeader();  // group_leader 컬럼(Long userId)
+        Long leaderId = group.getGroupLeader();
         if (leaderId == null || !leaderId.equals(actorUserId)) {
             throw new AccessDeniedException("그룹장만 멤버를 강퇴할 수 있습니다.");
+        }
+
+        // 그룹장이 자기 자신 강퇴 방지
+        if (actorUserId.equals(targetUserId)) {
+            throw new IllegalStateException("그룹장은 자기 자신을 강퇴할 수 없습니다. 탈퇴 기능을 사용해주세요.");
         }
 
         // 강퇴 대상 멤버 조회
@@ -159,8 +176,8 @@ public class StudyGroupMemberService {
         StudyGroupLog log = StudyGroupLog.of(
                 group,
                 StudyGroupActivityType.KICK,
-                actor,                       // actor
-                target,                      // target
+                actor,                        // actor (그룹장)
+                target,                       // target (강퇴된 멤버)
                 StudyGroupRefEntityType.MEMBERSHIP,
                 null,
                 target.getName() + " 멤버 강퇴"
@@ -173,5 +190,30 @@ public class StudyGroupMemberService {
                 target.getName(),
                 "KICKED"
         );
+    }
+
+    /**
+     * 활동 로그 조회 (페이지네이션)
+     */
+    public StudyGroupActivityPageResponse getActivities(Long groupId, int page, int size) {
+
+        int pageIndex = Math.max(0, page - 1);
+        Pageable pageable = PageRequest.of(pageIndex, size);
+
+        Page<StudyGroupLog> logPage =
+                studyGroupLogRepository.findByGroup_GroupIdOrderByCreatedAtDesc(groupId, pageable);
+
+        List<StudyGroupActivityItemResponse> content = logPage.getContent().stream()
+                .map(StudyGroupActivityItemResponse::fromEntity)
+                .collect(Collectors.toList());
+
+        StudyGroupActivityPageResponse response = new StudyGroupActivityPageResponse();
+        response.setContent(content);
+        response.setPage(page);                         // 1-base 페이지 번호
+        response.setSize(size);
+        response.setTotalPages(logPage.getTotalPages());
+        response.setTotalElements(logPage.getTotalElements());
+
+        return response;
     }
 }

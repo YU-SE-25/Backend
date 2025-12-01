@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.EqualsAndHashCode;
 
 
 @Getter
@@ -15,10 +16,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Embeddable
-
+@EqualsAndHashCode
 public class DiscussLikeId implements Serializable {
-
-    
     @Column(name = "post_id")
     private Long postId;
 

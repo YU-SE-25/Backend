@@ -16,7 +16,6 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class QnACommentResponse {
     
     @JsonProperty("comment_id")
@@ -31,6 +30,9 @@ public class QnACommentResponse {
     @JsonProperty("author_id")
     private Long authorId;
 
+    @JsonProperty("author_name")
+    private String authorName;
+
     @JsonProperty("anonymity")
     private boolean anonymity;
 
@@ -43,23 +45,23 @@ public class QnACommentResponse {
     @JsonProperty("like_count")
     private int likeCount;
 
-    // 현재 사용자 기준 좋아요 여부
     @JsonProperty("viewerLiked")
     private boolean viewerLiked;
 
     @JsonProperty("created_at")
-    private LocalDateTime createdAt;
-
+    private LocalDateTime createdAt;   // ✅ 여기
     @JsonProperty("updated_at")
-    private LocalDateTime updatedAt;
+    private LocalDateTime updatedAt;   // ✅ 여기
 
-    // 메세지 (등록/수정/삭제 등)
     @JsonProperty("message")
     private String message;
 
-    public static QnACommentResponse fromEntity(QnAComment c,
-                                                    boolean viewerLiked,
-                                                    String message) {
+    public static QnACommentResponse fromEntity(
+            QnAComment c,
+            boolean viewerLiked,
+            String message,
+            String authorName
+    ) {
         if (c == null) return null;
 
         return QnACommentResponse.builder()
@@ -67,6 +69,7 @@ public class QnACommentResponse {
                 .postId(c.getPostId())
                 .parentId(c.getParentCommentId())
                 .authorId(c.getAuthorId())
+                .authorName(authorName)
                 .anonymity(c.isAnonymous())
                 .content(c.getContent())
                 .privatePost(c.isPrivatePost())
@@ -77,5 +80,4 @@ public class QnACommentResponse {
                 .message(message)
                 .build();
     }
-
 }

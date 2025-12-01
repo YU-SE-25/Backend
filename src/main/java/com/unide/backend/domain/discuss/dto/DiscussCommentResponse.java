@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.unide.backend.domain.discuss.entity.DiscussComment;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -29,6 +30,10 @@ public class DiscussCommentResponse {
     @JsonProperty("author_id")
     private Long authorId;
 
+    // ⭐ 추가: 작성자 이름
+    @JsonProperty("author_name")
+    private String authorName;
+
     @JsonProperty("anonymity")
     private boolean anonymity;
 
@@ -41,7 +46,6 @@ public class DiscussCommentResponse {
     @JsonProperty("like_count")
     private int likeCount;
 
-    // 현재 사용자 기준 좋아요 여부
     @JsonProperty("viewerLiked")
     private boolean viewerLiked;
 
@@ -51,13 +55,14 @@ public class DiscussCommentResponse {
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 
-    // 메세지 (등록/수정/삭제 등)
     @JsonProperty("message")
     private String message;
 
     public static DiscussCommentResponse fromEntity(DiscussComment c,
                                                     boolean viewerLiked,
-                                                    String message) {
+                                                    String message,
+                                                    String authorName) {
+
         if (c == null) return null;
 
         return DiscussCommentResponse.builder()
@@ -65,6 +70,7 @@ public class DiscussCommentResponse {
                 .postId(c.getPostId())
                 .parentId(c.getParentCommentId())
                 .authorId(c.getAuthorId())
+                .authorName(authorName)   // ⭐ 추가된 부분
                 .anonymity(c.isAnonymous())
                 .content(c.getContent())
                 .privatePost(c.isPrivatePost())
