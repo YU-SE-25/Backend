@@ -2,18 +2,34 @@
 
 package com.unide.backend.domain.submissions.controller;
 
-import com.unide.backend.domain.submissions.dto.*;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.unide.backend.domain.submissions.dto.CodeDraftResponseDto;
+import com.unide.backend.domain.submissions.dto.CodeDraftSaveRequestDto;
+import com.unide.backend.domain.submissions.dto.CodeDraftSaveResponseDto;
+import com.unide.backend.domain.submissions.dto.SubmissionDetailResponseDto;
+import com.unide.backend.domain.submissions.dto.SubmissionHistoryListDto;
+import com.unide.backend.domain.submissions.dto.SubmissionRequestDto;
+import com.unide.backend.domain.submissions.dto.SubmissionResponseDto;
+import com.unide.backend.domain.submissions.dto.SubmissionShareRequestDto;
+import com.unide.backend.domain.submissions.dto.SubmissionShareResponseDto;
+import com.unide.backend.domain.submissions.dto.SubmissionSolutionListDto;
 import com.unide.backend.domain.submissions.service.SubmissionService;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 
 @RestController
 @RequiredArgsConstructor

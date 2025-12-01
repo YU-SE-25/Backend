@@ -2,10 +2,8 @@
 
 package com.unide.backend.domain.submissions.repository;
 
-import com.unide.backend.domain.user.entity.User;
-import com.unide.backend.domain.problems.entity.Problems;
-import com.unide.backend.domain.submissions.entity.Submissions;
-import com.unide.backend.domain.submissions.entity.SubmissionStatus;
+import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,8 +11,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
-import java.util.Optional;
+import com.unide.backend.domain.problems.entity.Problems;
+import com.unide.backend.domain.submissions.entity.SubmissionStatus;
+import com.unide.backend.domain.submissions.entity.Submissions;
+import com.unide.backend.domain.user.entity.User;
 
 public interface SubmissionsRepository extends JpaRepository<Submissions, Long> {
     // 사용자, 문제, 상태로 제출 내역 조회
@@ -64,4 +64,8 @@ public interface SubmissionsRepository extends JpaRepository<Submissions, Long> 
     // 특정 사용자의 모든 제출 내역을 제출 시간 내림차순으로 조회
     @Query("SELECT s FROM Submissions s WHERE s.user.id = :userId ORDER BY s.submittedAt DESC")
     List<Submissions> findAllByUserIdOrderBySubmittedAtDesc(@Param("userId") Long userId);
+
+    // 효율 랭킹 계산용: 특정 문제의 공유된 제출 전체 리스트
+List<Submissions> findByProblemIdAndIsSharedTrue(Long problemId);
+
 }
