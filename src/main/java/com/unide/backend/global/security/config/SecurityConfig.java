@@ -79,6 +79,8 @@ public class SecurityConfig {
                 // 마이페이지 수정/삭제는 인증 필요 (PATCH, DELETE)
                 .requestMatchers("PATCH", "/api/mypage/me").authenticated()
                 .requestMatchers("DELETE", "/api/mypage/me").authenticated()
+                //메인화면 모두 조회 가능
+                .requestMatchers("/api/UNIDE/rank/**").permitAll()
                 // 나머지 모든 요청은 일단 인증된 사용자만 접근 가능하도록 설정
                 .anyRequest().authenticated()
             )
