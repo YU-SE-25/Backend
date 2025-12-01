@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
 
 @Component
 @RequiredArgsConstructor
@@ -60,7 +61,13 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/oauth/callback")
                 .queryParam("accessToken", accessToken)
                 .queryParam("refreshToken", refreshTokenValue)
-                .build().toUriString();
+                .queryParam("expiresIn", 3600)
+                .queryParam("userId", user.getId())
+                .queryParam("nickname", user.getNickname()) 
+                .queryParam("role", user.getRole().toString())
+                .build()
+                .encode(StandardCharsets.UTF_8)
+                .toUriString();
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
