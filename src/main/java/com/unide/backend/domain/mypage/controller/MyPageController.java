@@ -21,7 +21,7 @@ public class MyPageController {
     private final MyPageService myPageService;
 
     /** 내 마이페이지 조회 */
-    @GetMapping("/me")
+    @GetMapping
     public ResponseEntity<MyPageResponseDto> getMyPage(
             @AuthenticationPrincipal PrincipalDetails principal
     ) {
@@ -40,7 +40,7 @@ public class MyPageController {
     }
 
     /** 내 프로필 업데이트 */
-    @PatchMapping("/me")
+    @PatchMapping
     public ResponseEntity<MyPageUpdateResponseDto> updateMyPage(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
             @RequestBody MyPageUpdateRequestDto requestDto) {
@@ -50,7 +50,7 @@ public class MyPageController {
         return ResponseEntity.ok(new MyPageUpdateResponseDto("마이페이지가 성공적으로 수정되었습니다.", updatedAt));
     }
 
-    @PostMapping("/me/initialize")
+    @PostMapping("initialize")
     public ResponseEntity<MyPageUpdateResponseDto> initializeMyPage(@AuthenticationPrincipal PrincipalDetails principalDetails) {
         Long userId = principalDetails.getUser().getId();
         MyPageResponseDto result = myPageService.initializeMyPage(userId);

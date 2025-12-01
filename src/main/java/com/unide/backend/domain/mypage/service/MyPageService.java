@@ -97,6 +97,8 @@ public class MyPageService {
                 .joinedAt(user.getCreatedAt())
                 .updatedAt(myPage != null ? myPage.getUpdatedAt() : user.getUpdatedAt())
                 .isPublic(getIsPublic(myPage))
+                .isStudyAlarm(getIsStudyAlarm(myPage))
+                .isDarkMode(getIsDarkMode(myPage))
                 .solvedProblems(solvedProblems)
                 .bookmarkedProblems(bookmarkedProblems)
                 .recentSubmissions(recentSubmissions)
@@ -185,6 +187,8 @@ public class MyPageService {
         updateBioIfPresent(requestDto.getBio(), myPage);
         updatePreferredLanguageIfPresent(requestDto.getPreferredLanguage(), myPage);
         updatePublicStatusIfPresent(requestDto.getIsPublic(), myPage);
+        updateStudyAlarmIfPresent(requestDto.getIsStudyAlarm(), myPage);
+        updateDarkModeIfPresent(requestDto.getIsDarkMode(), myPage);
         updateAvatarUrlIfPresent(requestDto.getAvatarUrl(), myPage);
 
         userRepository.save(user);
@@ -284,11 +288,20 @@ public class MyPageService {
         return (myPage != null) ? myPage.getIsPublic() : true;
     }
 
+    private Boolean getIsStudyAlarm(MyPage myPage) {
+        return (myPage != null) ? myPage.getIsStudyAlarm() : false;
+    }
+
+    private Boolean getIsDarkMode(MyPage myPage) {
+        return (myPage != null) ? myPage.getIsDarkMode() : false;
+    }
     private MyPage createDefaultMyPage(User user) {
         return MyPage.builder()
                 .user(user)
                 .nickname(user.getNickname())
                 .isPublic(true)
+                .isStudyAlarm(false)
+                .isDarkMode(false)
                 .build();
     }
 
@@ -321,6 +334,14 @@ public class MyPageService {
 
     private void updatePublicStatusIfPresent(Boolean isPublic, MyPage myPage) {
         if (isPublic != null) myPage.updateIsPublic(isPublic);
+    }
+
+    private void updateStudyAlarmIfPresent(Boolean isStudyAlarm, MyPage myPage) {
+        if (isStudyAlarm != null) myPage.updateIsStudyAlarm(isStudyAlarm);
+    }
+
+    private void updateDarkModeIfPresent(Boolean isDarkMode, MyPage myPage) {
+        if (isDarkMode != null) myPage.updateIsDarkMode(isDarkMode);
     }
 
     private void updateAvatarUrlIfPresent(String avatarUrl, MyPage myPage) {

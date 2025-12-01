@@ -22,6 +22,8 @@ public class MyPageResponseDto {
     private final LocalDateTime joinedAt;
     private final LocalDateTime updatedAt;
     private final Boolean isPublic;
+    private final Boolean isStudyAlarm;
+    private final Boolean isDarkMode;
 
     // 문제 풀이 관련
     private final List<Long> solvedProblems;

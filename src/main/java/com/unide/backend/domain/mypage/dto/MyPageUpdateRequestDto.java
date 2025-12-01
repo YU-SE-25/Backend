@@ -12,5 +12,7 @@ public class MyPageUpdateRequestDto {
     private String bio;
     private List<String> preferredLanguage;
     private Boolean isPublic;
+    private Boolean isStudyAlarm;
+    private Boolean isDarkMode;
     private String avatarUrl;
 }
