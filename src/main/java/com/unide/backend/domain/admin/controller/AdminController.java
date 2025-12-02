@@ -9,12 +9,14 @@ import com.unide.backend.domain.admin.dto.InstructorApplicationDetailDto;
 import com.unide.backend.domain.admin.dto.InstructorApplicationListResponseDto;
 import com.unide.backend.domain.admin.dto.InstructorApplicationUpdateRequestDto;
 import com.unide.backend.domain.admin.dto.UserListResponseDto;
+import com.unide.backend.domain.admin.dto.BlacklistListResponseDto;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -62,6 +64,14 @@ public class AdminController {
             @PageableDefault(size = 20) Pageable pageable) {
         
         UserListResponseDto response = adminService.getAllUsers(pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/blacklist")
+    public ResponseEntity<BlacklistListResponseDto> getBlacklist(
+            @PageableDefault(size = 20, sort = "bannedAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        
+        BlacklistListResponseDto response = adminService.getBlacklist(pageable);
         return ResponseEntity.ok(response);
     }
 }
