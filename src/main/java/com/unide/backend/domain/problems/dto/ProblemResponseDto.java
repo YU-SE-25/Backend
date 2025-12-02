@@ -25,7 +25,10 @@ public class ProblemResponseDto {
     private ProblemDifficulty difficulty;
     private Integer viewCount;
     private LocalDateTime createdAt;
-    private Boolean isSolved; // 사용자가 푼 문제인지 여부
+    private UserStatus userStatus; // 사용자의 문제 상태
+    private String summary; // 문제 요약
+    private Integer solverCount; // 문제를 푼 사람 수
+    private Double correctRate; // 정답률
     
     public static ProblemResponseDto from(Problems problem) {
         return ProblemResponseDto.builder()
@@ -38,15 +41,22 @@ public class ProblemResponseDto {
                 .build();
     }
     
-    public static ProblemResponseDto from(Problems problem, Boolean isSolved) {
-        return ProblemResponseDto.builder()
-                .problemId(problem.getId())
-                .title(problem.getTitle())
-                .tags(problem.getTags())
-                .difficulty(problem.getDifficulty())
-                .viewCount(problem.getViewCount())
-                .createdAt(problem.getCreatedAt())
-                .isSolved(isSolved)
-                .build();
-    }
+    public static ProblemResponseDto from(Problems problem,
+                                      UserStatus userStatus,
+                                      String summary,
+                                      Integer solverCount,
+                                      Double correctRate) {
+    return ProblemResponseDto.builder()
+            .problemId(problem.getId())
+            .title(problem.getTitle())
+            .tags(problem.getTags())
+            .difficulty(problem.getDifficulty())
+            .viewCount(problem.getViewCount())
+            .createdAt(problem.getCreatedAt())
+            .userStatus(userStatus)
+            .summary(summary)
+            .solverCount(solverCount)
+            .correctRate(correctRate)
+            .build();
+}
 }
