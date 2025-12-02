@@ -10,6 +10,9 @@ import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.analysis.dto.ComplexityAnalysisResponseDto;
 import com.unide.backend.domain.analysis.entity.SubmissionComplexity;
 import com.unide.backend.domain.analysis.repository.SubmissionComplexityRepository;
+import com.unide.backend.domain.analysis.dto.FlowchartResponseDto;
+import com.unide.backend.domain.analysis.entity.SubmissionFlowchart;
+import com.unide.backend.domain.analysis.repository.SubmissionFlowchartRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +36,7 @@ public class AnalysisService {
     private final LlmService llmService;
     private final ObjectMapper objectMapper;
     private final SubmissionComplexityRepository submissionComplexityRepository;
+    private final SubmissionFlowchartRepository submissionFlowchartRepository;
 
     @Transactional
     public HabitAnalysisResponseDto analyzeCodingHabits(User user) {
@@ -151,6 +155,58 @@ public class AnalysisService {
                 .build();
         
         submissionComplexityRepository.save(entity);
+
+        return resultDto;
+    }
+
+    @Transactional
+    public FlowchartResponseDto generateFlowchart(Long submissionId, User user) {
+        Submissions submission = submissionsRepository.findById(submissionId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 제출 기록입니다: " + submissionId));
+
+        if (!submission.getUser().getId().equals(user.getId()) && !submission.isShared()) {
+            throw new IllegalArgumentException("해당 코드의 플로우 차트를 조회할 권한이 없습니다.");
+        }
+
+        Optional<SubmissionFlowchart> existingFlowchart = submissionFlowchartRepository.findBySubmission(submission);
+        if (existingFlowchart.isPresent()) {
+            return FlowchartResponseDto.builder()
+                    .mermaidCode(existingFlowchart.get().getMermaidCode())
+                    .build();
+        }
+
+        String systemInstruction = "당신은 코드를 시각화하는 전문가입니다. 주어진 코드를 Mermaid.js의 flowchart TD 문법으로 변환해 주세요. 복잡한 세부 구현보다는 핵심 로직(조건문, 반복문)의 흐름을 시각화하는 데 집중하세요. 결과는 반드시 JSON 형식이어야 합니다.";
+        String userPrompt = String.format("""
+                다음 코드를 Mermaid.js flowchart TD 코드로 변환해 주세요.
+                마크다운 태그(```json) 없이 순수 JSON 데이터만 반환해 주세요.
+                
+                [Source Code]
+                Language: %s
+                Code:
+                %s
+                
+                [Response Format]
+                {
+                  "mermaidCode": "graph TD; A[Start] --> B{Condition}; ..."
+                }
+                """, submission.getLanguage(), submission.getCode());
+
+        String jsonResponse = llmService.getResponse(userPrompt, systemInstruction);
+
+        FlowchartResponseDto resultDto;
+        try {
+            resultDto = objectMapper.readValue(jsonResponse, FlowchartResponseDto.class);
+        } catch (JsonProcessingException e) {
+            log.error("LLM 플로우 차트 응답 파싱 실패: {}", jsonResponse, e);
+            throw new RuntimeException("플로우 차트를 생성하는 중 오류가 발생했습니다.");
+        }
+
+        SubmissionFlowchart entity = SubmissionFlowchart.builder()
+                .submission(submission)
+                .mermaidCode(resultDto.getMermaidCode())
+                .build();
+        
+        submissionFlowchartRepository.save(entity);
 
         return resultDto;
     }
