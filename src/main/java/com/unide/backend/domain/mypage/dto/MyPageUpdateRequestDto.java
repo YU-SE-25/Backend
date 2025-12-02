@@ -17,5 +17,9 @@ public class MyPageUpdateRequestDto {
     private String bio;
     private List<String> preferredLanguage;
     private Boolean isPublic;
-    private String avatarUrl;
+    private UserGoalsRequestDto userGoals;
+    private List<ReminderRequestDto> reminders;
+    private Boolean isDarkMode;
+    private Boolean isStudyAlarm;
+    private MultipartFile avatarImageFile;
 }

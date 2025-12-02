@@ -47,14 +47,14 @@ public class MyPageController {
     }
 
     /** 내 프로필 업데이트 */
-    @PatchMapping("/me")
+    @PatchMapping
     public ResponseEntity<MyPageUpdateResponseDto> updateMyPage(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
             @RequestBody MyPageUpdateRequestDto requestDto) {
         Long userId = principalDetails.getUser().getId();
         MyPageResponseDto result = myPageService.updateMyPage(userId, requestDto);
-        if (requestDto.getGoals() != null) {
-            myPageService.updateUserGoals(userId, requestDto.getGoals());
+        if (requestDto.getUserGoals() != null) {
+            myPageService.updateUserGoals(userId, requestDto.getUserGoals());
         }
         if (requestDto.getReminders() != null) {
             result.getReminders().forEach(r -> myPageService.deleteReminder(r.getId()));

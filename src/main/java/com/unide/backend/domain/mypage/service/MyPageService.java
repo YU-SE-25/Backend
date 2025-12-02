@@ -211,7 +211,9 @@ public class MyPageService {
         updateBioIfPresent(requestDto.getBio(), myPage);
         updatePreferredLanguageIfPresent(requestDto.getPreferredLanguage(), myPage);
         updatePublicStatusIfPresent(requestDto.getIsPublic(), myPage);
-        updateAvatarUrlIfPresent(requestDto.getAvatarUrl(), myPage);
+        updateAvatarUrlIfPresent(requestDto.getAvatarImageFile(), myPage);
+        updateStudyAlarmIfPresent(requestDto.getIsStudyAlarm(), myPage);
+        updateDarkModeIfPresent(requestDto.getIsDarkMode(), myPage);
 
         userRepository.save(user);
         myPageRepository.save(myPage);
@@ -378,7 +380,24 @@ public class MyPageService {
         if (isDarkMode != null) myPage.updateIsDarkMode(isDarkMode);
     }
 
-    private void updateAvatarUrlIfPresent(String avatarUrl, MyPage myPage) {
-        if (avatarUrl != null) myPage.updateAvatarUrl(avatarUrl);
+    private void updateAvatarUrlIfPresent(MultipartFile profileImage, MyPage myPage) {
+        if (profileImage == null || profileImage.isEmpty()) return;
+
+        // 실제 파일 저장 로직 (예: AWS S3 업로드 등)은 생략하고, 임시로 로컬에 저장하는 예시
+        String uploadDir = "uploads/avatars/";
+        String originalFilename = profileImage.getOriginalFilename();
+        String filePath = uploadDir + System.currentTimeMillis() + "_" + originalFilename;
+
+        try {
+            File dir = new File(uploadDir);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+            File dest = new File(filePath);
+            profileImage.transferTo(dest);
+            myPage.updateAvatarUrl("/" + filePath); // URL 경로 설정
+        } catch (IOException e) {
+            throw new RuntimeException("프로필 이미지 업로드 실패", e);
+        }
     }
 }
