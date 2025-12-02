@@ -37,6 +37,9 @@ import com.unide.backend.domain.submissions.entity.SubmissionStatus;
 import com.unide.backend.domain.submissions.entity.Submissions;
 import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
 import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.domain.submissions.entity.SubmissionRecord;
+import com.unide.backend.domain.submissions.repository.SubmissionRecordRepository;
+import com.unide.backend.domain.submissions.dto.SubmissionRecordDto;
 
 import lombok.RequiredArgsConstructor;
 
@@ -50,6 +53,7 @@ public class SubmissionService {
     private final DockerService dockerService;
     private final EfficiencyService efficiencyService;
     private final StatsService statsService;
+    private final SubmissionRecordRepository submissionRecordRepository;
     
     @Transactional
     public CodeDraftSaveResponseDto saveCodeDraft(User user, CodeDraftSaveRequestDto requestDto) {
@@ -120,6 +124,7 @@ public class SubmissionService {
         long maxRuntime = 0;
         int passedCount = 0;
         String compileOutput = null;
+        int index = 1;
 
         for (TestCase testCase : testCases) {
             CodeRunRequestDto runRequest = new CodeRunRequestDto(
@@ -129,46 +134,56 @@ public class SubmissionService {
             );
             
             CodeRunResponseDto runResult = dockerService.runCode(runRequest);
+            
+            SubmissionStatus caseStatus = runResult.getStatus(); // 기본적으로 Docker 실행 결과 따름 (CA, TLE, RE, CE)
+            int caseRuntime = (int) runResult.getExecutionTimeMs();
 
-            if (runResult.getStatus() == SubmissionStatus.CE) {
+            if (caseStatus == SubmissionStatus.CA) {
+                String actualOutput = runResult.getOutput().trim();
+                String expectedOutput = testCase.getOutput().trim();
+                if (!actualOutput.equals(expectedOutput)) {
+                    caseStatus = SubmissionStatus.WA;
+                }
+            }
+
+            SubmissionRecord record = SubmissionRecord.builder()
+                    .submission(submission)
+                    .testCaseIndex(index++)
+                    .status(caseStatus)
+                    .runtime(caseRuntime)
+                    .memory(0)
+                    .build();
+            submissionRecordRepository.save(record);
+
+            if (caseStatus == SubmissionStatus.CE) {
                 finalStatus = SubmissionStatus.CE;
                 compileOutput = runResult.getError();
                 passedCount = 0;
                 break;
             }
 
-            if (runResult.getStatus() != SubmissionStatus.CA) {
-                // 우선순위에 따라 최종 상태 업데이트 (RE > TLE > WA > CA)
+            if (caseStatus != SubmissionStatus.CA) {
                 if (finalStatus == SubmissionStatus.CA || finalStatus == SubmissionStatus.WA) {
-                    finalStatus = runResult.getStatus(); 
-                } else if (finalStatus == SubmissionStatus.TLE && runResult.getStatus() == SubmissionStatus.RE) {
+                    finalStatus = caseStatus;
+                } else if (finalStatus == SubmissionStatus.TLE && caseStatus == SubmissionStatus.RE) {
                     finalStatus = SubmissionStatus.RE;
                 }
             } else {
-                String actualOutput = runResult.getOutput().trim();
-                String expectedOutput = testCase.getOutput().trim();
-
-                if (actualOutput.equals(expectedOutput)) {
-                    passedCount++;
-                    maxRuntime = Math.max(maxRuntime, runResult.getExecutionTimeMs());
-                } else {
-                    if (finalStatus == SubmissionStatus.CA) {
-                        finalStatus = SubmissionStatus.WA;
-                    }
-                }
+                passedCount++;
+                maxRuntime = Math.max(maxRuntime, caseRuntime);
             }
         }
 
         submission.updateResult(
                 finalStatus,
                 (int) maxRuntime,
-                0, // 메모리 측정은 Java Docker Client로는 복잡하여 0으로 유지 (추후 cgroup 활용 필요)
+                0, 
                 passedCount,
                 compileOutput
         );
-          statsService.updateStats(user.getId());      // 총 제출수, 정답수, 정답률, 스트릭 등 갱신
-        statsService.onCodeSubmitted(user.getId());  // 평판 점수 +10
-
+        
+        statsService.updateStats(user.getId());       
+        statsService.onCodeSubmitted(user.getId());   
 
         return SubmissionResponseDto.builder()
                 .submissionId(submission.getId())
@@ -202,6 +217,16 @@ public class SubmissionService {
             throw new IllegalArgumentException("해당 제출 기록을 볼 권한이 없습니다.");
         }
 
+        List<SubmissionRecord> records = submissionRecordRepository.findAllBySubmissionOrderByTestCaseIndexAsc(submission);
+        List<SubmissionRecordDto> recordDtos = records.stream()
+                .map(r -> SubmissionRecordDto.builder()
+                        .testCaseIndex(r.getTestCaseIndex())
+                        .status(r.getStatus())
+                        .runtime(r.getRuntime())
+                        .memory(r.getMemory())
+                        .build())
+                .collect(Collectors.toList());
+
         return SubmissionDetailResponseDto.builder()
                 .submissionId(submission.getId())
                 .problemId(submission.getProblem().getId())
@@ -213,6 +238,7 @@ public class SubmissionService {
                 .memory(submission.getMemory())
                 .submittedAt(submission.getSubmittedAt())
                 .isShared(submission.isShared())
+                .records(recordDtos)
                 .build();
     }
 
