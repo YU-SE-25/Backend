@@ -2,6 +2,9 @@ package com.unide.backend.domain.mypage.service;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.io.File;
+import java.io.IOException;
+import org.springframework.web.multipart.MultipartFile;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -12,7 +15,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.unide.backend.domain.bookmark.repository.BookmarkRepository;
 import com.unide.backend.domain.mypage.dto.MyPageResponseDto;
 import com.unide.backend.domain.mypage.dto.MyPageUpdateRequestDto;
+import com.unide.backend.domain.mypage.dto.ReminderRequestDto;
+import com.unide.backend.domain.mypage.dto.ReminderResponseDto;
 import com.unide.backend.domain.mypage.dto.SubmissionItem;
+import com.unide.backend.domain.mypage.dto.UserGoalsRequestDto;
 import com.unide.backend.domain.mypage.dto.UserGoalsResponseDto;
 import com.unide.backend.domain.mypage.dto.UserStatsResponseDto;
 import com.unide.backend.domain.mypage.entity.Goals;
@@ -41,6 +47,7 @@ public class MyPageService {
     private final StatsService statsService;
     private final GoalsService goalsService;
     private final BookmarkRepository bookmarkRepository;
+    private final ReminderService reminderService;
 
     private static final String DEFAULT_AVATAR_URL = "/images/default-avatar.png";
 
@@ -87,6 +94,9 @@ public class MyPageService {
         List<Long> bookmarkedProblems = bookmarkRepository.findBookmarkedProblemIdsByUserId(userId);
         List<String> preferredLanguageList = parsePreferredLanguages(myPage);
 
+        // 리마인더 리스트 조회
+        List<ReminderResponseDto> reminders = reminderService.getRemindersByUser(user);
+
         return MyPageResponseDto.builder()
                 .userId(user.getId())
                 .nickname(getNickname(myPage, user))
@@ -104,7 +114,26 @@ public class MyPageService {
                 .recentSubmissions(recentSubmissions)
                 .stats(statsDto)
                 .goals(goalsDto)
+                .reminders(reminders)
                 .build();
+    }
+    // 리마인더 등록
+    @Transactional
+    public ReminderResponseDto addReminder(Long userId, ReminderRequestDto dto) {
+        User user = getUserById(userId);
+        return reminderService.saveReminder(user, dto);
+    }
+
+    // 리마인더 수정
+    @Transactional
+    public ReminderResponseDto updateReminder(Long reminderId, ReminderRequestDto dto) {
+        return reminderService.updateReminder(reminderId, dto);
+    }
+
+    // 리마인더 삭제
+    @Transactional
+    public void deleteReminder(Long reminderId) {
+        reminderService.deleteReminder(reminderId);
     }
 
     private MyPageResponseDto buildMyPageResponse(User user, MyPage myPage) {
@@ -143,14 +172,14 @@ public class MyPageService {
     }
 
     @Transactional
-    public UserGoalsResponseDto updateUserGoals(Long userId, UserGoalsResponseDto goalsDto) {
+    public void updateUserGoals(Long userId, UserGoalsRequestDto requestDto) {
         User user = getUserById(userId);
         Goals goals = goalsRepository.findByUserId(userId);
 
         String studyTimeJson = null;
         try {
-            if (goalsDto.getStudyTimeByLanguage() != null)
-                studyTimeJson = objectMapper.writeValueAsString(goalsDto.getStudyTimeByLanguage());
+            if (requestDto.getStudyTimeByLanguage() != null)
+                studyTimeJson = objectMapper.writeValueAsString(requestDto.getStudyTimeByLanguage());
         } catch (JsonProcessingException e) {
             throw new RuntimeException("studyTimeByLanguage JSON 변환 실패", e);
         }
@@ -158,22 +187,17 @@ public class MyPageService {
         if (goals == null) {
             goals = Goals.builder()
                     .user(user)
-                    .dailyMinimumStudyMinutes(goalsDto.getDailyMinimumStudyMinutes())
-                    .weeklyStudyGoalMinutes(goalsDto.getWeeklyStudyGoalMinutes())
-                    .reminderTimes(String.join(",", goalsDto.getReminderTimes()))
-                    .isReminderEnabled(goalsDto.getIsReminderEnabled())
+                    .dailyMinimumStudyMinutes(requestDto.getDailyMinimumStudyMinutes())
+                    .weeklyStudyGoalMinutes(requestDto.getWeeklyStudyGoalMinutes())
                     .studyTimeByLanguage(studyTimeJson)
                     .build();
         } else {
-            goals.updateDailyMinimumStudyMinutes(goalsDto.getDailyMinimumStudyMinutes());
-            goals.updateWeeklyStudyGoalMinutes(goalsDto.getWeeklyStudyGoalMinutes());
-            goals.updateReminderTimes(String.join(",", goalsDto.getReminderTimes()));
-            goals.updateIsReminderEnabled(goalsDto.getIsReminderEnabled());
+            goals.updateDailyMinimumStudyMinutes(requestDto.getDailyMinimumStudyMinutes());
+            goals.updateWeeklyStudyGoalMinutes(requestDto.getWeeklyStudyGoalMinutes());
             goals.updateStudyTimeByLanguage(studyTimeJson);
         }
 
         goalsRepository.save(goals);
-        return goalsDto;
     }
 
     /* ====================== UPDATE MYPAGE =========================== */
@@ -189,7 +213,18 @@ public class MyPageService {
         updatePublicStatusIfPresent(requestDto.getIsPublic(), myPage);
         updateStudyAlarmIfPresent(requestDto.getIsStudyAlarm(), myPage);
         updateDarkModeIfPresent(requestDto.getIsDarkMode(), myPage);
-        updateAvatarUrlIfPresent(requestDto.getAvatarUrl(), myPage);
+        updateAvatarFileIfPresent(requestDto.getAvatarImageFile(), myPage);
+
+        // goals 수정
+        if (requestDto.getGoals() != null) {
+            updateUserGoals(userId, requestDto.getGoals());
+        }
+        // reminders 수정 (기존 삭제 후 새로 등록, 단순화 예시)
+        if (requestDto.getReminders() != null) {
+            List<ReminderResponseDto> existingReminders = reminderService.getRemindersByUser(user);
+            existingReminders.forEach(r -> deleteReminder(r.getId()));
+            requestDto.getReminders().forEach(reminderDto -> addReminder(userId, reminderDto));
+        }
 
         userRepository.save(user);
         myPageRepository.save(myPage);
@@ -209,11 +244,23 @@ public class MyPageService {
     public MyPageResponseDto initializeMyPage(Long userId) {
         User user = getUserById(userId);
 
+        // 마이페이지 삭제
         myPageRepository.findByUserId(userId).ifPresent(existing -> {
             myPageRepository.delete(existing);
             myPageRepository.flush();
         });
 
+        // 목표(Goals) 삭제
+        Goals goals = goalsRepository.findByUserId(userId);
+        if (goals != null) {
+            goalsRepository.delete(goals);
+        }
+
+        // 리마인더 전체 삭제
+        List<ReminderResponseDto> reminders = reminderService.getRemindersByUser(user);
+        reminders.forEach(r -> deleteReminder(r.getId()));
+
+        // 마이페이지 기본값 생성
         MyPage newMyPage = createDefaultMyPage(user);
         myPageRepository.save(newMyPage);
         return buildMyPageResponse(user, newMyPage);
@@ -344,7 +391,23 @@ public class MyPageService {
         if (isDarkMode != null) myPage.updateIsDarkMode(isDarkMode);
     }
 
-    private void updateAvatarUrlIfPresent(String avatarUrl, MyPage myPage) {
-        if (avatarUrl != null) myPage.updateAvatarUrl(avatarUrl);
+    private void updateAvatarFileIfPresent(MultipartFile avatarFile, MyPage myPage) {
+        if (avatarFile != null && !avatarFile.isEmpty()) {
+            String avatarUrl = saveAvatarFile(avatarFile);
+            myPage.updateAvatarUrl(avatarUrl);
+        }
+        // avatarFile이 null 또는 비어있으면 기존 이미지 유지
+    }
+
+    private String saveAvatarFile(MultipartFile file) {
+        String uploadDir = "/uploads/avatars/";
+        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+        File dest = new File(uploadDir + fileName);
+        try {
+            file.transferTo(dest);
+        } catch (IOException e) {
+            throw new RuntimeException("아바타 파일 저장 실패", e);
+        }
+        return dest.getPath(); // 또는 URL로 변환
     }
 }

@@ -37,4 +37,7 @@ public class MyPageResponseDto {
 
     // 목표
     private final UserGoalsResponseDto goals;
+
+    // 리마인더
+    private final List<ReminderResponseDto> reminders;
 }

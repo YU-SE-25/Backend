@@ -46,14 +46,21 @@ public class MyPageController {
         return ResponseEntity.ok(myPageService.getMyPageByNickname(nickname, requestUserId));
     }
 
-    /** 내 프로필 업데이트 */
+    /** 내 프로필/목표/리마인더 업데이트 */
     @PatchMapping
     public ResponseEntity<MyPageUpdateResponseDto> updateMyPage(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
             @RequestBody MyPageUpdateRequestDto requestDto) {
         Long userId = principalDetails.getUser().getId();
         MyPageResponseDto result = myPageService.updateMyPage(userId, requestDto);
-        LocalDateTime updatedAt = result.getUpdatedAt(); // ISO 포맷 등
+        if (requestDto.getGoals() != null) {
+            myPageService.updateUserGoals(userId, requestDto.getGoals());
+        }
+        if (requestDto.getReminders() != null) {
+            result.getReminders().forEach(r -> myPageService.deleteReminder(r.getId()));
+            requestDto.getReminders().forEach(reminderDto -> myPageService.addReminder(userId, reminderDto));
+        }
+        LocalDateTime updatedAt = result.getUpdatedAt();
         return ResponseEntity.ok(new MyPageUpdateResponseDto("마이페이지가 성공적으로 수정되었습니다.", updatedAt));
     }
 

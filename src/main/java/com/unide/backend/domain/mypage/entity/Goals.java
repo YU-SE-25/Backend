@@ -34,11 +34,6 @@ public class Goals extends BaseTimeEntity {
     private Integer weeklyStudyGoalMinutes;
 
     @Column(columnDefinition = "JSON")
-    private String reminderTimes;
-
-    private Boolean isReminderEnabled;
-
-    @Column(columnDefinition = "JSON")
     private String studyTimeByLanguage;
 
     @Builder
@@ -51,14 +46,10 @@ public class Goals extends BaseTimeEntity {
         this.user = user;
         this.dailyMinimumStudyMinutes = dailyMinimumStudyMinutes;
         this.weeklyStudyGoalMinutes = weeklyStudyGoalMinutes;
-        this.reminderTimes = reminderTimes;
-        this.isReminderEnabled = isReminderEnabled;
         this.studyTimeByLanguage = studyTimeByLanguage;
     }
 
     public void updateDailyMinimumStudyMinutes(Integer v) { this.dailyMinimumStudyMinutes = v; }
     public void updateWeeklyStudyGoalMinutes(Integer v) { this.weeklyStudyGoalMinutes = v; }
-    public void updateReminderTimes(String json) { this.reminderTimes = json; }
-    public void updateIsReminderEnabled(Boolean b) { this.isReminderEnabled = b; }
     public void updateStudyTimeByLanguage(String json) { this.studyTimeByLanguage = json; }
 }
