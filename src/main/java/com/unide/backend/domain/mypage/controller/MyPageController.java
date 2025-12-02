@@ -1,8 +1,16 @@
 package com.unide.backend.domain.mypage.controller;
 
+import java.time.LocalDateTime;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.unide.backend.domain.mypage.dto.MyPageResponseDto;
 import com.unide.backend.domain.mypage.dto.MyPageUpdateRequestDto;
@@ -11,7 +19,6 @@ import com.unide.backend.domain.mypage.service.MyPageService;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import lombok.RequiredArgsConstructor;
-import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/mypage")
@@ -21,7 +28,7 @@ public class MyPageController {
     private final MyPageService myPageService;
 
     /** 내 마이페이지 조회 */
-    @GetMapping("/me")
+    @GetMapping
     public ResponseEntity<MyPageResponseDto> getMyPage(
             @AuthenticationPrincipal PrincipalDetails principal
     ) {
@@ -40,7 +47,7 @@ public class MyPageController {
     }
 
     /** 내 프로필 업데이트 */
-    @PatchMapping("/me")
+    @PatchMapping
     public ResponseEntity<MyPageUpdateResponseDto> updateMyPage(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
             @RequestBody MyPageUpdateRequestDto requestDto) {
@@ -50,7 +57,7 @@ public class MyPageController {
         return ResponseEntity.ok(new MyPageUpdateResponseDto("마이페이지가 성공적으로 수정되었습니다.", updatedAt));
     }
 
-    @PostMapping("/me/initialize")
+    @PostMapping("initialize")
     public ResponseEntity<MyPageUpdateResponseDto> initializeMyPage(@AuthenticationPrincipal PrincipalDetails principalDetails) {
         Long userId = principalDetails.getUser().getId();
         MyPageResponseDto result = myPageService.initializeMyPage(userId);
