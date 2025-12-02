@@ -15,6 +15,12 @@ import com.unide.backend.domain.instructor.entity.InstructorApplication;
 import com.unide.backend.domain.instructor.repository.InstructorApplicationRepository;
 import com.unide.backend.domain.admin.dto.InstructorApplicationUpdateRequestDto;
 import com.unide.backend.global.security.auth.PrincipalDetails;
+import com.unide.backend.domain.admin.dto.UserListResponseDto;
+import com.unide.backend.domain.admin.dto.UserSummaryDto;
+import com.unide.backend.domain.admin.dto.BlacklistListResponseDto;
+import com.unide.backend.domain.admin.dto.BlacklistSummaryDto;
+import com.unide.backend.domain.admin.entity.Blacklist;
+import com.unide.backend.domain.admin.repository.BlacklistRepository;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +41,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 public class AdminService {
     private final UserRepository userRepository;
     private final InstructorApplicationRepository instructorApplicationRepository;
+    private final BlacklistRepository blacklistRepository;
 
     @Transactional
     public RoleChangeResponseDto changeUserRole(Long userId, RoleChangeRequestDto requestDto) {
@@ -133,5 +140,51 @@ public class AdminService {
         
         // 변경된 상세 정보를 다시 조회하여 반환
         return getApplicationDetail(applicationId);
+    }
+
+    public UserListResponseDto getAllUsers(Pageable pageable) {
+        Page<User> userPage = userRepository.findAll(pageable);
+
+        List<UserSummaryDto> userDtos = userPage.getContent().stream()
+                .map(user -> UserSummaryDto.builder()
+                        .userId(user.getId())
+                        .email(user.getEmail())
+                        .name(user.getName())
+                        .nickname(user.getNickname())
+                        .phone(user.getPhone())
+                        .role(user.getRole())
+                        .status(user.getStatus())
+                        .createdAt(user.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        return UserListResponseDto.builder()
+                .totalElements(userPage.getTotalElements())
+                .totalPages(userPage.getTotalPages())
+                .currentPage(userPage.getNumber())
+                .users(userDtos)
+                .build();
+    }
+
+    public BlacklistListResponseDto getBlacklist(Pageable pageable) {
+        Page<Blacklist> blacklistPage = blacklistRepository.findAll(pageable);
+
+        List<BlacklistSummaryDto> blacklistDtos = blacklistPage.getContent().stream()
+                .map(b -> BlacklistSummaryDto.builder()
+                        .blacklistId(b.getId())
+                        .name(b.getName())
+                        .email(b.getEmail())
+                        .phone(b.getPhone())
+                        .reason(b.getReason())
+                        .bannedAt(b.getBannedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        return BlacklistListResponseDto.builder()
+                .totalElements(blacklistPage.getTotalElements())
+                .totalPages(blacklistPage.getTotalPages())
+                .currentPage(blacklistPage.getNumber())
+                .blacklist(blacklistDtos)
+                .build();
     }
 }

@@ -1,4 +1,4 @@
-// 블랙리스트 사용자를 관리하는 엔터티
+// 블랙리스트 정보를 관리하는 엔터티
 
 package com.unide.backend.domain.admin.entity;
 
@@ -23,12 +23,13 @@ public class Blacklist {
     @Column(length = 50)
     private String name;
 
-    @Column(unique = true)
+    @Column(length = 255)
     private String email;
 
-    @Column(unique = true, length = 20)
+    @Column(length = 20)
     private String phone;
 
+    @Column(length = 255)
     private String reason;
 
     @ManyToOne(fetch = FetchType.LAZY)
