@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.PrePersist;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,6 +22,13 @@ import lombok.NoArgsConstructor;
 @Table(name = "mypage")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class MyPage extends BaseTimeEntity {
+
+    @PrePersist
+    public void prePersist() {
+        if (this.isPublic == null) this.isPublic = true;
+        if (this.isDarkMode == null) this.isDarkMode = false;
+        if (this.isStudyAlarm == null) this.isStudyAlarm = false;
+    }
 
     @Id
     @Column(name = "user_id")
@@ -37,24 +45,44 @@ public class MyPage extends BaseTimeEntity {
     @Column(length = 500)
     private String avatarUrl;
 
-    @Column(length = 1000)
+    @Column(columnDefinition = "TEXT")
     private String bio;
 
     @Column(columnDefinition = "JSON")
     private String preferredLanguage;
 
+    // 마이페이지 공개 여부
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT true")
     private Boolean isPublic;
 
+    // 스터디 알림 설정 여부
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean isStudyAlarm;  
+
+    // 다크 모드 설정 여부
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean isDarkMode;     
+
+
     @Builder
-    public MyPage(User user, String nickname, String avatarUrl, String bio,
-                  String preferredLanguage, Boolean isPublic) {
+    public MyPage(User user,
+                  String nickname,
+                  String avatarUrl,
+                  String bio,
+                  String preferredLanguage,
+                  Boolean isPublic,
+                  Boolean isStudyAlarm,
+                  Boolean isDarkMode) {
+
         this.user = user;
         this.nickname = nickname;
         this.avatarUrl = avatarUrl;
         this.bio = bio;
         this.preferredLanguage = preferredLanguage;
+
         this.isPublic = (isPublic != null) ? isPublic : true;
+        this.isStudyAlarm = (isStudyAlarm != null) ? isStudyAlarm : false;
+        this.isDarkMode = (isDarkMode != null) ? isDarkMode : false;
     }
 
     public void updateNickname(String nickname) {
@@ -75,5 +103,13 @@ public class MyPage extends BaseTimeEntity {
 
     public void updateIsPublic(Boolean isPublic) {
         this.isPublic = isPublic;
+    }
+
+    public void updateIsStudyAlarm(Boolean isStudyAlarm) {
+        this.isStudyAlarm = isStudyAlarm;
+    }
+
+    public void updateIsDarkMode(Boolean isDarkMode) {
+        this.isDarkMode = isDarkMode;
     }
 }
