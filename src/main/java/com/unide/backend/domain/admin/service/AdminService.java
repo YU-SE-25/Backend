@@ -15,6 +15,8 @@ import com.unide.backend.domain.instructor.entity.InstructorApplication;
 import com.unide.backend.domain.instructor.repository.InstructorApplicationRepository;
 import com.unide.backend.domain.admin.dto.InstructorApplicationUpdateRequestDto;
 import com.unide.backend.global.security.auth.PrincipalDetails;
+import com.unide.backend.domain.admin.dto.UserListResponseDto;
+import com.unide.backend.domain.admin.dto.UserSummaryDto;
 
 import java.util.List;
 import java.util.UUID;
@@ -133,5 +135,29 @@ public class AdminService {
         
         // 변경된 상세 정보를 다시 조회하여 반환
         return getApplicationDetail(applicationId);
+    }
+
+    public UserListResponseDto getAllUsers(Pageable pageable) {
+        Page<User> userPage = userRepository.findAll(pageable);
+
+        List<UserSummaryDto> userDtos = userPage.getContent().stream()
+                .map(user -> UserSummaryDto.builder()
+                        .userId(user.getId())
+                        .email(user.getEmail())
+                        .name(user.getName())
+                        .nickname(user.getNickname())
+                        .phone(user.getPhone())
+                        .role(user.getRole())
+                        .status(user.getStatus())
+                        .createdAt(user.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        return UserListResponseDto.builder()
+                .totalElements(userPage.getTotalElements())
+                .totalPages(userPage.getTotalPages())
+                .currentPage(userPage.getNumber())
+                .users(userDtos)
+                .build();
     }
 }
