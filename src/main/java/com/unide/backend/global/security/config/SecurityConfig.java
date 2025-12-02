@@ -4,19 +4,20 @@ package com.unide.backend.global.security.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
-import org.springframework.http.HttpStatus;
 
 import com.unide.backend.global.security.jwt.JwtAuthenticationFilter;
 import com.unide.backend.global.security.oauth.CustomOAuth2UserService;
@@ -84,8 +85,11 @@ public class SecurityConfig {
                 .requestMatchers("DELETE", "/api/mypage/me").authenticated()
                 //메인화면 모두 조회 가능
                 .requestMatchers("/api/UNIDE/rank/**").permitAll()
+                //스터디그룹 목록 화면 모두 조회 가능 
+                .requestMatchers(HttpMethod.GET, "/api/studygroup").permitAll()
                 // 나머지 모든 요청은 일단 인증된 사용자만 접근 가능하도록 설정
                 .anyRequest().authenticated()
+
             )
 
             .oauth2Login(oauth2 -> oauth2

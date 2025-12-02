@@ -42,22 +42,26 @@ public class QnAController {
     private final QnAReportService qnaReportService;
 
     // ===== QnA 목록 (페이지네이션) =====
-    // GET /api/qna?page=1
+    // GET /api/qna_board?page=1
     @GetMapping
     public ResponseEntity<PageResponse<QnADto>> listQna(
-            @RequestParam(name = "page", defaultValue = "1") int page
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @AuthenticationPrincipal PrincipalDetails userDetails
     ) {
-        PageResponse<QnADto> response = qnaService.getQnAList(page);
+        Long viewerId = (userDetails != null) ? userDetails.getUser().getId() : null;
+        PageResponse<QnADto> response = qnaService.getQnAList(page, viewerId);
         return ResponseEntity.ok(response);
     }
 
     // ===== QnA 상세 =====
-    // GET /api/qna/{postId}
+    // GET /api/qna_board/{postId}
     @GetMapping("/{postId}")
     public ResponseEntity<QnADto> detail(
-            @PathVariable("postId") Long postId
+            @PathVariable("postId") Long postId,
+            @AuthenticationPrincipal PrincipalDetails userDetails
     ) {
-        QnADto dto = qnaService.getQnA(postId);
+        Long viewerId = (userDetails != null) ? userDetails.getUser().getId() : null;
+        QnADto dto = qnaService.getQnA(postId, viewerId);
         return ResponseEntity.ok(dto);
     }
 
@@ -125,9 +129,7 @@ public class QnAController {
             @RequestBody QnAPollCreateRequest request
     ) {
         Long authorId = userDetails.getUser().getId();
-
-        // body 안의 post_id 를 pathVariable 과 맞춰주기 (실수 방지용)
-        request.setPost_id(postId);
+        request.setPost_id(postId);  // pathVariable과 body 동기화
 
         QnAPollResponse response = qnAPollService.createPoll(postId, authorId, request);
         return ResponseEntity.ok(response);
@@ -136,43 +138,41 @@ public class QnAController {
     // ===== 투표 하기 =====
     // POST /api/qna_board/{postId}/poll/{pollId}/vote
     @PostMapping("/{postId}/poll/{pollId}/vote")
-public ResponseEntity<QnAPollVoteResponse> vote(
-        @PathVariable("postId") Long postId,          // 안 쓰더라도 받아야 함
-        @PathVariable("pollId") Long pollId,
-        @AuthenticationPrincipal PrincipalDetails userDetails,
-        @RequestBody QnAPollVoteRequest request
-) {
-    Long voterId = userDetails.getUser().getId();
+    public ResponseEntity<QnAPollVoteResponse> vote(
+            @PathVariable("postId") Long postId,          // 경로 일관성용
+            @PathVariable("pollId") Long pollId,
+            @AuthenticationPrincipal PrincipalDetails userDetails,
+            @RequestBody QnAPollVoteRequest request
+    ) {
+        Long voterId = userDetails.getUser().getId();
+        QnAPollVoteResponse response = qnAPollService.vote(voterId, pollId, request);
+        return ResponseEntity.ok(response);
+    }
 
-    QnAPollVoteResponse response =
-            qnAPollService.vote(voterId, pollId, request);
+    // ===== 특정 게시글의 투표 조회 =====
+    @GetMapping("/{postId}/poll")
+    public ResponseEntity<QnAPollResponse> getPollByPost(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal PrincipalDetails userDetails
+    ) {
+        Long userId = (userDetails != null) ? userDetails.getUser().getId() : null;
+        QnAPollResponse response = qnAPollService.getPollByPostId(postId, userId);
+        return ResponseEntity.ok(response);
+    }
 
-    return ResponseEntity.ok(response);
-}
-@GetMapping("/{postId}/poll")
-public ResponseEntity<QnAPollResponse> getPollByPost(
-        @PathVariable Long postId,
-        @AuthenticationPrincipal PrincipalDetails userDetails
-) {
-    Long userId = userDetails != null ? userDetails.getUser().getId() : null;
+    // ===== QnA 신고 =====
+    @PostMapping("/{postId}/reports")
+    public ResponseEntity<Map<String, Object>> reportPost(
+            @PathVariable("postId") Long postId,
+            @AuthenticationPrincipal PrincipalDetails userDetails,
+            @RequestBody QnAReportCreateRequestDto request
+    ) {
+        Long reporterId = userDetails.getUser().getId();
+        qnaReportService.reportPost(postId, reporterId, request);
 
-    QnAPollResponse response = qnAPollService.getPollByPostId(postId, userId);
-    return ResponseEntity.ok(response);
-}
+        Map<String, Object> body = new HashMap<>();
+        body.put("message", "신고가 접수되었습니다.");
 
-   @PostMapping("/{postId}/reports")
-public ResponseEntity<Map<String, Object>> reportPost(
-        @PathVariable("postId") Long postId,
-        @AuthenticationPrincipal PrincipalDetails userDetails,
-        @RequestBody QnAReportCreateRequestDto request
-) {
-    Long reporterId = userDetails.getUser().getId();
-    qnaReportService.reportPost(postId, reporterId, request);
-
-    Map<String, Object> body = new HashMap<>();
-    body.put("message", "신고가 접수되었습니다.");
-
-    return ResponseEntity.ok(body);
-}
-
+        return ResponseEntity.ok(body);
+    }
 }

@@ -186,40 +186,50 @@ public class st_DiscussCommentService {
     }
 
     // ===== 댓글 좋아요 토글 =====
-    public st_DiscussCommentResponse toggleLike(Long commentId, Long userId) {
+   
+public st_DiscussCommentResponse toggleLike(Long commentId, Long userId) {
 
-        st_DiscussComment comment = discussCommentRepository.findById(commentId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("해당 댓글이 없습니다. commentId=" + commentId));
+    st_DiscussComment comment = discussCommentRepository.findById(commentId)
+            .orElseThrow(() ->
+                    new IllegalArgumentException("해당 댓글이 없습니다. commentId=" + commentId));
 
-        boolean alreadyLiked = likeRepository.existsByCommentIdAndLikerId(commentId, userId);
+    // 🔹 댓글이 달린 게시글 조회해서 groupId 뽑기
+    st_Discuss post = discussRepository.findById(comment.getPostId())
+            .orElseThrow(() ->
+                    new IllegalArgumentException("게시글이 존재하지 않습니다. postId=" + comment.getPostId()));
 
-        boolean viewerLiked;
+    Long groupId = post.getGroupId();   // 👈 여기서 group_id 값 가져옴
 
-        if (alreadyLiked) {
-            // 좋아요 취소
-            likeRepository.deleteByCommentIdAndLikerId(commentId, userId);
-            comment.setLikeCount(comment.getLikeCount() - 1);
-            viewerLiked = false;
-        } else {
-            // 좋아요 추가
-            st_DiscussCommentLike like = st_DiscussCommentLike.builder()
-                    .commentId(commentId)
-                    .likerId(userId)
-                    .build();
+    boolean alreadyLiked = likeRepository.existsByCommentIdAndLikerId(commentId, userId);
 
-            likeRepository.save(like);
-            comment.setLikeCount(comment.getLikeCount() + 1);
-            viewerLiked = true;
-        }
+    boolean viewerLiked;
 
-        String authorName = resolveAuthorName(comment.getAuthorId());
+    if (alreadyLiked) {
+        // 좋아요 취소
+        likeRepository.deleteByCommentIdAndLikerId(commentId, userId);
+        comment.setLikeCount(comment.getLikeCount() - 1);
+        viewerLiked = false;
+    } else {
+        // 좋아요 추가
+        st_DiscussCommentLike like = st_DiscussCommentLike.builder()
+                .groupId(groupId)      // ⭐ 반드시 넣어줘야 함
+                .commentId(commentId)
+                .likerId(userId)
+                .build();
 
-        return st_DiscussCommentResponse.fromEntity(
-                comment,
-                viewerLiked,
-                viewerLiked ? "좋아요가 추가되었습니다." : "좋아요가 취소되었습니다.",
-                authorName
-        );
+        likeRepository.save(like);
+        comment.setLikeCount(comment.getLikeCount() + 1);
+        viewerLiked = true;
     }
+
+    String authorName = resolveAuthorName(comment.getAuthorId());
+
+    return st_DiscussCommentResponse.fromEntity(
+            comment,
+            viewerLiked,
+            viewerLiked ? "좋아요가 추가되었습니다." : "좋아요가 취소되었습니다.",
+            authorName
+    );
+}
+
 }
