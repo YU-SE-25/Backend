@@ -66,10 +66,13 @@ public class Problems extends BaseTimeEntity {
     @Column(length = 100)
     private String source;
 
+    @Column(name = "testcase_file_path", length = 255)
+    private String testcaseFilePath;
+
     @Builder
     public Problems(User createdBy, String title, String description, String inputOutputExample, ProblemDifficulty difficulty,
                     Integer timeLimit, Integer memoryLimit, ProblemStatus status, List<ProblemTag> tags,
-                    String hint, String source) {
+                    String hint, String source, String testcaseFilePath) {
         this.createdBy = createdBy;
         this.title = title;
         this.description = description;
@@ -82,6 +85,7 @@ public class Problems extends BaseTimeEntity {
         this.tags = (tags != null) ? tags : new ArrayList<>();
         this.hint = hint;
         this.source = source;
+        this.testcaseFilePath = testcaseFilePath;
     }
     
     // 비즈니스 메서드
@@ -127,5 +131,9 @@ public class Problems extends BaseTimeEntity {
     
     public void updateSource(String source) {
         this.source = source;
+    }
+
+    public void updateTestcaseFilePath(String testcaseFilePath) {
+        this.testcaseFilePath = testcaseFilePath;
     }
 }
