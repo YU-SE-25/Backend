@@ -30,9 +30,11 @@ import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import lombok.RequiredArgsConstructor;
 
+
+
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/qna_board")
+@RequestMapping("/api/qna_board")   // 클래스 레벨 매핑 있다고 가정
 public class QnAController {
 
     private final QnAService qnaService;
@@ -62,6 +64,10 @@ public class QnAController {
         QnADto dto = qnaService.getQnA(postId, viewerId);
         return ResponseEntity.ok(dto);
     }
+
+   
+
+
 
     // ===== QnA 작성 =====
     @PostMapping
