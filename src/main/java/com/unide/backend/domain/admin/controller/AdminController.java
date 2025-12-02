@@ -8,6 +8,7 @@ import com.unide.backend.domain.admin.dto.RoleChangeResponseDto;
 import com.unide.backend.domain.admin.dto.InstructorApplicationDetailDto;
 import com.unide.backend.domain.admin.dto.InstructorApplicationListResponseDto;
 import com.unide.backend.domain.admin.dto.InstructorApplicationUpdateRequestDto;
+import com.unide.backend.domain.admin.dto.UserListResponseDto;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -53,6 +54,14 @@ public class AdminController {
             @PathVariable Long applicationId,
             @Valid @RequestBody InstructorApplicationUpdateRequestDto requestDto) {
         InstructorApplicationDetailDto response = adminService.updateApplicationStatus(applicationId, requestDto);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<UserListResponseDto> getAllUsers(
+            @PageableDefault(size = 20) Pageable pageable) {
+        
+        UserListResponseDto response = adminService.getAllUsers(pageable);
         return ResponseEntity.ok(response);
     }
 }
