@@ -53,7 +53,14 @@ public class MyPageController {
             @RequestBody MyPageUpdateRequestDto requestDto) {
         Long userId = principalDetails.getUser().getId();
         MyPageResponseDto result = myPageService.updateMyPage(userId, requestDto);
-        LocalDateTime updatedAt = result.getUpdatedAt(); // ISO 포맷 등
+        if (requestDto.getUserGoals() != null) {
+            myPageService.updateUserGoals(userId, requestDto.getUserGoals());
+        }
+        if (requestDto.getReminders() != null) {
+            result.getReminders().forEach(r -> myPageService.deleteReminder(r.getId()));
+            requestDto.getReminders().forEach(reminderDto -> myPageService.addReminder(userId, reminderDto));
+        }
+        LocalDateTime updatedAt = result.getUpdatedAt();
         return ResponseEntity.ok(new MyPageUpdateResponseDto("마이페이지가 성공적으로 수정되었습니다.", updatedAt));
     }
 
