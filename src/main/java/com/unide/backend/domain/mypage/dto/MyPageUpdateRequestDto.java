@@ -2,6 +2,11 @@ package com.unide.backend.domain.mypage.dto;
 
 import java.util.List;
 
+import org.springframework.web.multipart.MultipartFile;
+
+import com.unide.backend.domain.mypage.dto.ReminderRequestDto;
+import com.unide.backend.domain.mypage.dto.UserGoalsRequestDto;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -12,7 +17,9 @@ public class MyPageUpdateRequestDto {
     private String bio;
     private List<String> preferredLanguage;
     private Boolean isPublic;
-    private Boolean isStudyAlarm;
+    private UserGoalsRequestDto userGoals;
+    private List<ReminderRequestDto> reminders;
     private Boolean isDarkMode;
-    private String avatarUrl;
+    private Boolean isStudyAlarm;
+    private MultipartFile avatarImageFile;
 }
