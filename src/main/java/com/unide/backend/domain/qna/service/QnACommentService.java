@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.unide.backend.domain.mypage.service.StatsService;
 import com.unide.backend.domain.qna.dto.QnACommentRequest;
 import com.unide.backend.domain.qna.dto.QnACommentResponse;
 import com.unide.backend.domain.qna.entity.QnA;
@@ -27,6 +28,7 @@ public class QnACommentService {
     private final QnACommentRepository qnaCommentRepository;
     private final QnACommentLikeRepository likeRepository;  
     private final QnARepository qnaRepository;
+    private final StatsService statsService;
 
     // ⭐ 추가: 작성자 이름 조회용
     private final UserRepository userRepository;
@@ -118,6 +120,12 @@ public class QnACommentService {
                 .build();
 
         QnAComment saved = qnaCommentRepository.save(comment);
+
+       
+        Long postAuthorId = post.getAuthor().getId();   // ✅ QnA 작성자 id
+        statsService.onQnaCommentCreated(postAuthorId); // QnA 글쓴이에게 점수 +3
+     
+
 
         post.setCommentCount(post.getCommentCount() + 1);
 
@@ -219,6 +227,8 @@ public class QnACommentService {
             likeRepository.save(like);
             comment.setLikeCount(comment.getLikeCount() + 1);
             viewerLiked = true;
+            statsService.onQnaCommentLiked(comment.getAuthorId());
+
         }
 
         String authorName = resolveAuthorName(comment.getAuthorId());

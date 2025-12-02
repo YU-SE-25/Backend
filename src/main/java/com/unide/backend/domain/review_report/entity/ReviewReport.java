@@ -3,6 +3,7 @@ package com.unide.backend.domain.review_report.entity;
 import java.time.LocalDateTime;
 
 import com.unide.backend.domain.report.entity.Report;
+import com.unide.backend.domain.report.entity.ReportStatus;
 import com.unide.backend.domain.review.entity.CodeReview;
 import com.unide.backend.domain.user.entity.User;
 
@@ -59,10 +60,37 @@ public class ReviewReport {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private ReviewReportStatus status;
+    private ReportStatus status;
 
     @Column(name = "report_at", nullable = false)
     private LocalDateTime reportAt;
+ public void setReportId(Long reportId) {
+        this.reportId = reportId;
+    }
+
+    public void setReport(Report report) {
+        this.report = report;
+    }
+
+    public void setReporter(User reporter) {
+        this.reporter = reporter;
+    }
+
+    public void setPost(CodeReview post) {
+        this.post = post;
+    }
+
+    public void setReason(String reason) {
+        this.reason = reason;
+    }
+
+    public void setStatus(ReportStatus status) {
+        this.status = status;
+    }
+
+    public void setReportAt(LocalDateTime reportAt) {
+        this.reportAt = reportAt;
+    }
 
     @PrePersist
     protected void onCreate() {
@@ -70,7 +98,7 @@ public class ReviewReport {
             reportAt = LocalDateTime.now();
         }
         if (status == null) {
-            status = ReviewReportStatus.UNPROCESS;
+            status = ReportStatus.PENDING;
         }
     }
 }

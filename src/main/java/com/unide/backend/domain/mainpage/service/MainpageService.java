@@ -13,12 +13,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.unide.backend.domain.mainpage.dto.CodeReviewRankDto;
 import com.unide.backend.domain.mainpage.dto.MainProblemViewRankDto;
+import com.unide.backend.domain.mainpage.entity.ReputationEvent;
 import com.unide.backend.domain.mainpage.repository.CodeReviewRankProjection;
 import com.unide.backend.domain.mainpage.repository.CodeReviewRankRepository;
 import com.unide.backend.domain.mainpage.repository.MainProblemViewRankRepository;
 import com.unide.backend.domain.mainpage.repository.ReputationRankProjection;
 import com.unide.backend.domain.mainpage.repository.ReputationRankRepository;
 import com.unide.backend.domain.mypage.dto.UserStatsResponseDto;
+import com.unide.backend.domain.mypage.entity.Stats;
+import com.unide.backend.domain.mypage.repository.StatsRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -34,6 +37,7 @@ public class MainpageService {
 
     // 코드 리뷰 랭킹용 (code_review)
     private final CodeReviewRankRepository codeReviewRankRepository;
+    private final StatsRepository statsRepository;
 
     // ===========================
     // 1. 주간 문제 조회수 순위
@@ -86,23 +90,58 @@ public class MainpageService {
     // ===========================
     // 2. 사용자 평판 랭킹 (UserStats)
     // ===========================
-    @Transactional(readOnly = true)
-    public List<UserStatsResponseDto> getReputationRankList(int size) {
+ @Transactional(readOnly = true)
+public List<UserStatsResponseDto> getReputationRankList(int size) {
 
-        List<ReputationRankProjection> rows =
-                reputationRankRepository.findLatestRankTop(size);
+    List<ReputationRankProjection> rows =
+            reputationRankRepository.findRankTop(size);
 
-        return rows.stream()
-                .map(r -> new UserStatsResponseDto(
-                        0,                // totalSolved
-                        0,                // totalSubmitted
-                        0.0,              // acceptanceRate
-                        0,                // streakDays
-                        r.getRank(),      // rank
-                        0                 // rating (별도 점수 없으니 일단 0)
-                ))
-                .collect(Collectors.toList());
+    return rows.stream()
+            .map(r -> UserStatsResponseDto.builder()
+                    .userId(r.getUserId())   
+                    .totalSolved(0)
+                    .totalSubmitted(0)
+                    .acceptanceRate(0)
+                    .streakDays(0)
+                    .ranking(r.getRanking())
+                    .rating(r.getRating())
+                    .delta(r.getDelta())
+                    .build()
+            )
+            .collect(Collectors.toList());
+}
+
+// --순위변동 계산
+@Transactional
+public void updateWeeklyReputationRanking() {
+
+    // 1. 전체 유저 평판 점수 순위 가져오기
+    List<Stats> users = statsRepository.findAllByOrderByRatingDesc();
+
+    int rank = 1;
+    Integer previousRank = null;
+
+    for (Stats s : users) {
+
+        // Delta (순위 변화량)
+        Integer delta = (previousRank == null) ? 0 : previousRank - rank;
+
+        // 2. 이벤트 테이블에 저장
+        ReputationEvent event = ReputationEvent.builder()
+                .user(s.getUser())
+                .ranking(rank)
+                .delta(delta)
+                .build();
+
+        reputationRankRepository.save(event);
+
+        previousRank = rank;
+        rank++;
     }
+}
+
+
+
 
     // ===========================
     // 3. 코드 리뷰 순위 (vote_count 기준)

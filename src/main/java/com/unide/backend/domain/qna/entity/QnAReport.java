@@ -3,9 +3,24 @@ package com.unide.backend.domain.qna.entity;
 import java.time.LocalDateTime;
 
 import com.unide.backend.domain.report.entity.Report;
+import com.unide.backend.domain.report.entity.ReportStatus;
 import com.unide.backend.domain.user.entity.User;
-import jakarta.persistence.*;
-import lombok.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "qna_report")
@@ -39,7 +54,7 @@ public class QnAReport {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private QnAReportStatus status;
+    private ReportStatus status;
 
     @Column(name = "report_at", nullable = false)
     private LocalDateTime reportAt;
@@ -50,7 +65,7 @@ public class QnAReport {
             reportAt = LocalDateTime.now();
         }
         if (status == null) {
-            status = QnAReportStatus.UNPROCESS;
+            status = ReportStatus.PENDING;
         }
     }
 }

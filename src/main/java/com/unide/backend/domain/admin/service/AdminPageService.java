@@ -1,6 +1,5 @@
 package com.unide.backend.domain.admin.service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -12,6 +11,7 @@ import com.unide.backend.domain.report.dto.ReportResolveRequestDto;
 import com.unide.backend.domain.report.entity.Report;
 import com.unide.backend.domain.report.entity.ReportStatus;
 import com.unide.backend.domain.report.repository.ReportRepository;
+import com.unide.backend.domain.report.service.ReportService;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
 
@@ -24,6 +24,7 @@ public class AdminPageService {
 
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
+    private final ReportService reportService;   // 🔹 추가
 
     // =========================================
     // 🔥 신고 관리 기능 (Reports)
@@ -49,13 +50,13 @@ public class AdminPageService {
 
     @Transactional
     public ReportDetailDto resolveReport(Long id, ReportResolveRequestDto dto) {
+
+        // 1) 공통 서비스에 위임 (APPROVED / REJECTED 처리 + 평판 반영 + 메일)
+        reportService.updateReportStatus(id, dto.getStatus());
+
+        // 2) 다시 조회해서 DTO 변환
         Report report = findReport(id);
-
-        report.setStatus(ReportStatus.RESOLVED);
-        report.setResolvedAt(LocalDateTime.now());
-        // 여기서 dto.adminAction, dto.adminReason 같은 처리 로직 추가 가능
-
-        return toReportDetailDto(reportRepository.save(report));
+        return toReportDetailDto(report);
     }
 
     @Transactional

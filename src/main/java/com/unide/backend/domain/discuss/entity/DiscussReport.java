@@ -3,9 +3,19 @@ package com.unide.backend.domain.discuss.entity;
 import java.time.LocalDateTime;
 
 import com.unide.backend.domain.report.entity.Report;
+import com.unide.backend.domain.report.entity.ReportStatus;
 import com.unide.backend.domain.user.entity.User;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -46,7 +56,7 @@ public class DiscussReport {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private DiscussReportStatus status;
+    private ReportStatus status;
 
     @Column(name = "report_at", nullable = false)
     private LocalDateTime reportAt;
@@ -57,7 +67,7 @@ public class DiscussReport {
             reportAt = LocalDateTime.now();
         }
         if (status == null) {
-            status = DiscussReportStatus.UNPROCESS;
+            status = ReportStatus.PENDING;
         }
     }
 }
