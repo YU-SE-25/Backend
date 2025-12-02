@@ -46,8 +46,8 @@ public class MyPageController {
         return ResponseEntity.ok(myPageService.getMyPageByNickname(nickname, requestUserId));
     }
 
-    /** 내 프로필/목표/리마인더 업데이트 */
-    @PatchMapping
+    /** 내 프로필 업데이트 */
+    @PatchMapping("/me")
     public ResponseEntity<MyPageUpdateResponseDto> updateMyPage(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
             @RequestBody MyPageUpdateRequestDto requestDto) {

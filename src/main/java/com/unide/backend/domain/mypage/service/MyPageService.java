@@ -211,20 +211,7 @@ public class MyPageService {
         updateBioIfPresent(requestDto.getBio(), myPage);
         updatePreferredLanguageIfPresent(requestDto.getPreferredLanguage(), myPage);
         updatePublicStatusIfPresent(requestDto.getIsPublic(), myPage);
-        updateStudyAlarmIfPresent(requestDto.getIsStudyAlarm(), myPage);
-        updateDarkModeIfPresent(requestDto.getIsDarkMode(), myPage);
-        updateAvatarFileIfPresent(requestDto.getAvatarImageFile(), myPage);
-
-        // goals 수정
-        if (requestDto.getGoals() != null) {
-            updateUserGoals(userId, requestDto.getGoals());
-        }
-        // reminders 수정 (기존 삭제 후 새로 등록, 단순화 예시)
-        if (requestDto.getReminders() != null) {
-            List<ReminderResponseDto> existingReminders = reminderService.getRemindersByUser(user);
-            existingReminders.forEach(r -> deleteReminder(r.getId()));
-            requestDto.getReminders().forEach(reminderDto -> addReminder(userId, reminderDto));
-        }
+        updateAvatarUrlIfPresent(requestDto.getAvatarUrl(), myPage);
 
         userRepository.save(user);
         myPageRepository.save(myPage);
@@ -391,23 +378,7 @@ public class MyPageService {
         if (isDarkMode != null) myPage.updateIsDarkMode(isDarkMode);
     }
 
-    private void updateAvatarFileIfPresent(MultipartFile avatarFile, MyPage myPage) {
-        if (avatarFile != null && !avatarFile.isEmpty()) {
-            String avatarUrl = saveAvatarFile(avatarFile);
-            myPage.updateAvatarUrl(avatarUrl);
-        }
-        // avatarFile이 null 또는 비어있으면 기존 이미지 유지
-    }
-
-    private String saveAvatarFile(MultipartFile file) {
-        String uploadDir = "/uploads/avatars/";
-        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-        File dest = new File(uploadDir + fileName);
-        try {
-            file.transferTo(dest);
-        } catch (IOException e) {
-            throw new RuntimeException("아바타 파일 저장 실패", e);
-        }
-        return dest.getPath(); // 또는 URL로 변환
+    private void updateAvatarUrlIfPresent(String avatarUrl, MyPage myPage) {
+        if (avatarUrl != null) myPage.updateAvatarUrl(avatarUrl);
     }
 }
