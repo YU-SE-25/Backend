@@ -6,22 +6,20 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.domain.mainpage.entity.ReputationEvent;
 
-public interface ReputationRankRepository extends JpaRepository<User, Long> {
+public interface ReputationRankRepository extends JpaRepository<ReputationEvent, Long> {
+@Query(value = """
+    SELECT
+        user_id AS userId,
+        ranking AS ranking,
+        rating AS rating,
+        0 AS delta
+    FROM user_stats
+    ORDER BY rating DESC
+    LIMIT :size
+""", nativeQuery = true)
+List<ReputationRankProjection> findRankTop(@Param("size") int size);
 
-    @Query(value = """
-        SELECT 
-            re.user_id AS userId,
-            re.rank AS rank,
-            re.delta AS delta
-        FROM reputation_events re
-        WHERE re.created_at = (
-            SELECT MAX(r2.created_at) 
-            FROM reputation_events r2
-        )
-        ORDER BY re.rank ASC
-        LIMIT :size
-        """, nativeQuery = true)
-    List<ReputationRankProjection> findLatestRankTop(@Param("size") int size);
+    
 }

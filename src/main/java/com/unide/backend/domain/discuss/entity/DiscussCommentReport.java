@@ -3,14 +3,24 @@ package com.unide.backend.domain.discuss.entity;
 import java.time.LocalDateTime;
 
 import com.unide.backend.domain.report.entity.Report;
+import com.unide.backend.domain.report.entity.ReportStatus;
 import com.unide.backend.domain.user.entity.User;
-import jakarta.persistence.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 @Entity
 @Table(name = "dis_comment_report") // ✅ 방금 만든 테이블명과 동일
 @Getter
@@ -45,7 +55,7 @@ public class DiscussCommentReport {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private DiscussCommentReportStatus status;
+    private ReportStatus status;
 
     @Column(name = "report_at", nullable = false)
     private LocalDateTime reportAt;
@@ -56,7 +66,35 @@ public class DiscussCommentReport {
             reportAt = LocalDateTime.now();
         }
         if (status == null) {
-            status = DiscussCommentReportStatus.UNPROCESS;
+            status = ReportStatus.PENDING;
         }
     }
+    public void setReportId(Long reportId) {
+    this.reportId = reportId;
+}
+
+public void setReport(Report report) {
+    this.report = report;
+}
+
+public void setReporter(User reporter) {
+    this.reporter = reporter;
+}
+
+public void setComment(DiscussComment comment) {
+    this.comment = comment;
+}
+
+public void setReason(String reason) {
+    this.reason = reason;
+}
+
+public void setStatus(ReportStatus status) {
+    this.status = status;
+}
+
+public void setReportAt(LocalDateTime reportAt) {
+    this.reportAt = reportAt;
+}
+
 }

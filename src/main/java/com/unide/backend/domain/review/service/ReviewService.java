@@ -2,41 +2,43 @@
 
 package com.unide.backend.domain.review.service;
 
-import com.unide.backend.domain.review.dto.ReviewListResponseDto;
-import com.unide.backend.domain.review.dto.ReviewSummaryDto;
-import com.unide.backend.domain.review.entity.CodeReview;
-import com.unide.backend.domain.review.entity.CodeReviewVote;
-import com.unide.backend.domain.review.entity.CodeReviewComment;
-import com.unide.backend.domain.review.repository.CodeReviewCommentRepository;
-import com.unide.backend.domain.review.repository.CodeReviewVoteRepository;
-import com.unide.backend.domain.review.repository.CodeReviewRepository;
-import com.unide.backend.domain.review.dto.ReviewCreateRequestDto;
-import com.unide.backend.domain.review.dto.ReviewCreateResponseDto;
-import com.unide.backend.domain.review.dto.ReviewUpdateRequestDto;
-import com.unide.backend.domain.review.dto.ReviewUpdateResponseDto;
-import com.unide.backend.domain.review.dto.ReviewDeleteResponseDto;
-import com.unide.backend.domain.review.dto.ReviewVoteResponseDto;
-import com.unide.backend.domain.review.dto.ReviewCommentListResponseDto;
-import com.unide.backend.domain.review.dto.ReviewCommentDto;
-import com.unide.backend.domain.review.dto.ReviewCommentCreateRequestDto;
-import com.unide.backend.domain.review.dto.ReviewCommentCreateResponseDto;
-import com.unide.backend.domain.review.dto.ReviewCommentUpdateRequestDto;
-import com.unide.backend.domain.review.dto.ReviewCommentUpdateResponseDto;
-import com.unide.backend.domain.review.dto.ReviewCommentDeleteResponseDto;
-import com.unide.backend.global.exception.AuthException;
-import com.unide.backend.domain.submissions.entity.Submissions;
-import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
-import com.unide.backend.domain.user.entity.User;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import com.unide.backend.domain.mypage.service.StatsService;
+import com.unide.backend.domain.review.dto.ReviewCommentCreateRequestDto;
+import com.unide.backend.domain.review.dto.ReviewCommentCreateResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentDeleteResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentDto;
+import com.unide.backend.domain.review.dto.ReviewCommentListResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCommentUpdateRequestDto;
+import com.unide.backend.domain.review.dto.ReviewCommentUpdateResponseDto;
+import com.unide.backend.domain.review.dto.ReviewCreateRequestDto;
+import com.unide.backend.domain.review.dto.ReviewCreateResponseDto;
+import com.unide.backend.domain.review.dto.ReviewDeleteResponseDto;
+import com.unide.backend.domain.review.dto.ReviewListResponseDto;
+import com.unide.backend.domain.review.dto.ReviewSummaryDto;
+import com.unide.backend.domain.review.dto.ReviewUpdateRequestDto;
+import com.unide.backend.domain.review.dto.ReviewUpdateResponseDto;
+import com.unide.backend.domain.review.dto.ReviewVoteResponseDto;
+import com.unide.backend.domain.review.entity.CodeReview;
+import com.unide.backend.domain.review.entity.CodeReviewComment;
+import com.unide.backend.domain.review.entity.CodeReviewVote;
+import com.unide.backend.domain.review.repository.CodeReviewCommentRepository;
+import com.unide.backend.domain.review.repository.CodeReviewRepository;
+import com.unide.backend.domain.review.repository.CodeReviewVoteRepository;
+import com.unide.backend.domain.submissions.entity.Submissions;
+import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
+import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.global.exception.AuthException;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -46,6 +48,7 @@ public class ReviewService {
     private final SubmissionsRepository submissionsRepository;
     private final CodeReviewVoteRepository codeReviewVoteRepository;
     private final CodeReviewCommentRepository codeReviewCommentRepository;
+    private final StatsService statsService;
 
     /**
      * 특정 제출 코드에 대한 리뷰 목록 조회
@@ -96,6 +99,7 @@ public class ReviewService {
                 .build();
 
         codeReviewRepository.save(review);
+
 
         return ReviewCreateResponseDto.builder()
                 .message("리뷰가 성공적으로 등록되었습니다.")
@@ -178,6 +182,8 @@ public class ReviewService {
             review.updateVoteCount(review.getVoteCount() + 1);
             viewerLiked = true;
             message = "리뷰에 투표했습니다.";
+            Long reviewerId = review.getReviewer().getId();
+         statsService.onReviewLiked(reviewerId);
         }
 
         return ReviewVoteResponseDto.builder()
@@ -248,6 +254,8 @@ public class ReviewService {
                 .build();
 
         CodeReviewComment savedComment = codeReviewCommentRepository.save(comment);
+       Long commenterId = savedComment.getCommenter().getId();
+        statsService.onReviewCommentCreated(commenterId);
 
         return ReviewCommentCreateResponseDto.builder()
                 .commentId(savedComment.getId())

@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.unide.backend.domain.efficiency.dto.SubmissionEfficiencyDto;
 import com.unide.backend.domain.efficiency.service.EfficiencyService;
+import com.unide.backend.domain.mypage.service.StatsService;
 import com.unide.backend.domain.problems.entity.Problems;
 import com.unide.backend.domain.problems.entity.TestCase;
 import com.unide.backend.domain.problems.repository.ProblemsRepository;
@@ -48,6 +49,7 @@ public class SubmissionService {
     private final TestCaseRepository testCaseRepository;
     private final DockerService dockerService;
     private final EfficiencyService efficiencyService;
+    private final StatsService statsService;
     
     @Transactional
     public CodeDraftSaveResponseDto saveCodeDraft(User user, CodeDraftSaveRequestDto requestDto) {
@@ -164,6 +166,9 @@ public class SubmissionService {
                 passedCount,
                 compileOutput
         );
+          statsService.updateStats(user.getId());      // 총 제출수, 정답수, 정답률, 스트릭 등 갱신
+        statsService.onCodeSubmitted(user.getId());  // 평판 점수 +10
+
 
         return SubmissionResponseDto.builder()
                 .submissionId(submission.getId())
