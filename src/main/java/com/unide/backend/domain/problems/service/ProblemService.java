@@ -152,6 +152,15 @@ public class ProblemService {
         if (requestDto.getMemoryLimit() != null) {
             problem.updateMemoryLimit(requestDto.getMemoryLimit());
         }
+        if (requestDto.getTestcaseFile() != null) {
+            String testcaseFilePath = saveTestcaseFile(requestDto.getTestcaseFile());
+            problem.updateTestcaseFilePath(testcaseFilePath);
+            try {
+                parseAndSaveTestCases(requestDto.getTestcaseFile(), problem);
+            } catch (IOException e) {
+                throw new RuntimeException("테스트케이스 파싱/저장 중 오류 발생", e);
+            }
+        }
         if (requestDto.getStatus() != null) {
             problem.updateStatus(requestDto.getStatus());
         }

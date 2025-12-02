@@ -25,6 +25,7 @@ public class ProblemResponseDto {
     private ProblemDifficulty difficulty;
     private Integer viewCount;
     private LocalDateTime createdAt;
+    private String createdByNickname;
     private UserStatus userStatus; // 사용자의 문제 상태
     private String summary; // 문제 요약
     private Integer solverCount; // 문제를 푼 사람 수
@@ -38,6 +39,7 @@ public class ProblemResponseDto {
                 .difficulty(problem.getDifficulty())
                 .viewCount(problem.getViewCount())
                 .createdAt(problem.getCreatedAt())
+                .createdByNickname(problem.getCreatedBy().getNickname())
                 .build();
     }
     
@@ -53,6 +55,7 @@ public class ProblemResponseDto {
             .difficulty(problem.getDifficulty())
             .viewCount(problem.getViewCount())
             .createdAt(problem.getCreatedAt())
+            .createdByNickname(problem.getCreatedBy().getNickname())
             .userStatus(userStatus)
             .summary(summary)
             .solverCount(solverCount)
