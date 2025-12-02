@@ -4,6 +4,7 @@ import com.unide.backend.domain.analysis.dto.HabitAnalysisResponseDto;
 import com.unide.backend.domain.analysis.service.AnalysisService;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 import com.unide.backend.domain.analysis.dto.ComplexityAnalysisResponseDto;
+import com.unide.backend.domain.analysis.dto.FlowchartResponseDto;
 
 import lombok.RequiredArgsConstructor;
 
@@ -34,6 +35,18 @@ public class AnalysisController {
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
         
         ComplexityAnalysisResponseDto response = analysisService.analyzeComplexity(
+                submissionId, 
+                principalDetails.getUser()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/submissions/{submissionId}/analysis/flowchart")
+    public ResponseEntity<FlowchartResponseDto> generateFlowchart(
+            @PathVariable Long submissionId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        
+        FlowchartResponseDto response = analysisService.generateFlowchart(
                 submissionId, 
                 principalDetails.getUser()
         );
