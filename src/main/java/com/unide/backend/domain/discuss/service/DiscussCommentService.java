@@ -14,6 +14,7 @@ import com.unide.backend.domain.discuss.entity.DiscussCommentLike;
 import com.unide.backend.domain.discuss.repository.DiscussCommentLikeRepository;
 import com.unide.backend.domain.discuss.repository.DiscussCommentRepository;
 import com.unide.backend.domain.discuss.repository.DiscussRepository;
+import com.unide.backend.domain.mypage.service.StatsService;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
 
@@ -27,6 +28,7 @@ public class DiscussCommentService {
     private final DiscussCommentRepository discussCommentRepository;
     private final DiscussCommentLikeRepository likeRepository;
     private final DiscussRepository discussRepository;
+    private final StatsService statsService;
 
     private final UserRepository userRepository; // ⭐ 추가
 
@@ -122,6 +124,10 @@ public class DiscussCommentService {
                 .build();
 
         DiscussComment saved = discussCommentRepository.save(comment);
+        //평판 증가
+        
+        Long postAuthorId = post.getAuthorId();   // ✅ discuss 작성자 id
+        statsService.onDiscussCommentCreated(postAuthorId); 
 
         // 댓글 수 증가
         post.setCommentCount(post.getCommentCount() + 1);
@@ -224,6 +230,8 @@ public class DiscussCommentService {
             likeRepository.save(like);
             comment.setLikeCount(comment.getLikeCount() + 1);
             viewerLiked = true;
+                statsService.onDiscussCommentLiked(comment.getAuthorId());
+
         }
 
         String authorName = resolveAuthorName(comment.getAuthorId());

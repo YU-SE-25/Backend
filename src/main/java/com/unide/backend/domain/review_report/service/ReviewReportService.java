@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.unide.backend.domain.mypage.service.StatsService;
 import com.unide.backend.domain.report.entity.Report;
 import com.unide.backend.domain.report.entity.ReportStatus;
 import com.unide.backend.domain.report.entity.ReportType;
@@ -13,7 +14,6 @@ import com.unide.backend.domain.review.entity.CodeReview;
 import com.unide.backend.domain.review.repository.CodeReviewRepository;
 import com.unide.backend.domain.review_report.dto.ReviewReportCreateRequestDto;
 import com.unide.backend.domain.review_report.entity.ReviewReport;
-import com.unide.backend.domain.review_report.entity.ReviewReportStatus;
 import com.unide.backend.domain.review_report.repository.ReviewReportRepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
@@ -29,6 +29,7 @@ public class ReviewReportService {
     private final ReportRepository reportRepository;
     private final CodeReviewRepository codeReviewRepository;
     private final UserRepository userRepository;
+    private final StatsService statsService;
 
     /**
      * 코드 리뷰 신고
@@ -61,10 +62,30 @@ public class ReviewReportService {
     reviewReport.setReporter(reporter);
     reviewReport.setPost(post);
     reviewReport.setReason(dto.getReason());
-    reviewReport.setStatus(ReviewReportStatus.UNPROCESS);
+    reviewReport.setStatus(savedReport.getStatus());
     reviewReport.setReportAt(LocalDateTime.now());
 
     reviewReportRepository.save(reviewReport);
 }
+
+public void changeStatus(Long reportId, ReportStatus status) {
+
+    Report report = reportRepository.findById(reportId)
+            .orElseThrow(() -> new IllegalArgumentException("신고 존재하지 않음"));
+
+    report.setStatus(status);
+
+    if (status == ReportStatus.APPROVED) {
+        Long reviewId = report.getTargetId(); // 우리가 넣어둔 code_review.id
+
+        CodeReview review = codeReviewRepository.findById(reviewId)  // ✅ 인스턴스로 호출
+                .orElseThrow(() -> new IllegalArgumentException("리뷰가 존재하지 않습니다."));
+
+        
+        Long authorId = review.getReviewer().getId();  // ⭐ 리뷰 작성자
+        statsService.onPostReported(authorId);         // -10점
+    }
+}
+
 
 }

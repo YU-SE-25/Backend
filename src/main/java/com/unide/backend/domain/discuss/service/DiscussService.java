@@ -17,6 +17,7 @@ import com.unide.backend.domain.discuss.entity.Discuss;
 import com.unide.backend.domain.discuss.entity.DiscussLike;
 import com.unide.backend.domain.discuss.repository.DiscussLikeRepository;
 import com.unide.backend.domain.discuss.repository.DiscussRepository;
+import com.unide.backend.domain.mypage.service.StatsService;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
 import com.unide.backend.global.dto.PageResponse;
@@ -30,6 +31,7 @@ public class DiscussService {
 
     private final DiscussRepository discussRepository;
     private final DiscussLikeRepository discussLikeRepository;
+    private final StatsService statsService;
 
     // 🔹 authorId -> authorName 조회용
     private final UserRepository userRepository;
@@ -193,6 +195,8 @@ public class DiscussService {
             discussLikeRepository.save(like);
             discuss.setLikeCount(discuss.getLikeCount() + 1);
             viewerLiked = true;
+            // ⭐ 여기서 평판 점수 +2
+        statsService.onDiscussPostLiked(discuss.getAuthorId());
         }
 
         // 3) DTO 변환 (authorName + viewerLiked + message)

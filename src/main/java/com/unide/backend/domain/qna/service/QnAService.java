@@ -12,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.unide.backend.domain.mypage.service.StatsService;
 import com.unide.backend.domain.problems.entity.Problems;
 import com.unide.backend.domain.qna.dto.QnADto;
 import com.unide.backend.domain.qna.dto.QnAPollCreateRequest;
@@ -38,6 +39,7 @@ public class QnAService {
     private final QnAProblemPostService qnaProblemPostService;
     private final UserRepository userRepository;
     private final QnALikeRepository qnaLikeRepository;
+    private final StatsService statsService;
 
     // ===== 목록 조회 =====
     public PageResponse<QnADto> getQnAList(int pageNum) {
@@ -180,6 +182,10 @@ public class QnAService {
             qnaLikeRepository.save(like);
             qna.setLikeCount(qna.getLikeCount() + 1);
             viewerLiked = true;
+           // ✅ 여기서 QnA 글쓴이에게 +3점
+        Long authorId = qna.getAuthor().getId();   // QnA 엔티티에서 author 필드 사용
+        statsService.onQnaPostLiked(authorId);
+
         }
 
         // 3) DTO 생성 (viewerLiked 포함)

@@ -3,6 +3,7 @@ package com.unide.backend.domain.review_report.entity;
 import java.time.LocalDateTime;
 
 import com.unide.backend.domain.report.entity.Report;
+import com.unide.backend.domain.report.entity.ReportStatus;
 import com.unide.backend.domain.review.entity.CodeReview;
 import com.unide.backend.domain.review.entity.CodeReviewComment;
 import com.unide.backend.domain.user.entity.User;
@@ -61,7 +62,7 @@ public class ReviewCommentReport {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private ReviewCommentReportStatus status;
+    private ReportStatus status;
 
     @Column(name = "report_at", nullable = false)
     private LocalDateTime reportAt;
@@ -72,7 +73,7 @@ public class ReviewCommentReport {
             reportAt = LocalDateTime.now();
         }
         if (status == null) {
-            status = ReviewCommentReportStatus.UNPROCESS;
+            status =ReportStatus.PENDING;
         }
     }
 }
