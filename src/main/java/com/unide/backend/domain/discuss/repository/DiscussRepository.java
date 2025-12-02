@@ -1,11 +1,12 @@
 package com.unide.backend.domain.discuss.repository;
 
-import com.unide.backend.domain.discuss.entity.Discuss;
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
+import com.unide.backend.domain.discuss.entity.Discuss;
 
 public interface DiscussRepository extends JpaRepository<Discuss, Long> {
 
@@ -15,4 +16,6 @@ public interface DiscussRepository extends JpaRepository<Discuss, Long> {
             String titleKeyword,
             String contentsKeyword
     );
+        Page<Discuss> findByPostIdIn(List<Long> postIds, Pageable pageable);
+
 }
