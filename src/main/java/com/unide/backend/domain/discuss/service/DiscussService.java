@@ -52,8 +52,15 @@ public class DiscussService {
 
     // ==================== 목록 조회 ====================
 
+    /** 기존 버전: viewerId 없이 호출되는 경우 (다른 코드 호환용) */
     @Transactional(readOnly = true)
     public PageResponse<DiscussDto> getDiscussList(int pageNum) {
+        return getDiscussList(pageNum, null);
+    }
+
+    /** 새 버전: 로그인 유저 id(viewerId)까지 받아서 viewerLiked 채우는 버전 */
+    @Transactional(readOnly = true)
+    public PageResponse<DiscussDto> getDiscussList(int pageNum, Long viewerId) {
         PageRequest pageRequest = PageRequest.of(
                 pageNum - 1,
                 10,
@@ -65,7 +72,16 @@ public class DiscussService {
         List<DiscussDto> content = page.stream()
                 .map(entity -> {
                     String authorName = resolveAuthorName(entity.getAuthorId());
-                    return DiscussDto.fromEntity(entity, authorName);
+
+                    boolean viewerLiked = false;
+                    if (viewerId != null) {
+                        // 🔹 이 메서드 이름은 이미 toggleLike 에서 쓰던 것과 동일하게 맞춤
+                        viewerLiked = discussLikeRepository
+                                .existsByIdPostIdAndIdLikerId(entity.getPostId(), viewerId);
+                    }
+
+                    // fromEntity 오버로드: (entity, authorName, viewerLiked) 사용
+                    return DiscussDto.fromEntity(entity, authorName, viewerLiked);
                 })
                 .collect(Collectors.toList());
 
@@ -81,14 +97,28 @@ public class DiscussService {
 
     // ==================== 단건 조회 ====================
 
+    /** 기존 버전: viewerId 없이 호출되는 경우 */
     @Transactional(readOnly = true)
     public DiscussDto getDiscuss(Long postId) {
+        return getDiscuss(postId, null);
+    }
+
+    /** 새 버전: viewerId 기반으로 viewerLiked 채우는 버전 */
+    @Transactional(readOnly = true)
+    public DiscussDto getDiscuss(Long postId, Long viewerId) {
         Discuss discuss = discussRepository.findById(postId)
                 .orElseThrow(() ->
                         new IllegalArgumentException("해당 토론글이 없습니다. postId=" + postId));
 
         String authorName = resolveAuthorName(discuss.getAuthorId());
-        return DiscussDto.fromEntity(discuss, authorName);
+
+        boolean viewerLiked = false;
+        if (viewerId != null) {
+            viewerLiked = discussLikeRepository
+                    .existsByIdPostIdAndIdLikerId(postId, viewerId);
+        }
+
+        return DiscussDto.fromEntity(discuss, authorName, viewerLiked);
     }
 
     // ==================== 생성 ====================
@@ -107,7 +137,8 @@ public class DiscussService {
         Discuss saved = discussRepository.save(discuss);
 
         String authorName = resolveAuthorName(saved.getAuthorId());
-        return DiscussDto.fromEntity(saved, authorName);
+        // 생성 직후에는 viewerLiked 알 수 없으니 false 로 가정 (오버로드 없으면 원래 버전 써도 됨)
+        return DiscussDto.fromEntity(saved, authorName, false);
     }
 
     // ==================== 수정 ====================
@@ -123,7 +154,8 @@ public class DiscussService {
         discuss.setPrivatePost(dto.isPrivatePost());
 
         String authorName = resolveAuthorName(discuss.getAuthorId());
-        return DiscussDto.fromEntity(discuss, authorName);
+        // 수정 응답에서도 viewerLiked 는 문맥상 false 로 두거나, 필요하면 파라미터 추가해서 계산 가능
+        return DiscussDto.fromEntity(discuss, authorName, false);
     }
 
     // ==================== 삭제 ====================
@@ -145,6 +177,7 @@ public class DiscussService {
         return list.stream()
                 .map(entity -> {
                     String authorName = resolveAuthorName(entity.getAuthorId());
+                    // 검색 결과에서는 viewerLiked 까지는 안 쓰는 걸로 유지
                     return DiscussDto.fromEntity(entity, authorName);
                 })
                 .collect(Collectors.toList());
@@ -196,7 +229,7 @@ public class DiscussService {
             discuss.setLikeCount(discuss.getLikeCount() + 1);
             viewerLiked = true;
             // ⭐ 여기서 평판 점수 +2
-        statsService.onDiscussPostLiked(discuss.getAuthorId());
+            statsService.onDiscussPostLiked(discuss.getAuthorId());
         }
 
         // 3) DTO 변환 (authorName + viewerLiked + message)

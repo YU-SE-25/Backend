@@ -39,21 +39,25 @@ public class DiscussController {
     private final DiscussPollService discussPollService;   // ✅ 투표 서비스 추가
     private final DiscussReportService discussReportService;   // ✅ 신고 서비스 추가
 
-    // 목록
+     // ===== 목록 조회 =====
     @GetMapping
-    
     public ResponseEntity<PageResponse<DiscussDto>> listDiscuss(
-        @RequestParam(name = "page", defaultValue = "1") int page
-) {
-    PageResponse<DiscussDto> response = discussService.getDiscussList(page);
-    return ResponseEntity.ok(response);
-}
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @AuthenticationPrincipal PrincipalDetails userDetails
+    ) {
+        Long viewerId = (userDetails != null) ? userDetails.getUser().getId() : null;
+        PageResponse<DiscussDto> response = discussService.getDiscussList(page, viewerId);
+        return ResponseEntity.ok(response);
+    }
 
-
-    // 상세
+    // ===== 상세 조회 =====
     @GetMapping("/{postId}")
-    public DiscussDto detail(@PathVariable("postId") Long postId) {
-        return discussService.getDiscuss(postId);
+    public DiscussDto detail(
+            @PathVariable("postId") Long postId,
+            @AuthenticationPrincipal PrincipalDetails userDetails
+    ) {
+        Long viewerId = (userDetails != null) ? userDetails.getUser().getId() : null;
+        return discussService.getDiscuss(postId, viewerId);
     }
 
     // 작성
