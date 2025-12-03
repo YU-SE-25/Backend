@@ -8,9 +8,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.unide.backend.domain.mypage.dto.MyPageResponseDto;
 import com.unide.backend.domain.mypage.dto.MyPageUpdateRequestDto;
@@ -47,12 +48,20 @@ public class MyPageController {
     }
 
     /** 내 프로필 업데이트 */
-    @PatchMapping
+    @PatchMapping(consumes = "multipart/form-data")
     public ResponseEntity<MyPageUpdateResponseDto> updateMyPage(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
-            @RequestBody MyPageUpdateRequestDto requestDto) {
+            @RequestPart(value = "data") MyPageUpdateRequestDto requestDto,
+            @RequestPart(value = "file", required = false) MultipartFile file) {
         Long userId = principalDetails.getUser().getId();
+
+        // 파일을 DTO에 설정
+        if (file != null && !file.isEmpty()) {
+            requestDto.setAvatarImageFile(file);
+        }
+
         MyPageResponseDto result = myPageService.updateMyPage(userId, requestDto);
+
         if (requestDto.getUserGoals() != null) {
             myPageService.updateUserGoals(userId, requestDto.getUserGoals());
         }
@@ -60,6 +69,7 @@ public class MyPageController {
             result.getReminders().forEach(r -> myPageService.deleteReminder(r.getId()));
             requestDto.getReminders().forEach(reminderDto -> myPageService.addReminder(userId, reminderDto));
         }
+
         LocalDateTime updatedAt = result.getUpdatedAt();
         return ResponseEntity.ok(new MyPageUpdateResponseDto("마이페이지가 성공적으로 수정되었습니다.", updatedAt));
     }

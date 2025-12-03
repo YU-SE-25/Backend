@@ -4,13 +4,11 @@ import java.util.List;
 
 import org.springframework.web.multipart.MultipartFile;
 
-import com.unide.backend.domain.mypage.dto.ReminderRequestDto;
-import com.unide.backend.domain.mypage.dto.UserGoalsRequestDto;
-
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Getter
+@Getter @Setter
 @NoArgsConstructor
 public class MyPageUpdateRequestDto {
     private String nickname;
