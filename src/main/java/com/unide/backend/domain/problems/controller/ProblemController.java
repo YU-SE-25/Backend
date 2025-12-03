@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.unide.backend.common.response.MessageResponseDto;
 import com.unide.backend.domain.problems.dto.ProblemCreateRequestDto;
@@ -74,14 +76,17 @@ public class ProblemController {
     }
     
     /** 문제 등록 */
-        @PostMapping("/register")
-        @PreAuthorize("hasAnyRole('MANAGER', 'INSTRUCTOR')")
-        public ResponseEntity<ProblemCreateResponseDto> createProblem(
-                @AuthenticationPrincipal PrincipalDetails principalDetails,
-                @Valid @ModelAttribute ProblemCreateRequestDto requestDto) {
-            Long problemId = problemService.createProblem(principalDetails.getUser(), requestDto);
-            return ResponseEntity.ok(ProblemCreateResponseDto.of("문제가 성공적으로 등록되었습니다.", problemId));
-        }
+    @PostMapping(value = "/register", consumes = "multipart/form-data")
+    @PreAuthorize("hasAnyRole('MANAGER', 'INSTRUCTOR')")
+    public ResponseEntity<ProblemCreateResponseDto> createProblem(
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @Valid @ModelAttribute ProblemCreateRequestDto requestDto,
+            @RequestPart(value = "testcasefile") MultipartFile testcaseFile) {
+        // 파일을 DTO에 직접 설정
+        requestDto.setTestcaseFile(testcaseFile);
+        Long problemId = problemService.createProblem(principalDetails.getUser(), requestDto);
+        return ResponseEntity.ok(ProblemCreateResponseDto.of("문제가 성공적으로 등록되었습니다.", problemId));
+    }
     
     /** 문제 수정 */
     @PutMapping("/{problemId}")
