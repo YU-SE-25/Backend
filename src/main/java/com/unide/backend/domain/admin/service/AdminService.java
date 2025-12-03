@@ -4,6 +4,7 @@ package com.unide.backend.domain.admin.service;
 
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.entity.UserRole;
+import com.unide.backend.domain.user.entity.UserStatus;
 import com.unide.backend.domain.user.repository.UserRepository;
 import com.unide.backend.domain.admin.dto.RoleChangeRequestDto;
 import com.unide.backend.domain.admin.dto.RoleChangeResponseDto;
@@ -21,6 +22,8 @@ import com.unide.backend.domain.admin.dto.BlacklistListResponseDto;
 import com.unide.backend.domain.admin.dto.BlacklistSummaryDto;
 import com.unide.backend.domain.admin.entity.Blacklist;
 import com.unide.backend.domain.admin.repository.BlacklistRepository;
+import com.unide.backend.domain.admin.dto.BlacklistCreateRequestDto;
+import com.unide.backend.domain.admin.dto.BlacklistCreateResponseDto;
 
 import java.util.List;
 import java.util.UUID;
@@ -34,6 +37,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -185,6 +189,38 @@ public class AdminService {
                 .totalPages(blacklistPage.getTotalPages())
                 .currentPage(blacklistPage.getNumber())
                 .blacklist(blacklistDtos)
+                .build();
+    }
+
+    @Transactional
+    public BlacklistCreateResponseDto addToBlacklist(User adminUser, BlacklistCreateRequestDto requestDto) {
+        if (!StringUtils.hasText(requestDto.getEmail()) && !StringUtils.hasText(requestDto.getPhone())) {
+            throw new IllegalArgumentException("이메일 또는 전화번호 중 하나는 반드시 입력해야 합니다.");
+        }
+
+        if (blacklistRepository.existsByEmailOrPhone(requestDto.getEmail(), requestDto.getPhone())) {
+            throw new IllegalArgumentException("이미 블랙리스트에 등록된 사용자입니다.");
+        }
+
+        if (StringUtils.hasText(requestDto.getEmail())) {
+            userRepository.findByEmail(requestDto.getEmail())
+                    .ifPresent(user -> user.changeStatus(UserStatus.SUSPENDED));
+        }
+
+        Blacklist blacklist = Blacklist.builder()
+                .name(requestDto.getName())
+                .email(requestDto.getEmail())
+                .phone(requestDto.getPhone())
+                .reason(requestDto.getReason())
+                .bannedBy(adminUser)
+                .build();
+        
+        Blacklist savedBlacklist = blacklistRepository.save(blacklist);
+
+        return BlacklistCreateResponseDto.builder()
+                .blacklistId(savedBlacklist.getId())
+                .message("블랙리스트에 등록되었습니다." + (requestDto.getEmail() != null ? " (관련 계정 정지됨)" : ""))
+                .bannedAt(savedBlacklist.getBannedAt())
                 .build();
     }
 }
