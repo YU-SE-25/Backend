@@ -68,6 +68,8 @@ public class StudyGroup {
             cascade = CascadeType.ALL,   // 삭제/저장 모두 전파
             orphanRemoval = true
     )
+
+    @Builder.Default
     private List<StudyGroupLog> logs = new ArrayList<>();
 
     @PrePersist
