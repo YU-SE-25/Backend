@@ -156,4 +156,18 @@ public class ProblemController {
         Page<ProblemResponseDto> problems = problemService.getProblemsByIds(bookmarkedProblemIds, pageable);
         return ResponseEntity.ok(problems);
     }
+
+    @PutMapping("/{problemId}/approve")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<MessageResponseDto> approveProblem(@PathVariable Long problemId) {
+        problemService.approveProblem(problemId);
+        return ResponseEntity.ok(new MessageResponseDto("문제가 승인되었습니다."));
+    }
+
+    @PutMapping("/{problemId}/reject")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<MessageResponseDto> rejectProblem(@PathVariable Long problemId) {
+        problemService.rejectProblem(problemId);
+        return ResponseEntity.ok(new MessageResponseDto("문제가 반려되었습니다."));
+    }
 }
