@@ -85,7 +85,7 @@ public class SecurityConfig {
                 .requestMatchers("DELETE", "/api/mypage/me").authenticated()
                 
                 // 2) 스터디 그룹 목록 조회만 오픈
-                 .requestMatchers(HttpMethod.GET, "/api/studygroup").permitAll()
+                 .requestMatchers(HttpMethod.GET, "/api/studygroup/**").permitAll()
 
                  // 3) 나머지 스터디그룹 관련 기능은 로그인 필수
                 .requestMatchers("/api/studygroup/**").authenticated()
