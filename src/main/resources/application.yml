@@ -55,15 +55,9 @@ file:
 openai:
   api-key: ${OPENAI_API_KEY}
   model: gpt-4o-mini
-<<<<<<< HEAD
   api-url: https://api.openai.com/v1/chat/completions
 
 servlet:
   multipart:
     max-file-size: 100MB
     max-request-size: 500MB
-
-  
-=======
-  api-url: https://api.openai.com/v1/chat/completions
->>>>>>> d131d1285cdfbb6f7ee1e1bc63d6bc0433bc67e9
