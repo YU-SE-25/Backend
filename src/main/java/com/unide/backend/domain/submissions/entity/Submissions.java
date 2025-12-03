@@ -33,7 +33,7 @@ public class Submissions {
     private Problems problem;
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String code;
 
     @Enumerated(EnumType.STRING)
@@ -54,6 +54,7 @@ public class Submissions {
     private LocalDateTime submittedAt;
 
     @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String compileOutput;
 
     private Integer compileTimeMs;

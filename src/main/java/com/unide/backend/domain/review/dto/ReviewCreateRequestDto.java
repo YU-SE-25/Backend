@@ -15,4 +15,6 @@ public class ReviewCreateRequestDto {
 
     @NotBlank(message = "리뷰 내용은 필수 입력 값입니다.")
     private String content;
+
+    private Integer lineNumber; // 선택 사항 (없으면 전체 리뷰)
 }

@@ -75,4 +75,8 @@ public interface SubmissionsRepository extends JpaRepository<Submissions, Long> 
     // 특정 문제에 대해 사용자의 오답 제출 수 조회
     @Query("SELECT COUNT(s) FROM Submissions s WHERE s.problem.id = :problem AND s.user.id = :userId AND s.status = 'WA'")
     Long countWrongByProblemIdAndUserId(@Param("problem") Long problemId, @Param("userId") Long userId);
+
+    // 사용자의 최근 정답(CA) 제출 내역 조회
+    @Query("SELECT s FROM Submissions s JOIN FETCH s.problem WHERE s.user = :user AND s.status = 'CA' ORDER BY s.submittedAt DESC")
+    List<Submissions> findTopCorrectSubmissionsByUser(@Param("user") User user, Pageable pageable);
 }

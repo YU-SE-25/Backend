@@ -1,18 +1,15 @@
 package com.unide.backend.domain.bookmark.service;
 
-import java.util.List;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.unide.backend.domain.bookmark.entity.Bookmark;
 import com.unide.backend.domain.bookmark.repository.BookmarkRepository;
 import com.unide.backend.domain.problems.entity.Problems;
 import com.unide.backend.domain.problems.repository.ProblemsRepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
