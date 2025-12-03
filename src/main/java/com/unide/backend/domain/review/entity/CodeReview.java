@@ -36,12 +36,16 @@ public class CodeReview extends BaseTimeEntity {
 
     @Column(name = "vote_count", nullable = false)
     private int voteCount;
+    
+    @Column(name = "line_number")
+    private Integer lineNumber;
 
     @Builder
-    public CodeReview(Submissions submission, User reviewer, String content) {
+    public CodeReview(Submissions submission, User reviewer, String content, Integer lineNumber) {
         this.submission = submission;
         this.reviewer = reviewer;
         this.content = content;
+        this.lineNumber = lineNumber;
         this.voteCount = 0;
     }
 

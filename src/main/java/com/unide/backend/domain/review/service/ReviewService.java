@@ -68,6 +68,7 @@ public class ReviewService {
                         .reviewId(review.getId())
                         .reviewer(review.getReviewer().getNickname())
                         .content(review.getContent())
+                        .lineNumber(review.getLineNumber())
                         .voteCount(review.getVoteCount())
                         .createdAt(review.getCreatedAt())
                         .isOwner(currentUser != null && review.getReviewer().getId().equals(currentUser.getId()))
@@ -96,6 +97,7 @@ public class ReviewService {
                 .submission(submission)
                 .reviewer(user)
                 .content(requestDto.getContent())
+                .lineNumber(requestDto.getLineNumber())
                 .build();
 
         codeReviewRepository.save(review);

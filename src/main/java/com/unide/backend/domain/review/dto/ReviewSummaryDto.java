@@ -13,6 +13,7 @@ public class ReviewSummaryDto {
     private Long reviewId;
     private String reviewer;
     private String content;
+    private Integer lineNumber;
     private int voteCount;
     private LocalDateTime createdAt;
     private boolean isOwner;
