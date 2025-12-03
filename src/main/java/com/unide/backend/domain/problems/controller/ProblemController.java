@@ -13,18 +13,19 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.unide.backend.common.response.MessageResponseDto;
+import com.unide.backend.domain.bookmark.service.BookmarkService;
 import com.unide.backend.domain.problems.dto.ProblemCreateRequestDto;
 import com.unide.backend.domain.problems.dto.ProblemCreateResponseDto;
 import com.unide.backend.domain.problems.dto.ProblemDetailResponseDto;
@@ -45,6 +46,7 @@ import lombok.RequiredArgsConstructor;
 public class ProblemController {
     private final ProblemService problemService;
     private final SubmissionService submissionService;
+    private final BookmarkService bookmarkService;
 
     /**등록 문제 조회 (매니저용) */
     @GetMapping("/list/pending")
@@ -142,5 +144,16 @@ public class ProblemController {
         
         LongestTimeResponseDto response = submissionService.getLongestRuntime(principalDetails.getUser(), problemId);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/list/bookmarked")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Page<ProblemResponseDto>> getBookmarkedProblems(
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Long userId = principalDetails.getUser().getId();
+        List<Long> bookmarkedProblemIds = bookmarkService.getBookmarkedProblemIds(userId);
+        Page<ProblemResponseDto> problems = problemService.getProblemsByIds(bookmarkedProblemIds, pageable);
+        return ResponseEntity.ok(problems);
     }
 }

@@ -318,4 +318,14 @@ public class ProblemService {
             throw new IllegalArgumentException("문제 등록/수정 권한이 없습니다. (강사 또는 관리자만 가능)");
         }
     }
+
+    /** 문제 ID 목록으로 문제 페이징 조회 */
+    public Page<ProblemResponseDto> getProblemsByIds(List<Long> ids, Pageable pageable) {
+        if (ids == null || ids.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        // 문제 엔티티 페이징 조회
+        Page<Problems> problemsPage = problemsRepository.findAllById(ids, pageable);
+        return problemsPage.map(ProblemResponseDto::from);
+    }
 }
