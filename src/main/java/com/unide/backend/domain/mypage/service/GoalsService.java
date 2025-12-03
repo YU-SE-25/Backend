@@ -32,8 +32,6 @@ public class GoalsService {
             return UserGoalsResponseDto.builder()
                     .dailyMinimumStudyMinutes(0)
                     .weeklyStudyGoalMinutes(0)
-                    .reminderTimes(new String[]{})
-                    .isReminderEnabled(false)
                     .studyTimeByLanguage(null)
                     .build();
         }
@@ -52,8 +50,6 @@ public class GoalsService {
         return UserGoalsResponseDto.builder()
                 .dailyMinimumStudyMinutes(goals.getDailyMinimumStudyMinutes())
                 .weeklyStudyGoalMinutes(goals.getWeeklyStudyGoalMinutes())
-                .reminderTimes(goals.getReminderTimes().split(","))
-                .isReminderEnabled(goals.getIsReminderEnabled())
                 .studyTimeByLanguage(studyTimeMap)
                 .build();
     }
@@ -77,15 +73,11 @@ public class GoalsService {
                     .user(user)
                     .dailyMinimumStudyMinutes(dto.getDailyMinimumStudyMinutes())
                     .weeklyStudyGoalMinutes(dto.getWeeklyStudyGoalMinutes())
-                    .reminderTimes(String.join(",", dto.getReminderTimes()))
-                    .isReminderEnabled(dto.getIsReminderEnabled())
                     .studyTimeByLanguage(studyTimeJson)
                     .build();
         } else {
             goals.updateDailyMinimumStudyMinutes(dto.getDailyMinimumStudyMinutes());
             goals.updateWeeklyStudyGoalMinutes(dto.getWeeklyStudyGoalMinutes());
-            goals.updateReminderTimes(String.join(",", dto.getReminderTimes()));
-            goals.updateIsReminderEnabled(dto.getIsReminderEnabled());
             goals.updateStudyTimeByLanguage(studyTimeJson);
         }
 

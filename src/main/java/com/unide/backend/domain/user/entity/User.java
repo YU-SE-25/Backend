@@ -147,4 +147,8 @@ public class User extends BaseTimeEntity {
     public void withdraw() {
         this.status = UserStatus.DELETED;
     }
+
+    public void changeStatus(UserStatus status) {
+        this.status = status;
+    }
 }

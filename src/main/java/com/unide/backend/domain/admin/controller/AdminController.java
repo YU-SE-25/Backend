@@ -10,6 +10,9 @@ import com.unide.backend.domain.admin.dto.InstructorApplicationListResponseDto;
 import com.unide.backend.domain.admin.dto.InstructorApplicationUpdateRequestDto;
 import com.unide.backend.domain.admin.dto.UserListResponseDto;
 import com.unide.backend.domain.admin.dto.BlacklistListResponseDto;
+import com.unide.backend.domain.admin.dto.BlacklistCreateRequestDto;
+import com.unide.backend.domain.admin.dto.BlacklistCreateResponseDto;
+import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,9 +22,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequiredArgsConstructor
@@ -73,5 +75,14 @@ public class AdminController {
         
         BlacklistListResponseDto response = adminService.getBlacklist(pageable);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/blacklist")
+    public ResponseEntity<BlacklistCreateResponseDto> addToBlacklist(
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @Valid @RequestBody BlacklistCreateRequestDto requestDto) {
+        
+        BlacklistCreateResponseDto response = adminService.addToBlacklist(principalDetails.getUser(), requestDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
