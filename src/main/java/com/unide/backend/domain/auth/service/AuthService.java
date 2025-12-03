@@ -44,6 +44,8 @@ import com.unide.backend.domain.instructor.repository.UserPortfolioFileRepositor
 import com.unide.backend.domain.mypage.entity.Goals;
 import com.unide.backend.domain.mypage.entity.MyPage;
 import com.unide.backend.domain.mypage.entity.Stats;
+import com.unide.backend.domain.mypage.entity.Reminder;
+import com.unide.backend.domain.mypage.repository.ReminderRepository;
 import com.unide.backend.domain.mypage.repository.MyPageRepository;
 import com.unide.backend.domain.mypage.repository.StatsRepository;
 import com.unide.backend.domain.mypage.repository.GoalsRepository;
@@ -69,6 +71,7 @@ public class AuthService {
     private final BlacklistRepository blacklistRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserTermsConsentRepository userTermsConsentRepository;
+    private final ReminderRepository reminderRepository;
     private final EmailVerificationCodeRepository emailVerificationCodeRepository;
     private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
@@ -178,7 +181,9 @@ public class AuthService {
                 .acceptanceRate(0.0)
                 .streakDays(0)
                 .ranking((int) userRepository.countByRoleNot(UserRole.MANAGER)) // ranking을 메니저 제외한 회원 수로 초기화
+                .previousRanking((int) userRepository.countByRoleNot(UserRole.MANAGER)) // 이전 순위도 동일하게 초기화
                 .rating(0)
+                .score(0.0)
                 .build();
         statsRepository.save(stats);
 
@@ -186,11 +191,16 @@ public class AuthService {
                 .user(savedUser)
                 .dailyMinimumStudyMinutes(0)
                 .weeklyStudyGoalMinutes(0)
-                .reminderTimes("[]") // 빈 JSON 배열
-                .isReminderEnabled(false)
                 .studyTimeByLanguage("{}") // 빈 JSON 객체
                 .build();
         goalsRepository.save(goals);
+
+        Reminder reminder = Reminder.builder()
+                .user(savedUser)
+                .day(0) // 기본값: 알림 없음
+                .times("[]")    // 기본값: 빈 배열
+                .build();
+        reminderRepository.save(reminder);
 
         // 요청 DTO의 role이 INSTRUCTOR일 때 지원서 저장
         if (requestDto.getRole() == UserRole.INSTRUCTOR) {

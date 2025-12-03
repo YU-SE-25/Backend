@@ -34,24 +34,35 @@ public class Stats extends BaseTimeEntity {
     private Double acceptanceRate;
     private Integer streakDays;
     private Integer ranking;
+    private int previousRanking; // 이전 순위
     private Integer rating;
+    private Double score; // 복합 점수 (순위 계산용)
 
     @Builder
     public Stats(User user, Integer totalSolved, Integer totalSubmitted,
-                 Double acceptanceRate, Integer streakDays, Integer ranking, Integer rating) {
+                 Double acceptanceRate, Integer streakDays, Integer ranking, int previousRanking, Integer rating, Double score) {
         this.user = user;
         this.totalSolved = totalSolved;
         this.totalSubmitted = totalSubmitted;
         this.acceptanceRate = acceptanceRate;
         this.streakDays = streakDays;
         this.ranking = ranking;
+        this.previousRanking = previousRanking; // 이전 순위
         this.rating = rating;
+        this.score = score;
     }
 
     public void updateTotalSolved(Integer v) { this.totalSolved = v; }
     public void updateTotalSubmitted(Integer v) { this.totalSubmitted = v; }
     public void updateAcceptanceRate(Double v) { this.acceptanceRate = v; }
     public void updateStreakDays(Integer v) { this.streakDays = v; }
-    public void updateRanking(Integer v) { this.ranking = v; }
     public void updateRating(Integer v) { this.rating = v; }
+    public void updateScore(Double score) {
+        this.score = score;
+    }
+
+    public void updateRanking(int newRanking) {
+        this.previousRanking = this.ranking; // 이전 순위를 저장
+        this.ranking = newRanking; // 새로운 순위 설정
+    }
 }

@@ -24,18 +24,6 @@ public class StatsService {
     /** 통계 조회 */
     public UserStatsResponseDto getStats(Long userId) {
         Stats stats = statsRepository.findByUserId(userId);
-
-        if (stats == null) {
-            return UserStatsResponseDto.builder()
-                    .totalSolved(0)
-                    .totalSubmitted(0)
-                    .acceptanceRate(0.0)
-                    .streakDays(0)
-                    .ranking(0)
-                    .rating(0)
-                    .build();
-        }
-
         return UserStatsResponseDto.builder()
                 .totalSolved(stats.getTotalSolved())
                 .totalSubmitted(stats.getTotalSubmitted())
@@ -43,6 +31,7 @@ public class StatsService {
                 .streakDays(stats.getStreakDays())
                 .ranking(stats.getRanking())
                 .rating(stats.getRating())
+                .delta(stats.getPreviousRanking() - stats.getRanking()) // 이전 순위 - 현재 순위
                 .build();
     }
 
