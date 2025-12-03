@@ -26,7 +26,7 @@ public class Blacklist {
     @Column(length = 255)
     private String email;
 
-    @Column(length = 20)
+    @Column(length = 255)
     private String phone;
 
     @Column(length = 255)
