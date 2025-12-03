@@ -83,10 +83,12 @@ public class SecurityConfig {
                 // 마이페이지 수정/삭제는 인증 필요 (PATCH, DELETE)
                 .requestMatchers("PATCH", "/api/mypage/me").authenticated()
                 .requestMatchers("DELETE", "/api/mypage/me").authenticated()
-                //메인화면 모두 조회 가능
-                .requestMatchers("/api/UNIDE/rank/**").permitAll()
-                //스터디그룹 목록 화면 모두 조회 가능 
-                .requestMatchers(HttpMethod.GET, "/api/studygroup").permitAll()
+                
+                // 2) 스터디 그룹 목록 조회만 오픈
+                 .requestMatchers(HttpMethod.GET, "/api/studygroup").permitAll()
+
+                 // 3) 나머지 스터디그룹 관련 기능은 로그인 필수
+                .requestMatchers("/api/studygroup/**").authenticated()
                 // 나머지 모든 요청은 일단 인증된 사용자만 접근 가능하도록 설정
                 .anyRequest().authenticated()
 
