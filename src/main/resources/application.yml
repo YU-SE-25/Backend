@@ -51,3 +51,8 @@ spring:
 
 file:
   upload-dir: ./uploads
+
+openai:
+  api-key: ${OPENAI_API_KEY}
+  model: gpt-4o-mini
+  api-url: https://api.openai.com/v1/chat/completions
