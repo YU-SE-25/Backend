@@ -481,6 +481,10 @@ public class AuthService {
         User user = userRepository.findByEmail(requestDto.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
+        if (user.isSocialAccount()) {
+            throw new IllegalArgumentException("소셜 로그인 사용자는 비밀번호를 재설정할 수 없습니다. 소셜 로그인을 이용해주세요.");
+        }
+
         // 6자리 랜덤 숫자 코드 생성
         String verificationCode = String.format("%06d", new Random().nextInt(1000000));
         // 비밀번호 변경 단계를 위한 임시 토큰 생성
@@ -565,6 +569,11 @@ public class AuthService {
 
         // 사용자 비밀번호 업데이트
         User user = resetToken.getUser();
+
+        if (user.isSocialAccount()) {
+            throw new IllegalArgumentException("소셜 로그인 사용자는 비밀번호를 변경할 수 없습니다.");
+        }
+
         String newEncodedPassword = passwordEncoder.encode(requestDto.getNewPassword());
         user.updatePassword(newEncodedPassword);
     }
