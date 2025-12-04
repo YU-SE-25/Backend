@@ -32,7 +32,7 @@ public class ReportController {
     /**
      * 신고 생성
      */
-    @PostMapping
+    @PostMapping("/register")
     public ResponseEntity<?> createReport(
             @AuthenticationPrincipal PrincipalDetails user,
             @RequestBody ReportCreateRequestDto request
