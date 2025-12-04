@@ -18,6 +18,10 @@ import com.unide.backend.domain.studygroup.group.entity.GroupStudyMember;
 import com.unide.backend.domain.studygroup.group.entity.StudyGroup;
 import com.unide.backend.domain.studygroup.group.repository.StudyGroupMemberQueryRepository;
 import com.unide.backend.domain.studygroup.group.repository.StudyGroupRepository;
+import com.unide.backend.domain.studygroup.member.repository.StudyGroupLogRepository;
+import com.unide.backend.domain.studygroup.problem.entity.StudyGroupProblemList;
+import com.unide.backend.domain.studygroup.problem.repository.StudyGroupProblemListRepository;
+import com.unide.backend.domain.studygroup.problem.repository.StudyGroupProblemRepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
 
@@ -31,6 +35,9 @@ public class StudyGroupService {
     private final StudyGroupRepository groupRepository;
     private final StudyGroupMemberQueryRepository memberRepository;
     private final UserRepository userRepository;
+    private final StudyGroupLogRepository studyGroupLogRepository; // 사용 중이면 유지
+    private final StudyGroupProblemListRepository studyGroupProblemListRepository;
+    private final StudyGroupProblemRepository studyGroupProblemRepository;
 
     // ===== 그룹 생성 =====
     public StudyGroupDetailResponse createGroup(Long leaderId,
@@ -71,55 +78,54 @@ public class StudyGroupService {
     }
 
     // ===== 그룹 목록 조회 =====
-   @Transactional(readOnly = true)
-public List<StudyGroupListItemResponse> listGroups(Long currentUserId, int pageSize) {
+    @Transactional(readOnly = true)
+    public List<StudyGroupListItemResponse> listGroups(Long currentUserId, int pageSize) {
 
-    PageRequest pageRequest = PageRequest.of(0, pageSize);
+        PageRequest pageRequest = PageRequest.of(0, pageSize);
 
-    // 1) 페이지 조회
-    var page = groupRepository.findAll(pageRequest);
-    List<StudyGroup> groups = page.getContent();
+        // 1) 페이지 조회
+        var page = groupRepository.findAll(pageRequest);
+        List<StudyGroup> groups = page.getContent();
 
-    // 2) 리더 ID 모아서 한 번에 User 조회
-    List<Long> leaderIds = groups.stream()
-            .map(StudyGroup::getGroupLeader)
-            .filter(id -> id != null)
-            .distinct()
-            .toList();
+        // 2) 리더 ID 모아서 한 번에 User 조회
+        List<Long> leaderIds = groups.stream()
+                .map(StudyGroup::getGroupLeader)
+                .filter(id -> id != null)
+                .distinct()
+                .toList();
 
-    Map<Long, User> leaderMap = userRepository.findAllById(leaderIds).stream()
-            .collect(Collectors.toMap(User::getId, Function.identity()));
+        Map<Long, User> leaderMap = userRepository.findAllById(leaderIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
 
-    // 3) 응답 변환
-    return groups.stream()
-            .map(g -> {
-                // 내 역할 계산
-                String myRole = "NONE";
-                if (currentUserId != null) {
-                    if (g.getGroupLeader() != null &&
-                            g.getGroupLeader().equals(currentUserId)) {
-                        myRole = "LEADER";
-                    } else if (memberRepository.existsByIdGroupIdAndIdMemberId(
-                            g.getGroupId(), currentUserId)) {
-                        myRole = "MEMBER";
+        // 3) 응답 변환
+        return groups.stream()
+                .map(g -> {
+                    // 내 역할 계산
+                    String myRole = "NONE";
+                    if (currentUserId != null) {
+                        if (g.getGroupLeader() != null &&
+                                g.getGroupLeader().equals(currentUserId)) {
+                            myRole = "LEADER";
+                        } else if (memberRepository.existsByIdGroupIdAndIdMemberId(
+                                g.getGroupId(), currentUserId)) {
+                            myRole = "MEMBER";
+                        }
                     }
-                }
 
-                // 리더 이름 세팅
-                String leaderName = null;
-                Long leaderId = g.getGroupLeader();
-                if (leaderId != null) {
-                    User leader = leaderMap.get(leaderId);
-                    if (leader != null) {
-                        leaderName = leader.getNickname(); // <= 여기 필드 이름에 맞게 수정 (ex. getName())
+                    // 리더 이름 세팅
+                    String leaderName = null;
+                    Long leaderId = g.getGroupLeader();
+                    if (leaderId != null) {
+                        User leader = leaderMap.get(leaderId);
+                        if (leader != null) {
+                            leaderName = leader.getNickname();
+                        }
                     }
-                }
 
-                return StudyGroupListItemResponse.fromEntity(g, leaderName, myRole);
-            })
-            .collect(Collectors.toList());
-}
-
+                    return StudyGroupListItemResponse.fromEntity(g, leaderName, myRole);
+                })
+                .collect(Collectors.toList());
+    }
 
     // ===== 그룹 상세 조회 =====
     @Transactional(readOnly = true)
@@ -214,6 +220,7 @@ public List<StudyGroupListItemResponse> listGroups(Long currentUserId, int pageS
     }
 
     // ===== 그룹 삭제 =====
+    @Transactional
     public void deleteGroup(Long groupId, Long requesterId) {
 
         StudyGroup group = groupRepository.findById(groupId)
@@ -225,8 +232,22 @@ public List<StudyGroupListItemResponse> listGroups(Long currentUserId, int pageS
             throw new IllegalStateException("그룹장만 삭제할 수 있습니다.");
         }
 
-        // 멤버 먼저 삭제
+        // 🔥 1) 이 그룹에 속한 문제 리스트들 전부 조회
+        List<StudyGroupProblemList> problemLists =
+                studyGroupProblemListRepository.findByGroup_GroupId(groupId);
+
+        // 🔥 2) 각 리스트에 매핑된 문제들 삭제
+        for (StudyGroupProblemList list : problemLists) {
+            studyGroupProblemRepository.deleteByProblemList_Id(list.getId());
+        }
+
+        // 🔥 3) 문제 리스트 삭제
+        studyGroupProblemListRepository.deleteAll(problemLists);
+
+        // 🔥 4) 멤버 삭제
         memberRepository.deleteByIdGroupId(groupId);
+
+        // 🔥 5) 마지막으로 그룹 삭제
         groupRepository.delete(group);
     }
 }
