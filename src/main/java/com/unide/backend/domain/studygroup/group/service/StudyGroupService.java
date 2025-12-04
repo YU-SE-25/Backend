@@ -71,29 +71,55 @@ public class StudyGroupService {
     }
 
     // ===== 그룹 목록 조회 =====
-    @Transactional(readOnly = true)
-    public List<StudyGroupListItemResponse> listGroups(Long currentUserId, int pageSize) {
+   @Transactional(readOnly = true)
+public List<StudyGroupListItemResponse> listGroups(Long currentUserId, int pageSize) {
 
-        PageRequest pageRequest = PageRequest.of(0, pageSize);
-        return groupRepository.findAll(pageRequest)
-                .stream()
-                .map(g -> {
-                    String myRole = "NONE";
-                    if (currentUserId != null) {
-                        if (g.getGroupLeader() != null &&
-                                g.getGroupLeader().equals(currentUserId)) {
-                            myRole = "LEADER";
-                        } else if (memberRepository.existsByIdGroupIdAndIdMemberId(
-                                g.getGroupId(), currentUserId)) {
-                            myRole = "MEMBER";
-                        }
+    PageRequest pageRequest = PageRequest.of(0, pageSize);
+
+    // 1) 페이지 조회
+    var page = groupRepository.findAll(pageRequest);
+    List<StudyGroup> groups = page.getContent();
+
+    // 2) 리더 ID 모아서 한 번에 User 조회
+    List<Long> leaderIds = groups.stream()
+            .map(StudyGroup::getGroupLeader)
+            .filter(id -> id != null)
+            .distinct()
+            .toList();
+
+    Map<Long, User> leaderMap = userRepository.findAllById(leaderIds).stream()
+            .collect(Collectors.toMap(User::getId, Function.identity()));
+
+    // 3) 응답 변환
+    return groups.stream()
+            .map(g -> {
+                // 내 역할 계산
+                String myRole = "NONE";
+                if (currentUserId != null) {
+                    if (g.getGroupLeader() != null &&
+                            g.getGroupLeader().equals(currentUserId)) {
+                        myRole = "LEADER";
+                    } else if (memberRepository.existsByIdGroupIdAndIdMemberId(
+                            g.getGroupId(), currentUserId)) {
+                        myRole = "MEMBER";
                     }
+                }
 
-                    // leaderName 은 나중에 UserRepository 붙이면 채워주면 됨
-                    return StudyGroupListItemResponse.fromEntity(g, null, myRole);
-                })
-                .collect(Collectors.toList());
-    }
+                // 리더 이름 세팅
+                String leaderName = null;
+                Long leaderId = g.getGroupLeader();
+                if (leaderId != null) {
+                    User leader = leaderMap.get(leaderId);
+                    if (leader != null) {
+                        leaderName = leader.getNickname(); // <= 여기 필드 이름에 맞게 수정 (ex. getName())
+                    }
+                }
+
+                return StudyGroupListItemResponse.fromEntity(g, leaderName, myRole);
+            })
+            .collect(Collectors.toList());
+}
+
 
     // ===== 그룹 상세 조회 =====
     @Transactional(readOnly = true)
