@@ -195,7 +195,7 @@ public class ProblemService {
                     String html = templateEngine.process("problem-modified-email.html", context);
 
                     helper.setTo(creator.getEmail()); // 받는 사람
-                    helper.setSubject("[Unide] 문제가 수정되었습니다"); // 제목
+                    helper.setSubject("[Unide] 문제가 수정 안내"); // 제목
                     helper.setText(html, true); // 본문 (true는 이 내용이 HTML임을 의미)
 
                     mailSender.send(mimeMessage); // 최종 발송
@@ -366,9 +366,9 @@ public class ProblemService {
 			Context context = new Context();
 			context.setVariable("name", creator.getNickname());
 			context.setVariable("problemTitle", problem.getTitle());
-			context.setVariable("problemDetailUrl", "http://localhost:3000/problems/" + problem.getId());
+			context.setVariable("problemDetailUrl", "http://localhost:3000/problems/detail/" + problem.getId());
 
-			String html = templateEngine.process("reminder-email.html", context);
+			String html = templateEngine.process("problem-approved-email.html", context);
 
 			helper.setTo(creator.getEmail()); // 받는 사람
 			helper.setSubject("[Unide] 문제 승인 안내"); // 제목
@@ -397,9 +397,9 @@ public class ProblemService {
 			Context context = new Context();
 			context.setVariable("name", creator.getNickname());
 			context.setVariable("problemTitle", problem.getTitle());
-			context.setVariable("problemDetailUrl", "http://localhost:3000/problems/" + problem.getId());
+			context.setVariable("problemDetailUrl", "http://localhost:3000/problems/detail/" + problem.getId());
 
-			String html = templateEngine.process("reminder-email.html", context);
+			String html = templateEngine.process("problem-rejected-email.html", context);
 
 			helper.setTo(creator.getEmail()); // 받는 사람
 			helper.setSubject("[Unide] 문제 반려 안내"); // 제목
