@@ -3,8 +3,12 @@ package com.unide.backend.domain.report.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import com.unide.backend.common.mail.MailService;
 import com.unide.backend.domain.discuss.repository.DiscussCommentReportRepository;
@@ -18,6 +22,7 @@ import com.unide.backend.domain.qna.repository.QnAReportRepository;
 import com.unide.backend.domain.report.dto.ReportCreateRequestDto;
 import com.unide.backend.domain.report.dto.ReportDetailDto;
 import com.unide.backend.domain.report.dto.ReportListDto;
+import com.unide.backend.domain.report.dto.ReportResolveRequestDto;
 import com.unide.backend.domain.report.entity.Report;
 import com.unide.backend.domain.report.entity.ReportStatus;
 import com.unide.backend.domain.report.entity.ReportType;
@@ -26,13 +31,17 @@ import com.unide.backend.domain.review_report.repository.ReviewCommentReportRepo
 import com.unide.backend.domain.review_report.repository.ReviewReportRepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
-import com.unide.backend.domain.report.dto.ReportResolveRequestDto;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ReportService {
+    private final JavaMailSender mailSender;
+	private final SpringTemplateEngine templateEngine;
 
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
@@ -69,20 +78,33 @@ public class ReportService {
 
         User reporter = userRepository.findById(report.getReporterId()).orElse(null);
         if (reporter != null && reporter.getEmail() != null) {
-            String subject = "신고 처리 결과 안내";
-            String body;
-            if (dto.getStatus() == ReportStatus.REJECTED) {
-                body = String.format(
-                        "안녕하세요, %s님.\n\n신고하신 내용이 거절되었습니다.\n\n감사합니다.",
-                        reporter.getNickname()
-                );
-            } else {
-                body = String.format(
-                        "안녕하세요, %s님.\n\n신고 상태가 승인되었습니다.\n\n감사합니다.",
-                        reporter.getNickname()
-                );
+            try {
+                MimeMessage mimeMessage = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+                Context context = new Context();
+                context.setVariable("name", reporter.getNickname());
+                context.setVariable("reason", report.getReason());
+                context.setVariable("MyReportsUrl", "http://localhost:3000/reports/me/" + report.getId());
+
+                String html;
+                String subject;
+                if (dto.getStatus() == ReportStatus.REJECTED) {
+                    subject = "[Unide] 신고 거절 안내";
+                    html = templateEngine.process("report-rejected-email.html", context);
+                } else {
+                    subject = "[Unide] 신고 승인 안내";
+                    html = templateEngine.process("report-approved-email.html", context);
+                }
+
+                helper.setTo(reporter.getEmail());
+                helper.setSubject(subject);
+                helper.setText(html, true);
+
+                mailSender.send(mimeMessage);
+            } catch (MessagingException e) {
+                throw new RuntimeException("이메일 발송에 실패했습니다.", e);
             }
-            mailService.sendEmail(reporter.getEmail(), subject, body);
         }
 
         // 신고를 당한 사람에게도 메일 전송 (승인일 때만)
@@ -97,12 +119,25 @@ public class ReportService {
                 }
             }
             if (targetUser != null && targetUser.getEmail() != null) {
-                String subject = "[UnIDE] 신고 승인 안내";
-                String body = String.format(
-                        "안녕하세요, %s님.\n\n귀하에 대한 신고가 승인 처리되었습니다.\n\n서비스 정책에 따라 조치가 있을 수 있습니다.\n\n감사합니다.",
-                        targetUser.getNickname()
-                );
-                mailService.sendEmail(targetUser.getEmail(), subject, body);
+                    try {
+                    MimeMessage mimeMessage = mailSender.createMimeMessage();
+                    MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+                    Context context = new Context();
+                    context.setVariable("name", targetUser.getNickname());
+                    context.setVariable("reason", report.getReason());
+                    context.setVariable("MyReportUrl", "http://localhost:3000/mypage");
+
+                    String html = templateEngine.process("report-target-approved-email.html", context);
+
+                    helper.setTo(targetUser.getEmail()); // 받는 사람
+                    helper.setSubject("[Unide] 신고 승인 안내"); // 제목
+                    helper.setText(html, true); // 본문 (true는 이 내용이 HTML임을 의미)
+
+                    mailSender.send(mimeMessage); // 최종 발송
+                } catch (MessagingException e) {
+                    throw new RuntimeException("이메일 발송에 실패했습니다.", e);
+                }
             }
         }
     }

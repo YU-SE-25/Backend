@@ -51,28 +51,18 @@ public class MyPageController {
     @PatchMapping(consumes = "multipart/form-data")
     public ResponseEntity<MyPageUpdateResponseDto> updateMyPage(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
-            @RequestPart(value = "data") MyPageUpdateRequestDto requestDto,
-            @RequestPart(value = "file", required = false) MultipartFile file) {
+            @RequestPart("data") MyPageUpdateRequestDto requestDto,
+            @RequestPart(value = "file", required = false) MultipartFile file
+    ) {
         Long userId = principalDetails.getUser().getId();
 
-        // 파일을 DTO에 설정
-        if (file != null && !file.isEmpty()) {
-            requestDto.setAvatarImageFile(file);
-        }
+        requestDto.setAvatarImageFile(file);
 
-        MyPageResponseDto result = myPageService.updateMyPage(userId, requestDto);
+        MyPageUpdateResponseDto response = myPageService.updateMyPage(userId, requestDto);
 
-        if (requestDto.getUserGoals() != null) {
-            myPageService.updateUserGoals(userId, requestDto.getUserGoals());
-        }
-        if (requestDto.getReminders() != null) {
-            result.getReminders().forEach(r -> myPageService.deleteReminder(r.getId()));
-            requestDto.getReminders().forEach(reminderDto -> myPageService.addReminder(userId, reminderDto));
-        }
-
-        LocalDateTime updatedAt = result.getUpdatedAt();
-        return ResponseEntity.ok(new MyPageUpdateResponseDto("마이페이지가 성공적으로 수정되었습니다.", updatedAt));
+        return ResponseEntity.ok(response);
     }
+
 
     @PostMapping("initialize")
     public ResponseEntity<MyPageUpdateResponseDto> initializeMyPage(@AuthenticationPrincipal PrincipalDetails principalDetails) {

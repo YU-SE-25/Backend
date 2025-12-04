@@ -61,3 +61,8 @@ servlet:
   multipart:
     max-file-size: 100MB
     max-request-size: 500MB
+app:
+  upload:
+    testcase-dir: uploads/testcases
+    avatar-dir: uploads/avatars 
+

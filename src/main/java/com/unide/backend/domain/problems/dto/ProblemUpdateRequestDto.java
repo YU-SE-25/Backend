@@ -11,12 +11,13 @@ import com.unide.backend.domain.problems.entity.ProblemStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 import jakarta.validation.constraints.NotNull;
 
 import org.springframework.web.multipart.MultipartFile;
 
-@Getter
+@Getter @Setter
 @NoArgsConstructor
 public class ProblemUpdateRequestDto {
     @NotBlank(message = "문제 제목은 필수입니다")

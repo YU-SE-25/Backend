@@ -5,10 +5,14 @@ package com.unide.backend.domain.problems.repository;
 import com.unide.backend.domain.problems.entity.Problems;
 import com.unide.backend.domain.problems.entity.TestCase;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+@Repository
 public interface TestCaseRepository extends JpaRepository<TestCase, Long> {
-    // 특정 문제의 모든 테스트 케이스 조회
+
+    void deleteByProblem(Problems problem);
+
     List<TestCase> findAllByProblem(Problems problem);
 }

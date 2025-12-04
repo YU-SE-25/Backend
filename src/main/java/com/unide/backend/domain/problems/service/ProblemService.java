@@ -2,20 +2,27 @@
 
 package com.unide.backend.domain.problems.service;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.SpringTemplateEngine;
+import org.springframework.beans.factory.annotation.Value;
 
-import com.unide.backend.common.mail.MailService;
 import com.unide.backend.domain.problems.dto.ProblemCreateRequestDto;
 import com.unide.backend.domain.problems.dto.ProblemDetailResponseDto;
 import com.unide.backend.domain.problems.dto.ProblemResponseDto;
@@ -30,16 +37,24 @@ import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.entity.UserRole;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ProblemService {
-    private final MailService mailService;
+    @Value("${app.upload.testcase-dir}")
+    private String testcaseUploadDir;
+
+    private final JavaMailSender mailSender;
+	private final SpringTemplateEngine templateEngine;
     
     private final ProblemsRepository problemsRepository;
     private final SubmissionsRepository submissionsRepository;
+    private final TestCaseRepository testCaseRepository;
     
     /** 상태별 문제 조회 (매니저용) */
     public Page<ProblemResponseDto> getProblemsByStatus(com.unide.backend.domain.problems.entity.ProblemStatus status, Pageable pageable) {
@@ -55,132 +70,182 @@ public class ProblemService {
     
     /** 문제 등록 */
     @Transactional
-    public Long createProblem(User user, ProblemCreateRequestDto requestDto) {
-        validateInstructorOrManager(user);
+    public Long createProblem(User user, ProblemCreateRequestDto dto) {
+        
 
-        // 1. 파일 저장
-        MultipartFile testcaseFile = requestDto.getTestcaseFile();
-        String testcaseFilePath = saveTestcaseFile(testcaseFile);
-
-        // 2. 엔티티 생성 시 경로 할당
+        // (1) 엔티티 생성
         Problems problem = Problems.builder()
                 .createdBy(user)
-                .title(requestDto.getTitle())
-                .description(requestDto.getDescription())
-                .inputOutputExample(requestDto.getInputOutputExample())
-                .difficulty(requestDto.getDifficulty())
-                .timeLimit(requestDto.getTimeLimit())
-                .memoryLimit(requestDto.getMemoryLimit())
-                .status(requestDto.getStatus())
-                .tags(requestDto.getTags())
-                .hint(requestDto.getHint())
-                .source(requestDto.getSource())
-                .testcaseFilePath(testcaseFilePath)
+                .title(dto.getTitle())
+                .description(dto.getDescription())
+                .inputOutputExample(dto.getInputOutputExample())
+                .difficulty(dto.getDifficulty())
+                .timeLimit(dto.getTimeLimit())
+                .memoryLimit(dto.getMemoryLimit())
+                .status(dto.getStatus())
+                .tags(dto.getTags())
+                .hint(dto.getHint())
+                .source(dto.getSource())
                 .build();
 
-        Problems savedProblem = problemsRepository.save(problem);
+        problemsRepository.save(problem);
 
-        // 테스트케이스 저장
-        try {
-            parseAndSaveTestCases(requestDto.getTestcaseFile(), savedProblem);
-        } catch (IOException e) {
-            throw new RuntimeException("테스트케이스 파싱/저장 중 오류 발생", e);
+        // (2) 테스트케이스 파일 저장 + 파싱 → TestCase 엔티티 저장
+        if (dto.getTestcaseFile() != null && !dto.getTestcaseFile().isEmpty()) {
+            String path = saveTestcaseFile(dto.getTestcaseFile());
+            problem.updateTestcaseFilePath(path);
+
+            List<TestCase> parsedCases = parseTestCases(dto.getTestcaseFile());
+            parsedCases.forEach(tc -> tc.setProblem(problem));
+            testCaseRepository.saveAll(parsedCases);
         }
 
-        return savedProblem.getId();
+        return problem.getId();
     }
 
-    // 파일 저장 메서드 예시
-    private String saveTestcaseFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("테스트케이스 파일이 필요합니다.");
-        }
-        String uploadDir = "/uploads/testcases/";
-        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-        File dest = new File(uploadDir + fileName);
-        try {
-            file.transferTo(dest);
-        } catch (IOException e) {
-            throw new RuntimeException("테스트케이스 파일 저장 실패", e);
-        }
-        return dest.getPath();
-    }
-
-    @Autowired
-    private TestCaseRepository testCaseRepository;
-
-    private List<TestCase> parseAndSaveTestCases(MultipartFile file, Problems problem) throws IOException {
-        String content = new String(file.getBytes(), StandardCharsets.UTF_8);
-        String[] cases = content.split("===\\s*");
-        List<TestCase> testCases = new ArrayList<>();
-        for (String testCaseBlock : cases) {
-            String[] io = testCaseBlock.split("---\\s*");
-            if (io.length == 2) {
-                TestCase testCase = TestCase.builder()
-                    .problem(problem)
-                    .input(io[0].trim())
-                    .output(io[1].trim())
-                    .build();
-                testCases.add(testCaseRepository.save(testCase));
-            }
-        }
-        return testCases;
-    }
     /** 문제 수정 */
     @Transactional
-    public void updateProblem(User user, Long problemId, ProblemUpdateRequestDto requestDto) {
+    public void updateProblem(User user, Long problemId, ProblemUpdateRequestDto dto) {
         validateInstructorOrManager(user);
-        
         Problems problem = problemsRepository.findById(problemId)
-                .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다"));
-        
-        if (requestDto.getTitle() != null) {
-            problem.updateTitle(requestDto.getTitle());
+                .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다."));
+
+        // 엔티티 업데이트
+        if (dto.getTitle() != null) problem.updateTitle(dto.getTitle());
+        if (dto.getDescription() != null) problem.updateDescription(dto.getDescription());
+        if (dto.getInputOutputExample() != null) problem.updateInputOutputExample(dto.getInputOutputExample());
+        if (dto.getDifficulty() != null) problem.updateDifficulty(dto.getDifficulty());
+        if (dto.getTimeLimit() != null) problem.updateTimeLimit(dto.getTimeLimit());
+        if (dto.getMemoryLimit() != null) problem.updateMemoryLimit(dto.getMemoryLimit());
+        if (dto.getStatus() != null) problem.updateStatus(dto.getStatus());
+        if (dto.getHint() != null) problem.updateHint(dto.getHint());
+        if (dto.getSource() != null) problem.updateSource(dto.getSource());
+        if (dto.getTags() != null) problem.updateTags(dto.getTags());
+
+        // 테스트케이스 파일이 새로 들어온 경우
+        if (dto.getTestcaseFile() != null && !dto.getTestcaseFile().isEmpty()) {
+
+            // 기존 테스트케이스 제거
+            testCaseRepository.deleteByProblem(problem);
+
+            // 새 파일 저장
+            String newPath = saveTestcaseFile(dto.getTestcaseFile());
+            problem.updateTestcaseFilePath(newPath);
+
+            // 새 파일 파싱
+            List<TestCase> newCases = parseTestCases(dto.getTestcaseFile());
+            newCases.forEach(tc -> tc.setProblem(problem));
+            testCaseRepository.saveAll(newCases);
         }
-        if (requestDto.getDescription() != null) {
-            problem.updateDescription(requestDto.getDescription());
-        }
-        if (requestDto.getInputOutputExample() != null) {
-            problem.updateInputOutputExample(requestDto.getInputOutputExample());
-        }
-        if (requestDto.getDifficulty() != null) {
-            problem.updateDifficulty(requestDto.getDifficulty());
-        }
-        if (requestDto.getTimeLimit() != null) {
-            problem.updateTimeLimit(requestDto.getTimeLimit());
-        }
-        if (requestDto.getMemoryLimit() != null) {
-            problem.updateMemoryLimit(requestDto.getMemoryLimit());
-        }
-        if (requestDto.getTestcaseFile() != null) {
-            String testcaseFilePath = saveTestcaseFile(requestDto.getTestcaseFile());
-            problem.updateTestcaseFilePath(testcaseFilePath);
+    
+        if(user.getRole() == UserRole.MANAGER) {
+            User creator = problem.getCreatedBy();
             try {
-                parseAndSaveTestCases(requestDto.getTestcaseFile(), problem);
-            } catch (IOException e) {
-                throw new RuntimeException("테스트케이스 파싱/저장 중 오류 발생", e);
+                MimeMessage mimeMessage = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+                Context context = new Context();
+                context.setVariable("name", creator.getNickname());
+                context.setVariable("problemTitle", problem.getTitle());
+                context.setVariable("problemDetailUrl", "http://localhost:3000/problems/" + problem.getId());
+
+                String html = templateEngine.process("problem-modified-email.html", context);
+
+                helper.setTo(creator.getEmail()); // 받는 사람
+                helper.setSubject("[Unide] 문제가 수정 안내"); // 제목
+                helper.setText(html, true); // 본문 (true는 이 내용이 HTML임을 의미)
+
+                mailSender.send(mimeMessage); // 최종 발송
+            } catch (MessagingException e) {
+                throw new RuntimeException("이메일 발송에 실패했습니다.", e);
             }
         }
-        if (requestDto.getStatus() != null) {
-            problem.updateStatus(requestDto.getStatus());
-        }
-        if (requestDto.getTags() != null) {
-            problem.updateTags(requestDto.getTags());
-        }
-        if (requestDto.getHint() != null) {
-            problem.updateHint(requestDto.getHint());
-        }
-        if (requestDto.getSource() != null) {
-            problem.updateSource(requestDto.getSource());
+    }
+    
+    private String saveTestcaseFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("테스트케이스 파일이 비어 있습니다.");
         }
 
-        // 매니저가 수정한 경우 등록한 강사에게 이메일 전송
-        if (user.getRole() == UserRole.MANAGER) {
-            User creator = problem.getCreatedBy();
-            String to = creator.getEmail();
-            String subject = "[UnIDE] 등록한 문제가 수정되었습니다";
-            String body = String.format("안녕하세요, %s님.\n\n등록하신 문제 '%s'가 매니저에 의해 수정되었습니다.\n\n확인 부탁드립니다.", creator.getName(), problem.getTitle());
-            mailService.sendEmail(to, subject, body);
+        try {
+            // 1. 업로드 디렉토리 준비
+            Path uploadPath = Paths.get(testcaseUploadDir).toAbsolutePath().normalize();
+            Files.createDirectories(uploadPath);
+
+            // 2. 파일명 정제(cleanPath)
+            String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
+            if (originalFilename.contains("..")) {
+                throw new IllegalArgumentException("파일명에 '..' 문자를 포함할 수 없습니다.");
+            }
+
+            // 3. 새로운 파일명 생성
+            String newFilename = System.currentTimeMillis() + "_" + originalFilename;
+
+            // 4. 저장 위치 생성
+            Path targetLocation = uploadPath.resolve(newFilename);
+
+            // 5. 파일 저장
+            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+
+            // 6. DB에는 절대경로를 문자열로 보관
+            return targetLocation.toString();
+
+        } catch (IOException e) {
+            throw new RuntimeException("테스트케이스 파일 저장 실패: " + e.getMessage(), e);
+        }
+    }
+    
+    private List<TestCase> parseTestCases(MultipartFile file) {
+        try {
+            String content = new String(file.getBytes(), StandardCharsets.UTF_8).trim();
+
+            if (content.isEmpty()) {
+                throw new IllegalArgumentException("테스트케이스 파일 내용이 비어 있습니다.");
+            }
+
+            // 테스트케이스 블록 분리
+            String[] blocks = content.split("===\\s*");
+
+            List<TestCase> testCases = new ArrayList<>();
+
+            for (String block : blocks) {
+                String trimmedBlock = block.trim();
+                if (trimmedBlock.isEmpty()) continue; // 빈 라인 skip
+
+                // input/output 분리
+                String[] io = trimmedBlock.split("---\\s*");
+                if (io.length != 2) {
+                    throw new IllegalArgumentException(
+                            "테스트케이스 형식이 잘못되었습니다. \n" +
+                            "다음 블록에서 오류가 발생했습니다:\n" + trimmedBlock
+                    );
+                }
+
+                String input = io[0].trim();
+                String output = io[1].trim();
+
+                if (input.isEmpty() || output.isEmpty()) {
+                    throw new IllegalArgumentException(
+                            "테스트케이스 입력 또는 출력이 비어 있습니다:\n" + trimmedBlock
+                    );
+                }
+
+                TestCase testCase = TestCase.builder()
+                        .input(input)
+                        .output(output)
+                        .build();
+
+                testCases.add(testCase);
+            }
+
+            if (testCases.isEmpty()) {
+                throw new IllegalArgumentException("유효한 테스트케이스가 하나도 없습니다.");
+            }
+
+            return testCases;
+
+        } catch (IOException e) {
+            throw new RuntimeException("테스트케이스 파일 읽기 실패", e);
         }
     }
     
@@ -338,10 +403,26 @@ public class ProblemService {
         
         // 등록자에게 메일 전송
         User creator = problem.getCreatedBy();
-        String to = creator.getEmail();
-        String subject = "등록한 문제가 승인되었습니다";
-        String body = String.format("안녕하세요, %s님.\n\n등록하신 문제 '%s'가 승인되었습니다.", creator.getName(), problem.getTitle());
-        mailService.sendEmail(to, subject, body);
+        try {
+			MimeMessage mimeMessage = mailSender.createMimeMessage();
+			MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+			Context context = new Context();
+			context.setVariable("name", creator.getNickname());
+			context.setVariable("problemTitle", problem.getTitle());
+			context.setVariable("problemDetailUrl", "http://localhost:3000/problems/detail/" + problem.getId());
+
+			String html = templateEngine.process("problem-approved-email.html", context);
+
+			helper.setTo(creator.getEmail()); // 받는 사람
+			helper.setSubject("[Unide] 문제 승인 안내"); // 제목
+	
+            helper.setText(html, true); // 본문 (true는 이 내용이 HTML임을 의미)
+
+			mailSender.send(mimeMessage); // 최종 발송
+		} catch (MessagingException e) {
+			throw new RuntimeException("이메일 발송에 실패했습니다.", e);
+		}
     }
 
     /** 문제 반려(거절) */
@@ -350,11 +431,28 @@ public class ProblemService {
         Problems problem = problemsRepository.findById(problemId)
             .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다"));
         problem.updateStatus(com.unide.backend.domain.problems.entity.ProblemStatus.REJECTED);
+        
         // 등록자에게 메일 전송
         User creator = problem.getCreatedBy();
-        String to = creator.getEmail();
-        String subject = "등록한 문제가 반려되었습니다";
-        String body = String.format("안녕하세요, %s님.\n\n등록하신 문제 '%s'가 반려되었습니다.", creator.getName(), problem.getTitle());
-        mailService.sendEmail(to, subject, body);
+        try {
+			MimeMessage mimeMessage = mailSender.createMimeMessage();
+			MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+			Context context = new Context();
+			context.setVariable("name", creator.getNickname());
+			context.setVariable("problemTitle", problem.getTitle());
+			context.setVariable("problemDetailUrl", "http://localhost:3000/problems/detail/" + problem.getId());
+
+			String html = templateEngine.process("problem-rejected-email.html", context);
+
+			helper.setTo(creator.getEmail()); // 받는 사람
+			helper.setSubject("[Unide] 문제 반려 안내"); // 제목
+	
+            helper.setText(html, true); // 본문 (true는 이 내용이 HTML임을 의미)
+
+			mailSender.send(mimeMessage); // 최종 발송
+		} catch (MessagingException e) {
+			throw new RuntimeException("이메일 발송에 실패했습니다.", e);
+		}
     }
 }
