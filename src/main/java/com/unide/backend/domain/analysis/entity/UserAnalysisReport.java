@@ -24,27 +24,31 @@ public class UserAnalysisReport extends BaseTimeEntity {
     private User user;
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String summary; // 종합 요약
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String strengths; // 장점 (JSON Array 문자열로 저장)
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String weaknesses; // 단점/개선점 (JSON Array 문자열로 저장)
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String suggestions; // 추천 학습 키워드 (JSON Array 문자열로 저장)
 
+    @Column(nullable = false)
+    private int analyzedSolvedCount;
+
     @Builder
-    public UserAnalysisReport(User user, String summary, String strengths, String weaknesses, String suggestions) {
+    public UserAnalysisReport(User user, String summary, String strengths, String weaknesses, String suggestions, int analyzedSolvedCount) {
         this.user = user;
         this.summary = summary;
         this.strengths = strengths;
         this.weaknesses = weaknesses;
         this.suggestions = suggestions;
+        this.analyzedSolvedCount = analyzedSolvedCount;
     }
 }
