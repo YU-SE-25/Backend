@@ -70,47 +70,54 @@ public class ProblemService {
     
     /** 문제 등록 */
     @Transactional
-    public Long createProblem(User user, ProblemCreateRequestDto dto) {
-        
+    public Long createProblem(User user, ProblemCreateRequestDto requestDto, MultipartFile testcaseFile) {
 
-        // (1) 엔티티 생성
+        if (testcaseFile == null || testcaseFile.isEmpty()) {
+            throw new IllegalArgumentException("테스트케이스 파일은 필수입니다.");
+        }
+
+        String path = saveTestcaseFile(testcaseFile);
+
         Problems problem = Problems.builder()
                 .createdBy(user)
-                .title(dto.getTitle())
-                .description(dto.getDescription())
-                .inputOutputExample(dto.getInputOutputExample())
-                .difficulty(dto.getDifficulty())
-                .timeLimit(dto.getTimeLimit())
-                .memoryLimit(dto.getMemoryLimit())
-                .status(dto.getStatus())
-                .tags(dto.getTags())
-                .hint(dto.getHint())
-                .source(dto.getSource())
+                .title(requestDto.getTitle())
+                .description(requestDto.getDescription())
+                .inputOutputExample(requestDto.getInputOutputExample())
+                .difficulty(requestDto.getDifficulty())
+                .timeLimit(requestDto.getTimeLimit())
+                .memoryLimit(requestDto.getMemoryLimit())
+                .status(requestDto.getStatus())
+                .tags(requestDto.getTags())
+                .hint(requestDto.getHint())
+                .source(requestDto.getSource())
+                .testcaseFilePath(path)
                 .build();
 
         problemsRepository.save(problem);
 
-        // (2) 테스트케이스 파일 저장 + 파싱 → TestCase 엔티티 저장
-        if (dto.getTestcaseFile() != null && !dto.getTestcaseFile().isEmpty()) {
-            String path = saveTestcaseFile(dto.getTestcaseFile());
-            problem.updateTestcaseFilePath(path);
-
-            List<TestCase> parsedCases = parseTestCases(dto.getTestcaseFile());
-            parsedCases.forEach(tc -> tc.setProblem(problem));
-            testCaseRepository.saveAll(parsedCases);
-        }
+        parseAndSaveTestCases(testcaseFile, problem);
 
         return problem.getId();
     }
 
+    private void parseAndSaveTestCases(MultipartFile file, Problems problem) {
+        List<TestCase> testCases = parseTestCases(file);
+        for (TestCase testCase : testCases) {
+            testCase.setProblem(problem);
+        }
+        testCaseRepository.saveAll(testCases);
+    }
+
     /** 문제 수정 */
     @Transactional
-    public void updateProblem(User user, Long problemId, ProblemUpdateRequestDto dto) {
+    public void updateProblem(User user, Long problemId, ProblemUpdateRequestDto dto, MultipartFile newFile) {
+
         validateInstructorOrManager(user);
+
         Problems problem = problemsRepository.findById(problemId)
                 .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다."));
 
-        // 엔티티 업데이트
+        // 값 수정
         if (dto.getTitle() != null) problem.updateTitle(dto.getTitle());
         if (dto.getDescription() != null) problem.updateDescription(dto.getDescription());
         if (dto.getInputOutputExample() != null) problem.updateInputOutputExample(dto.getInputOutputExample());
@@ -122,22 +129,16 @@ public class ProblemService {
         if (dto.getSource() != null) problem.updateSource(dto.getSource());
         if (dto.getTags() != null) problem.updateTags(dto.getTags());
 
-        // 테스트케이스 파일이 새로 들어온 경우
-        if (dto.getTestcaseFile() != null && !dto.getTestcaseFile().isEmpty()) {
+        // 테스트케이스 수정
+        if (newFile != null && !newFile.isEmpty()) {
 
-            // 기존 테스트케이스 제거
             testCaseRepository.deleteByProblem(problem);
 
-            // 새 파일 저장
-            String newPath = saveTestcaseFile(dto.getTestcaseFile());
+            String newPath = saveTestcaseFile(newFile);
             problem.updateTestcaseFilePath(newPath);
 
-            // 새 파일 파싱
-            List<TestCase> newCases = parseTestCases(dto.getTestcaseFile());
-            newCases.forEach(tc -> tc.setProblem(problem));
-            testCaseRepository.saveAll(newCases);
+            parseTestCases(newFile).forEach(tc -> tc.setProblem(problem));
         }
-    
         if(user.getRole() == UserRole.MANAGER) {
             User creator = problem.getCreatedBy();
             try {
