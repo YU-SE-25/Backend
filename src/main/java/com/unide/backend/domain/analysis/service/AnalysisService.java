@@ -55,8 +55,8 @@ public class AnalysisService {
                 return convertToDto(lastReport);
             }
         } else {
-            if (currentSolvedCount < 5) {
-                throw new IllegalArgumentException("분석을 위한 데이터가 부족합니다. 최소 5문제 이상 해결한 뒤 시도해주세요.");
+            if (currentSolvedCount < 10) {
+                throw new IllegalArgumentException("분석을 위한 데이터가 부족합니다. 최소 10문제 이상 해결한 뒤 시도해주세요.");
             }
         }
 
@@ -90,9 +90,10 @@ public class AnalysisService {
         String jsonResponse = llmService.getResponse(userPrompt, systemInstruction);
         HabitAnalysisResponseDto resultDto;
         try {
-            resultDto = objectMapper.readValue(jsonResponse, HabitAnalysisResponseDto.class);
+            String cleanJson = extractJson(jsonResponse); 
+            resultDto = objectMapper.readValue(cleanJson, HabitAnalysisResponseDto.class);
         } catch (JsonProcessingException e) {
-            log.error("LLM 응답 파싱 실패", e);
+            log.error("LLM 응답 파싱 실패. 원본: {}", jsonResponse, e);
             throw new RuntimeException("AI 분석 결과를 처리하는 중 오류가 발생했습니다.");
         }
 
@@ -169,9 +170,10 @@ public class AnalysisService {
 
         ComplexityAnalysisResponseDto resultDto;
         try {
-            resultDto = objectMapper.readValue(jsonResponse, ComplexityAnalysisResponseDto.class);
+            String cleanJson = extractJson(jsonResponse);
+            resultDto = objectMapper.readValue(cleanJson, ComplexityAnalysisResponseDto.class);
         } catch (JsonProcessingException e) {
-            log.error("LLM 복잡도 분석 응답 파싱 실패", e);
+            log.error("LLM 복잡도 분석 응답 파싱 실패. 원본: {}", jsonResponse, e);
             throw new RuntimeException("AI 분석 결과를 처리하는 중 오류가 발생했습니다.");
         }
 
@@ -224,9 +226,10 @@ public class AnalysisService {
 
         FlowchartResponseDto resultDto;
         try {
-            resultDto = objectMapper.readValue(jsonResponse, FlowchartResponseDto.class);
+            String cleanJson = extractJson(jsonResponse);
+            resultDto = objectMapper.readValue(cleanJson, FlowchartResponseDto.class);
         } catch (JsonProcessingException e) {
-            log.error("LLM 플로우 차트 응답 파싱 실패: {}", jsonResponse, e);
+            log.error("LLM 플로우 차트 응답 파싱 실패. 원본: {}", jsonResponse, e);
             throw new RuntimeException("플로우 차트를 생성하는 중 오류가 발생했습니다.");
         }
 
@@ -238,5 +241,18 @@ public class AnalysisService {
         submissionFlowchartRepository.save(entity);
 
         return resultDto;
+    }
+
+    private String extractJson(String response) {
+        response = response.replace("```json", "").replace("```", "");
+        
+        int firstBrace = response.indexOf("{");
+        int lastBrace = response.lastIndexOf("}");
+        
+        if (firstBrace != -1 && lastBrace != -1) {
+            return response.substring(firstBrace, lastBrace + 1);
+        }
+        
+        return response;
     }
 }
