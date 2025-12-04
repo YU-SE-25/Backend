@@ -2,6 +2,8 @@
 
 package com.unide.backend.domain.problems.repository;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -26,6 +28,9 @@ public interface ProblemsRepository extends JpaRepository<Problems, Long> {
     @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END " +
            "FROM Submissions s WHERE s.user.id = :userId AND s.problem.id = :problemId AND s.status = 'CA'")
     boolean isSolvedByUser(@Param("userId") Long userId, @Param("problemId") Long problemId);
+
+    @Query("SELECT p FROM Problems p WHERE p.id IN :ids")
+    Page<Problems> findAllById(@Param("ids") List<Long> ids, Pageable pageable);
 
     // 태그 포함 문제 조회
     Page<Problems> findByTagsInAndStatus(java.util.List<com.unide.backend.domain.problems.entity.ProblemTag> tags, com.unide.backend.domain.problems.entity.ProblemStatus status, Pageable pageable);

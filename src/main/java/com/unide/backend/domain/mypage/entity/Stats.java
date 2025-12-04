@@ -36,11 +36,12 @@ public class Stats extends BaseTimeEntity {
     private Integer ranking;
     private int previousRanking; // 이전 순위
     private Integer rating;
-    private Double score; // 복합 점수 (순위 계산용)
-
+    private int previousRating; 
+    private Integer weeklyRating; // 일주일 전 평판
+    
     @Builder
     public Stats(User user, Integer totalSolved, Integer totalSubmitted,
-                 Double acceptanceRate, Integer streakDays, Integer ranking, int previousRanking, Integer rating, Double score) {
+                 Double acceptanceRate, Integer streakDays, Integer ranking, int previousRanking, Integer rating, int previousRating, Integer weeklyRating) {
         this.user = user;
         this.totalSolved = totalSolved;
         this.totalSubmitted = totalSubmitted;
@@ -49,20 +50,29 @@ public class Stats extends BaseTimeEntity {
         this.ranking = ranking;
         this.previousRanking = previousRanking; // 이전 순위
         this.rating = rating;
-        this.score = score;
+        this.previousRating = previousRating;
+        this.weeklyRating = weeklyRating;
     }
 
     public void updateTotalSolved(Integer v) { this.totalSolved = v; }
     public void updateTotalSubmitted(Integer v) { this.totalSubmitted = v; }
     public void updateAcceptanceRate(Double v) { this.acceptanceRate = v; }
     public void updateStreakDays(Integer v) { this.streakDays = v; }
-    public void updateRating(Integer v) { this.rating = v; }
-    public void updateScore(Double score) {
-        this.score = score;
-    }
 
     public void updateRanking(int newRanking) {
         this.previousRanking = this.ranking; // 이전 순위를 저장
         this.ranking = newRanking; // 새로운 순위 설정
+    }
+    public void updateRating(int newRating) {
+        this.previousRating = this.rating;
+        this.rating = newRating;
+    }
+
+    public void updateWeeklySnapshot() {
+        this.weeklyRating = this.rating;
+    }
+
+    public int getWeeklyRatingDelta() {
+        return (rating != null ? rating : 0) - (weeklyRating != null ? weeklyRating : 0);
     }
 }

@@ -15,6 +15,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class StatsController {
 
+    /**
+     * 주간 평판 변화량 리스트 조회 (내림차순)
+     */
+    @GetMapping("/weekly-rating-delta-list")
+    public ResponseEntity<java.util.List<StatsService.WeeklyRatingDeltaDto>> getWeeklyRatingDeltaList() {
+        return ResponseEntity.ok(statsService.getWeeklyRatingDeltaList());
+    }
+
     private final StatsService statsService;
 
     /** 내 통계 조회 */

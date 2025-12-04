@@ -24,6 +24,43 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ReportController {
 
+    /** 신고 승인 (관리자만) */
+    @PutMapping("/{reportId}/approve")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<?> approveReport(@PathVariable Long reportId) {
+        reportService.updateReportStatus(reportId, com.unide.backend.domain.report.entity.ReportStatus.APPROVED);
+        return ResponseEntity.ok("신고가 승인되었습니다.");
+    }
+
+    /** 신고 거절 (관리자만) */
+    @PutMapping("/{reportId}/reject")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<?> rejectReport(@PathVariable Long reportId) {
+        reportService.updateReportStatus(reportId, com.unide.backend.domain.report.entity.ReportStatus.REJECTED);
+        return ResponseEntity.ok("신고가 반려되었습니다.");
+    }
+
+    /**
+     * 신고 상태 변경 (승인/거절 등)
+     * 예시: PATCH /api/reports/{reportId}/status
+     * body: { "status": "APPROVED" } 또는 { "status": "REJECTED" }
+     */
+    @PatchMapping("/{reportId}/status")
+    public ResponseEntity<?> updateReportStatus(
+            @PathVariable Long reportId,
+            @RequestBody StatusUpdateRequest request
+    ) {
+        reportService.updateReportStatus(reportId, request.getStatus());
+        return ResponseEntity.ok("신고 상태가 변경되었습니다.");
+    }
+
+    /** 신고 상태 변경 요청 DTO */
+    @lombok.Getter
+    @lombok.NoArgsConstructor
+    public static class StatusUpdateRequest {
+        private com.unide.backend.domain.report.entity.ReportStatus status;
+    }
+
     private final ReportService reportService;
 
     /**
