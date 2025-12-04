@@ -52,8 +52,8 @@ public class StatsService {
                 .streakDays(stats.getStreakDays())
                 .ranking(stats.getRanking())
                 .rating(stats.getRating())
-                .delta(stats.getPreviousRanking() - stats.getRanking()) // 이전 순위 - 현재 순위
-                .ratingDelta(stats.getPreviousRating() - stats.getRating()) // 이전 평판 점수 - 현재 평판 점수
+                .delta(stats.getRanking()- stats.getPreviousRanking()) // 이전 순위 - 현재 순위
+                .ratingDelta(stats.getRating() - stats.getPreviousRating()) // 이전 평판 점수 - 현재 평판 점수
                 .weeklyRatingDelta(getWeeklyRatingDelta(userId))
                 .build();
     }

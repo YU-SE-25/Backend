@@ -85,8 +85,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/UNIDE/rank/**").permitAll()
 
                 // 마이페이지 수정/삭제는 인증 필요 (PATCH, DELETE)
-                .requestMatchers("PATCH", "/api/mypage/me").authenticated()
-                .requestMatchers("DELETE", "/api/mypage/me").authenticated()
+                .requestMatchers("POST", "/api/mypage/initialize").authenticated()
+                .requestMatchers("PATCH", "/api/mypage").authenticated()
+                .requestMatchers("DELETE", "/api/mypage").authenticated()
                 
                 // 2) 스터디 그룹 목록 조회만 오픈
                  .requestMatchers(HttpMethod.GET, "/api/studygroup/**").permitAll()
