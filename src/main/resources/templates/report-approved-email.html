@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>[Unide] 신고 승인 안내</title>
+</head>
+<body style="background-color: #e8f5e9; font-family: Arial, sans-serif; margin: 0; padding: 20px;">
+    <div style="max-width: 600px; margin: 40px auto; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.08); border: 1px solid #c8e6c9; text-align: center; padding: 40px;">
+        <h1 style="color: #4CAF50; margin-bottom: 25px;">신고가 승인되었습니다!</h1>
+        <p style="font-size: 16px; color: #333;">
+            <b th:text="${name}">사용자</b>님, 신고하신 내용이 <b>승인</b> 처리되었습니다.<br>
+            서비스 정책에 따라 조치가 있을 수 있습니다.<br>
+            <span th:if="${reason}" style="display:block; margin-top:10px;">사유: <span th:text="${reason}">사유</span></span>
+        </p>
+        <a th:href="${MyReportUrl}"
+           target="_blank"
+           style="display: inline-block; padding: 12px 28px; margin: 25px 0; font-size: 17px; font-weight: bold; color: #fff; background-color: #4CAF50; text-decoration: none; border-radius: 5px;">
+            신고 상세 바로가기
+        </a>
+        <hr style="border: none; border-top: 1px solid #c8e6c9; margin: 30px 0;">
+        <p style="font-size: 12px; color: #999;">
+            본 이메일은 신고 승인 알림을 위해 발송되었습니다.
+        </p>
+    </div>
+</body>
+</html>

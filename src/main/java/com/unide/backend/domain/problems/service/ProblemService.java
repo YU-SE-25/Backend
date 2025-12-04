@@ -11,11 +11,14 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.SpringTemplateEngine;
 
-import com.unide.backend.common.mail.MailService;
 import com.unide.backend.domain.problems.dto.ProblemCreateRequestDto;
 import com.unide.backend.domain.problems.dto.ProblemDetailResponseDto;
 import com.unide.backend.domain.problems.dto.ProblemResponseDto;
@@ -30,13 +33,16 @@ import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.entity.UserRole;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ProblemService {
-    private final MailService mailService;
+    private final JavaMailSender mailSender;
+	private final SpringTemplateEngine templateEngine;
     
     private final ProblemsRepository problemsRepository;
     private final SubmissionsRepository submissionsRepository;
@@ -177,10 +183,25 @@ public class ProblemService {
         // 매니저가 수정한 경우 등록한 강사에게 이메일 전송
         if (user.getRole() == UserRole.MANAGER) {
             User creator = problem.getCreatedBy();
-            String to = creator.getEmail();
-            String subject = "[UnIDE] 등록한 문제가 수정되었습니다";
-            String body = String.format("안녕하세요, %s님.\n\n등록하신 문제 '%s'가 매니저에 의해 수정되었습니다.\n\n확인 부탁드립니다.", creator.getName(), problem.getTitle());
-            mailService.sendEmail(to, subject, body);
+                try {
+                    MimeMessage mimeMessage = mailSender.createMimeMessage();
+                    MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+                    Context context = new Context();
+                    context.setVariable("name", creator.getNickname());
+                    context.setVariable("problemTitle", problem.getTitle());
+                    context.setVariable("problemDetailUrl", "http://localhost:3000/problems/" + problem.getId());
+
+                    String html = templateEngine.process("problem-modified-email.html", context);
+
+                    helper.setTo(creator.getEmail()); // 받는 사람
+                    helper.setSubject("[Unide] 문제가 수정 안내"); // 제목
+                    helper.setText(html, true); // 본문 (true는 이 내용이 HTML임을 의미)
+
+                    mailSender.send(mimeMessage); // 최종 발송
+                } catch (MessagingException e) {
+                    throw new RuntimeException("이메일 발송에 실패했습니다.", e);
+                }
         }
     }
     
@@ -338,10 +359,26 @@ public class ProblemService {
         
         // 등록자에게 메일 전송
         User creator = problem.getCreatedBy();
-        String to = creator.getEmail();
-        String subject = "등록한 문제가 승인되었습니다";
-        String body = String.format("안녕하세요, %s님.\n\n등록하신 문제 '%s'가 승인되었습니다.", creator.getName(), problem.getTitle());
-        mailService.sendEmail(to, subject, body);
+        try {
+			MimeMessage mimeMessage = mailSender.createMimeMessage();
+			MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+			Context context = new Context();
+			context.setVariable("name", creator.getNickname());
+			context.setVariable("problemTitle", problem.getTitle());
+			context.setVariable("problemDetailUrl", "http://localhost:3000/problems/detail/" + problem.getId());
+
+			String html = templateEngine.process("problem-approved-email.html", context);
+
+			helper.setTo(creator.getEmail()); // 받는 사람
+			helper.setSubject("[Unide] 문제 승인 안내"); // 제목
+	
+            helper.setText(html, true); // 본문 (true는 이 내용이 HTML임을 의미)
+
+			mailSender.send(mimeMessage); // 최종 발송
+		} catch (MessagingException e) {
+			throw new RuntimeException("이메일 발송에 실패했습니다.", e);
+		}
     }
 
     /** 문제 반려(거절) */
@@ -350,11 +387,28 @@ public class ProblemService {
         Problems problem = problemsRepository.findById(problemId)
             .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다"));
         problem.updateStatus(com.unide.backend.domain.problems.entity.ProblemStatus.REJECTED);
+        
         // 등록자에게 메일 전송
         User creator = problem.getCreatedBy();
-        String to = creator.getEmail();
-        String subject = "등록한 문제가 반려되었습니다";
-        String body = String.format("안녕하세요, %s님.\n\n등록하신 문제 '%s'가 반려되었습니다.", creator.getName(), problem.getTitle());
-        mailService.sendEmail(to, subject, body);
+        try {
+			MimeMessage mimeMessage = mailSender.createMimeMessage();
+			MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+			Context context = new Context();
+			context.setVariable("name", creator.getNickname());
+			context.setVariable("problemTitle", problem.getTitle());
+			context.setVariable("problemDetailUrl", "http://localhost:3000/problems/detail/" + problem.getId());
+
+			String html = templateEngine.process("problem-rejected-email.html", context);
+
+			helper.setTo(creator.getEmail()); // 받는 사람
+			helper.setSubject("[Unide] 문제 반려 안내"); // 제목
+	
+            helper.setText(html, true); // 본문 (true는 이 내용이 HTML임을 의미)
+
+			mailSender.send(mimeMessage); // 최종 발송
+		} catch (MessagingException e) {
+			throw new RuntimeException("이메일 발송에 실패했습니다.", e);
+		}
     }
 }

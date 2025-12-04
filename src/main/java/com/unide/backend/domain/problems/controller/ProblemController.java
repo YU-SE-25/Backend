@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,6 +37,7 @@ import com.unide.backend.domain.problems.service.ProblemService;
 import com.unide.backend.domain.submissions.dto.LongestTimeResponseDto;
 import com.unide.backend.domain.submissions.service.SubmissionService;
 import com.unide.backend.global.security.auth.PrincipalDetails;
+
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -91,7 +93,7 @@ public class ProblemController {
     }
     
     /** 문제 수정 */
-    @PutMapping("/{problemId}")
+    @PatchMapping("/{problemId}")
     @PreAuthorize("hasAnyRole('MANAGER')")
     public ResponseEntity<ProblemCreateResponseDto> updateProblem(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
