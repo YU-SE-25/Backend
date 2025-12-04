@@ -12,6 +12,7 @@ import com.unide.backend.domain.admin.dto.UserListResponseDto;
 import com.unide.backend.domain.admin.dto.BlacklistListResponseDto;
 import com.unide.backend.domain.admin.dto.BlacklistCreateRequestDto;
 import com.unide.backend.domain.admin.dto.BlacklistCreateResponseDto;
+import com.unide.backend.domain.admin.dto.BlacklistDeleteResponseDto;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import jakarta.validation.Valid;
@@ -84,5 +85,12 @@ public class AdminController {
         
         BlacklistCreateResponseDto response = adminService.addToBlacklist(principalDetails.getUser(), requestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @DeleteMapping("/blacklist/{blacklistId}")
+    public ResponseEntity<BlacklistDeleteResponseDto> removeFromBlacklist(@PathVariable Long blacklistId) {
+        BlacklistDeleteResponseDto response = adminService.removeFromBlacklist(blacklistId);
+        
+        return ResponseEntity.ok(response);
     }
 }
