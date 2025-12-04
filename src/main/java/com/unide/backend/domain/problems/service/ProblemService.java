@@ -4,24 +4,24 @@ package com.unide.backend.domain.problems.service;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.springframework.util.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
-import org.springframework.beans.factory.annotation.Value;
 
 import com.unide.backend.domain.problems.dto.ProblemCreateRequestDto;
 import com.unide.backend.domain.problems.dto.ProblemDetailResponseDto;
@@ -72,11 +72,12 @@ public class ProblemService {
     @Transactional
     public Long createProblem(User user, ProblemCreateRequestDto requestDto, MultipartFile testcaseFile) {
 
-        if (testcaseFile == null || testcaseFile.isEmpty()) {
-            throw new IllegalArgumentException("테스트케이스 파일은 필수입니다.");
-        }
+        String path = null;
 
-        String path = saveTestcaseFile(testcaseFile);
+        // 파일이 들어온 경우에만 저장
+        if (testcaseFile != null && !testcaseFile.isEmpty()) {
+            path = saveTestcaseFile(testcaseFile);
+        }
 
         Problems problem = Problems.builder()
                 .createdBy(user)
@@ -95,17 +96,7 @@ public class ProblemService {
 
         problemsRepository.save(problem);
 
-        parseAndSaveTestCases(testcaseFile, problem);
-
         return problem.getId();
-    }
-
-    private void parseAndSaveTestCases(MultipartFile file, Problems problem) {
-        List<TestCase> testCases = parseTestCases(file);
-        for (TestCase testCase : testCases) {
-            testCase.setProblem(problem);
-        }
-        testCaseRepository.saveAll(testCases);
     }
 
     /** 문제 수정 */
@@ -129,16 +120,12 @@ public class ProblemService {
         if (dto.getSource() != null) problem.updateSource(dto.getSource());
         if (dto.getTags() != null) problem.updateTags(dto.getTags());
 
-        // 테스트케이스 수정
+        // 파일이 새로 들어오면 저장 후 경로만 바꾸기
         if (newFile != null && !newFile.isEmpty()) {
-
-            testCaseRepository.deleteByProblem(problem);
-
             String newPath = saveTestcaseFile(newFile);
             problem.updateTestcaseFilePath(newPath);
-
-            parseTestCases(newFile).forEach(tc -> tc.setProblem(problem));
         }
+
         if(user.getRole() == UserRole.MANAGER) {
             User creator = problem.getCreatedBy();
             try {
@@ -162,94 +149,39 @@ public class ProblemService {
             }
         }
     }
-    
     private String saveTestcaseFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("테스트케이스 파일이 비어 있습니다.");
+            return null; // 파일 없으면 그냥 null 저장
         }
 
         try {
-            // 1. 업로드 디렉토리 준비
+            // 업로드 폴더 (application.yml 또는 properties에서 주입받았다고 가정)
             Path uploadPath = Paths.get(testcaseUploadDir).toAbsolutePath().normalize();
             Files.createDirectories(uploadPath);
 
-            // 2. 파일명 정제(cleanPath)
+            // 파일 이름 정리
             String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
             if (originalFilename.contains("..")) {
                 throw new IllegalArgumentException("파일명에 '..' 문자를 포함할 수 없습니다.");
             }
 
-            // 3. 새로운 파일명 생성
+            // 새로운 파일명 생성
             String newFilename = System.currentTimeMillis() + "_" + originalFilename;
 
-            // 4. 저장 위치 생성
+            // 저장 위치
             Path targetLocation = uploadPath.resolve(newFilename);
 
-            // 5. 파일 저장
+            // 파일 저장
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
-            // 6. DB에는 절대경로를 문자열로 보관
+            // DB에는 절대경로 저장
             return targetLocation.toString();
 
         } catch (IOException e) {
             throw new RuntimeException("테스트케이스 파일 저장 실패: " + e.getMessage(), e);
         }
     }
-    
-    private List<TestCase> parseTestCases(MultipartFile file) {
-        try {
-            String content = new String(file.getBytes(), StandardCharsets.UTF_8).trim();
 
-            if (content.isEmpty()) {
-                throw new IllegalArgumentException("테스트케이스 파일 내용이 비어 있습니다.");
-            }
-
-            // 테스트케이스 블록 분리
-            String[] blocks = content.split("===\\s*");
-
-            List<TestCase> testCases = new ArrayList<>();
-
-            for (String block : blocks) {
-                String trimmedBlock = block.trim();
-                if (trimmedBlock.isEmpty()) continue; // 빈 라인 skip
-
-                // input/output 분리
-                String[] io = trimmedBlock.split("---\\s*");
-                if (io.length != 2) {
-                    throw new IllegalArgumentException(
-                            "테스트케이스 형식이 잘못되었습니다. \n" +
-                            "다음 블록에서 오류가 발생했습니다:\n" + trimmedBlock
-                    );
-                }
-
-                String input = io[0].trim();
-                String output = io[1].trim();
-
-                if (input.isEmpty() || output.isEmpty()) {
-                    throw new IllegalArgumentException(
-                            "테스트케이스 입력 또는 출력이 비어 있습니다:\n" + trimmedBlock
-                    );
-                }
-
-                TestCase testCase = TestCase.builder()
-                        .input(input)
-                        .output(output)
-                        .build();
-
-                testCases.add(testCase);
-            }
-
-            if (testCases.isEmpty()) {
-                throw new IllegalArgumentException("유효한 테스트케이스가 하나도 없습니다.");
-            }
-
-            return testCases;
-
-        } catch (IOException e) {
-            throw new RuntimeException("테스트케이스 파일 읽기 실패", e);
-        }
-    }
-    
     /** 승인된 문제 조회 */
     public Page<ProblemResponseDto> getProblems(Pageable pageable) {
         return problemsRepository.findByStatus(com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED, pageable)
