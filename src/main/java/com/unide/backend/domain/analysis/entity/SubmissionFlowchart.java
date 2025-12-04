@@ -24,7 +24,7 @@ public class SubmissionFlowchart extends BaseTimeEntity {
     private Submissions submission;
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String mermaidCode; // Mermaid.js 텍스트 코드
 
     @Builder
