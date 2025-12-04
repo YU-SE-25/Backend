@@ -232,12 +232,18 @@ public class AdminService {
 
         if (blacklist.getEmail() != null) {
             userRepository.findByEmail(blacklist.getEmail())
-                    .ifPresent(user -> user.changeStatus(UserStatus.ACTIVE));
+                    .ifPresent(user -> {
+                        user.changeStatus(UserStatus.ACTIVE);
+                        userRepository.save(user);
+                    });
         }
 
         if (blacklist.getPhone() != null) {
             userRepository.findByPhone(blacklist.getPhone())
-                    .ifPresent(user -> user.changeStatus(UserStatus.ACTIVE));
+                    .ifPresent(user -> {
+                        user.changeStatus(UserStatus.ACTIVE);
+                        userRepository.save(user);
+                });
         }
 
         blacklistRepository.delete(blacklist);
