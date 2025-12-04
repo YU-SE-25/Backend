@@ -15,8 +15,6 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import jakarta.validation.constraints.NotNull;
 
-import org.springframework.web.multipart.MultipartFile;
-
 @Getter @Setter
 @NoArgsConstructor
 public class ProblemUpdateRequestDto {
@@ -47,7 +45,4 @@ public class ProblemUpdateRequestDto {
     private String hint;
     
     private String source;
-
-    @NotNull(message = "테스트케이스 파일은 필수입니다")
-    private MultipartFile testcaseFile;
 }

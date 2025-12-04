@@ -83,36 +83,38 @@ public class ProblemController {
     @PreAuthorize("hasAnyRole('MANAGER', 'INSTRUCTOR')")
     public ResponseEntity<ProblemCreateResponseDto> createProblem(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
-            @RequestPart("data") @Valid ProblemCreateRequestDto requestDto,
+            @Valid @RequestPart("data") ProblemCreateRequestDto requestDto,
             @RequestPart("testcaseFile") MultipartFile testcaseFile
     ) {
-        requestDto.setTestcaseFile(testcaseFile);
-
-        Long problemId = problemService.createProblem(principalDetails.getUser(), requestDto);
-
+        Long problemId = problemService.createProblem(
+                principalDetails.getUser(),
+                requestDto,
+                testcaseFile
+        );
         return ResponseEntity.ok(
                 ProblemCreateResponseDto.of("문제가 성공적으로 등록되었습니다.", problemId)
         );
     }
 
+
+
+
     
     /** 문제 수정 */
     @PatchMapping(value = "/{problemId}", consumes = "multipart/form-data")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER')")
     public ResponseEntity<ProblemCreateResponseDto> updateProblem(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
             @PathVariable Long problemId,
-            @RequestPart("data") @Valid ProblemUpdateRequestDto requestDto,
+            @RequestPart("data") ProblemUpdateRequestDto requestDto,
             @RequestPart(value = "testcaseFile", required = false) MultipartFile testcaseFile
     ) {
-        requestDto.setTestcaseFile(testcaseFile);
-
-        problemService.updateProblem(principalDetails.getUser(), problemId, requestDto);
-
+        problemService.updateProblem(principalDetails.getUser(), problemId, requestDto, testcaseFile);
         return ResponseEntity.ok(
                 ProblemCreateResponseDto.of("문제가 성공적으로 수정되었습니다.", problemId)
         );
     }
+
 
     
     /** 문제 리스트 조회 (태그 검색 포함) */

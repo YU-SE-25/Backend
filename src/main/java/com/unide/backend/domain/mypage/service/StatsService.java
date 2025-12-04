@@ -45,17 +45,31 @@ public class StatsService {
     /** 통계 조회 */
     public UserStatsResponseDto getStats(Long userId) {
         Stats stats = statsRepository.findByUserId(userId);
-        return UserStatsResponseDto.builder()
-                .totalSolved(stats.getTotalSolved())
-                .totalSubmitted(stats.getTotalSubmitted())
-                .acceptanceRate(stats.getAcceptanceRate())
-                .streakDays(stats.getStreakDays())
-                .ranking(stats.getRanking())
-                .rating(stats.getRating())
-                .delta(stats.getRanking()- stats.getPreviousRanking()) // 이전 순위 - 현재 순위
-                .ratingDelta(stats.getRating() - stats.getPreviousRating()) // 이전 평판 점수 - 현재 평판 점수
-                .weeklyRatingDelta(getWeeklyRatingDelta(userId))
+        if (stats == null) {
+            stats = Stats.builder()
+                .user(null)
+                .totalSolved(0)
+                .totalSubmitted(0)
+                .acceptanceRate(0.0)
+                .streakDays(0)
+                .ranking(0)
+                .rating(0)
+                .previousRanking(0)
+                .previousRating(0)
+                .weeklyRating(0)
                 .build();
+        }
+        return UserStatsResponseDto.builder()
+            .totalSolved(stats.getTotalSolved())
+            .totalSubmitted(stats.getTotalSubmitted())
+            .acceptanceRate(stats.getAcceptanceRate())
+            .streakDays(stats.getStreakDays())
+            .ranking(stats.getRanking())
+            .rating(stats.getRating())
+            .delta(stats.getRanking() - stats.getPreviousRanking())
+            .ratingDelta(stats.getRating() - stats.getPreviousRating())
+            .weeklyRatingDelta(getWeeklyRatingDelta(userId))
+            .build();
     }
 
     /** 자동 통계 업데이트 (제출/정답/스트릭/랭킹만 갱신, rating은 건드리지 않음) */
