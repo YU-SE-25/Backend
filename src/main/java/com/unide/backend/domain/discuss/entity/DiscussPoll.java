@@ -22,7 +22,7 @@ public class DiscussPoll {
     @Column(name = "poll_id")
     private Long id;
 
-    // 게시글 id (Discuss와의 연관관계는 나중에 필요하면 추가)
+    // 게시글 id
     @Column(name = "post_id", nullable = false)
     private Long postId;
 
@@ -47,6 +47,10 @@ public class DiscussPoll {
     @OneToMany(mappedBy = "poll", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DiscussPollOption> options = new ArrayList<>();
 
+    // ✅ 전체 투표 수
+    @Column(name = "total_votes", nullable = false)
+    private int totalVotes = 0;
+
     // === 연관관계 편의 메서드 ===
     public void addOption(DiscussPollOption option) {
         options.add(option);
@@ -68,49 +72,24 @@ public class DiscussPoll {
         this.privatePoll = privatePoll;
         this.allowsMulti = allowsMulti;
         this.createdAt = LocalDateTime.now();
+        this.totalVotes = 0;
+    }
+
+    // ✅ 전체 투표 수 +1
+    public void increaseTotalVotes() {
+        this.totalVotes++;
     }
 
     // ===== Getter =====
-    public Long getId() {
-        return id;
-    }
-
-    public Long getPostId() {
-        return postId;
-    }
-
-    public Long getAuthorId() {
-        return authorId;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-//투표 질문 텍스트가 필요하면 title을 그대로 question으로 간주
-
-
-    public String getQuestion() {
-        return title;
-    }
-
-    public LocalDateTime getEndTime() {
-        return endTime;
-    }
-
-    public boolean isPrivatePoll() {
-        return privatePoll;
-    }
-
-    public boolean isAllowsMulti() {
-        return allowsMulti;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public List<DiscussPollOption> getOptions() {
-        return options;
-    }
+    public Long getId() { return id; }
+    public Long getPostId() { return postId; }
+    public Long getAuthorId() { return authorId; }
+    public String getTitle() { return title; }
+    public String getQuestion() { return title; }
+    public LocalDateTime getEndTime() { return endTime; }
+    public boolean isPrivatePoll() { return privatePoll; }
+    public boolean isAllowsMulti() { return allowsMulti; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public List<DiscussPollOption> getOptions() { return options; }
+    public int getTotalVotes() { return totalVotes; }
 }
