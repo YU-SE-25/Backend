@@ -36,4 +36,8 @@ public class TestCase {
         this.input = input;
         this.output = output;
     }
+
+    public void setProblem(Problems problem) {
+        this.problem = problem;
+    }
 }

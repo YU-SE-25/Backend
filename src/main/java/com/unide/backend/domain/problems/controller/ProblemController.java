@@ -79,29 +79,41 @@ public class ProblemController {
         return ResponseEntity.ok(problems);
     }
     
-    /** 문제 등록 */
     @PostMapping(value = "/register", consumes = "multipart/form-data")
     @PreAuthorize("hasAnyRole('MANAGER', 'INSTRUCTOR')")
     public ResponseEntity<ProblemCreateResponseDto> createProblem(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
-            @Valid @ModelAttribute ProblemCreateRequestDto requestDto,
-            @RequestPart(value = "testcasefile") MultipartFile testcaseFile) {
-        // 파일을 DTO에 직접 설정
+            @RequestPart("data") @Valid ProblemCreateRequestDto requestDto,
+            @RequestPart("testcaseFile") MultipartFile testcaseFile
+    ) {
         requestDto.setTestcaseFile(testcaseFile);
+
         Long problemId = problemService.createProblem(principalDetails.getUser(), requestDto);
-        return ResponseEntity.ok(ProblemCreateResponseDto.of("문제가 성공적으로 등록되었습니다.", problemId));
+
+        return ResponseEntity.ok(
+                ProblemCreateResponseDto.of("문제가 성공적으로 등록되었습니다.", problemId)
+        );
     }
+
     
     /** 문제 수정 */
-    @PatchMapping("/{problemId}")
-    @PreAuthorize("hasAnyRole('MANAGER')")
+    @PatchMapping(value = "/{problemId}", consumes = "multipart/form-data")
+    @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<ProblemCreateResponseDto> updateProblem(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
             @PathVariable Long problemId,
-            @Valid @RequestBody ProblemUpdateRequestDto requestDto) {
+            @RequestPart("data") @Valid ProblemUpdateRequestDto requestDto,
+            @RequestPart(value = "testcaseFile", required = false) MultipartFile testcaseFile
+    ) {
+        requestDto.setTestcaseFile(testcaseFile);
+
         problemService.updateProblem(principalDetails.getUser(), problemId, requestDto);
-        return ResponseEntity.ok(ProblemCreateResponseDto.of("문제가 성공적으로 수정되었습니다.", problemId));
+
+        return ResponseEntity.ok(
+                ProblemCreateResponseDto.of("문제가 성공적으로 수정되었습니다.", problemId)
+        );
     }
+
     
     /** 문제 리스트 조회 (태그 검색 포함) */
     @GetMapping("/list")
