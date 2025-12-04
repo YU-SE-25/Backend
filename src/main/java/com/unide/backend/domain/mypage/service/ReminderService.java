@@ -17,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class ReminderService {
+	private final com.unide.backend.common.mail.MailService mailService;
+
 	private final ReminderRepository reminderRepository;
 
 	@Transactional(readOnly = true)
@@ -86,6 +88,30 @@ public class ReminderService {
 			);
 		} catch (Exception e) {
 			return List.of();
+		}
+	}
+
+	// 매일 0시마다 모든 리마인더를 확인하여 해당 요일/시간에 메일 발송
+	@org.springframework.scheduling.annotation.Scheduled(cron = "0 * * * * *") // 매 분마다 테스트용, 실제는 "0 0 * * * *" 등으로 변경
+	@Transactional(readOnly = true)
+	public void sendReminders() {
+		java.time.LocalDateTime now = java.time.LocalDateTime.now();
+		int todayNum = now.getDayOfWeek().getValue(); // 월=1, 일=7
+		String currentTime = String.format("%02d:%02d", now.getHour(), now.getMinute());
+		List<Reminder> reminders = reminderRepository.findAll();
+		for (Reminder reminder : reminders) {
+			// day는 int, times는 String (JSON)
+			if (reminder.getTimes() == null || reminder.getTimes().isBlank()) continue;
+			if (reminder.getDay() != todayNum) continue;
+			List<String> times = fromTimesJson(reminder.getTimes());
+			if (times.contains(currentTime)) {
+				User user = reminder.getUser();
+				if (user != null && user.getEmail() != null) {
+					String subject = "리마인더 알림";
+					String body = String.format("안녕하세요, %s님!\n설정하신 리마인더 시간(%s)에 알림을 드립니다.", user.getNickname(), currentTime);
+					mailService.sendEmail(user.getEmail(), subject, body);
+				}
+			}
 		}
 	}
 }

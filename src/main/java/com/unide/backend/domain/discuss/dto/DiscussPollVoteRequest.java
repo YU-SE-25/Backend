@@ -2,14 +2,14 @@ package com.unide.backend.domain.discuss.dto;
 
 public class DiscussPollVoteRequest {
 
-    // 사용자가 선택한 option_id 하나만 보내는 구조라면 이렇게
-    private Long option_id;
+    // 사용자가 선택한 '보기 번호(label)' 하나만 보내는 구조
+    private Integer label;   // 1, 2, 3, ...
 
-    public Long getOption_id() {
-        return option_id;
+    public Integer getLabel() {
+        return label;
     }
 
-    public void setOption_id(Long option_id) {
-        this.option_id = option_id;
+    public void setLabel(Integer label) {
+        this.label = label;
     }
 }

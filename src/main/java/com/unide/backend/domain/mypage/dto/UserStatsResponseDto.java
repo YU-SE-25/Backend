@@ -3,8 +3,8 @@ package com.unide.backend.domain.mypage.dto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter @Setter
 @Builder
@@ -22,5 +22,7 @@ public class UserStatsResponseDto {
     private int rating;    // 평판 점수
     private int previousRanking; // 이전 순위
     private int delta;     // 랭킹 변화량  ← 추가!
-    private double score; // 복합 점수 (순위 계산용)
+    private int previousRating; // 이전 평판 점수
+    private int ratingDelta; // 평판 점수 변화량
+    private int weeklyRatingDelta; // 주간 평판 변화량
 }

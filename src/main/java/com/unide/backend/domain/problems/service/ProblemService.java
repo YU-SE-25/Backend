@@ -2,6 +2,12 @@
 
 package com.unide.backend.domain.problems.service;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,12 +31,6 @@ import com.unide.backend.domain.user.entity.UserRole;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
 import lombok.RequiredArgsConstructor;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -317,5 +317,44 @@ public class ProblemService {
         if (user.getRole() != UserRole.INSTRUCTOR && user.getRole() != UserRole.MANAGER) {
             throw new IllegalArgumentException("문제 등록/수정 권한이 없습니다. (강사 또는 관리자만 가능)");
         }
+    }
+
+    /** 문제 ID 목록으로 문제 페이징 조회 */
+    public Page<ProblemResponseDto> getProblemsByIds(List<Long> ids, Pageable pageable) {
+        if (ids == null || ids.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        // 문제 엔티티 페이징 조회
+        Page<Problems> problemsPage = problemsRepository.findAllById(ids, pageable);
+        return problemsPage.map(ProblemResponseDto::from);
+    }
+
+    /** 문제 승인(수락) */
+    @Transactional
+    public void approveProblem(Long problemId) {
+        Problems problem = problemsRepository.findById(problemId)
+            .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다"));
+        problem.updateStatus(com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED);
+        
+        // 등록자에게 메일 전송
+        User creator = problem.getCreatedBy();
+        String to = creator.getEmail();
+        String subject = "등록한 문제가 승인되었습니다";
+        String body = String.format("안녕하세요, %s님.\n\n등록하신 문제 '%s'가 승인되었습니다.", creator.getName(), problem.getTitle());
+        mailService.sendEmail(to, subject, body);
+    }
+
+    /** 문제 반려(거절) */
+    @Transactional
+    public void rejectProblem(Long problemId) {
+        Problems problem = problemsRepository.findById(problemId)
+            .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다"));
+        problem.updateStatus(com.unide.backend.domain.problems.entity.ProblemStatus.REJECTED);
+        // 등록자에게 메일 전송
+        User creator = problem.getCreatedBy();
+        String to = creator.getEmail();
+        String subject = "등록한 문제가 반려되었습니다";
+        String body = String.format("안녕하세요, %s님.\n\n등록하신 문제 '%s'가 반려되었습니다.", creator.getName(), problem.getTitle());
+        mailService.sendEmail(to, subject, body);
     }
 }

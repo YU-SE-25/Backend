@@ -26,7 +26,7 @@ import com.unide.backend.domain.review_report.repository.ReviewCommentReportRepo
 import com.unide.backend.domain.review_report.repository.ReviewReportRepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
-
+import com.unide.backend.domain.report.dto.ReportResolveRequestDto;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -52,28 +52,26 @@ public class ReportService {
     // 1. 신고 상태 변경 + 이메일 + 평판반영
     // ==============================================================
 
+    /** 신고 처리(관리자용) - 상태, 액션, 메모 */
     @Transactional
-    public void updateReportStatus(Long reportId, ReportStatus status) {
-
+    public void resolveReport(Long reportId, ReportResolveRequestDto dto) {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new IllegalArgumentException("신고 정보를 찾을 수 없습니다."));
 
-        report.setStatus(status);
+        report.setStatus(dto.getStatus());
         report.setResolvedAt(LocalDateTime.now());
+        
         reportRepository.save(report);
 
-        // 승인일 때만 평판 감소
-        if (status == ReportStatus.APPROVED) {
+        if (dto.getStatus() == ReportStatus.APPROVED) {
             applyPenalty(report);
         }
 
-        // 이메일 전송
         User reporter = userRepository.findById(report.getReporterId()).orElse(null);
         if (reporter != null && reporter.getEmail() != null) {
-            String subject = "[UnIDE] 신고 처리 결과 안내";
+            String subject = "신고 처리 결과 안내";
             String body;
-
-            if (status == ReportStatus.REJECTED) {
+            if (dto.getStatus() == ReportStatus.REJECTED) {
                 body = String.format(
                         "안녕하세요, %s님.\n\n신고하신 내용이 거절되었습니다.\n\n감사합니다.",
                         reporter.getNickname()
@@ -84,8 +82,28 @@ public class ReportService {
                         reporter.getNickname()
                 );
             }
-
             mailService.sendEmail(reporter.getEmail(), subject, body);
+        }
+
+        // 신고를 당한 사람에게도 메일 전송 (승인일 때만)
+        if (dto.getStatus() == ReportStatus.APPROVED) {
+            User targetUser = null;
+            if (report.getType() == ReportType.USER) {
+                targetUser = userRepository.findById(report.getTargetId()).orElse(null);
+            } else if (report.getType() == ReportType.PROBLEM) {
+                Problems problem = problemsRepository.findById(report.getTargetId()).orElse(null);
+                if (problem != null && problem.getCreatedBy() != null) {
+                    targetUser = problem.getCreatedBy();
+                }
+            }
+            if (targetUser != null && targetUser.getEmail() != null) {
+                String subject = "[UnIDE] 신고 승인 안내";
+                String body = String.format(
+                        "안녕하세요, %s님.\n\n귀하에 대한 신고가 승인 처리되었습니다.\n\n서비스 정책에 따라 조치가 있을 수 있습니다.\n\n감사합니다.",
+                        targetUser.getNickname()
+                );
+                mailService.sendEmail(targetUser.getEmail(), subject, body);
+            }
         }
     }
 
@@ -202,6 +220,44 @@ public class ReportService {
         return toDetailDto(report);
     }
 
+    /** 모든 신고 리스트 조회 (관리자용) - 미처리 우선, 신고 먼저한 순 */
+    public List<ReportListDto> getAllReports() {
+        return reportRepository.findAll().stream()
+                .sorted((r1, r2) -> {
+                    // 미처리(PENDING) 먼저, 그 안에서 신고 먼저한 순
+                    if (r1.getStatus() == ReportStatus.PENDING && r2.getStatus() != ReportStatus.PENDING) return -1;
+                    if (r1.getStatus() != ReportStatus.PENDING && r2.getStatus() == ReportStatus.PENDING) return 1;
+                    // 둘 다 같은 상태면 신고 먼저한 순
+                    return r1.getReportedAt().compareTo(r2.getReportedAt());
+                })
+                .map(this::toListDto)
+                .toList();
+    }
+
+    /** 제목으로 신고 리스트 검색 (관리자용) */
+    public List<ReportListDto> searchReportsByTitle(String keyword) {
+        return reportRepository.findAll().stream()
+                .filter(r -> {
+                    if (r.getType() == ReportType.PROBLEM) {
+                        return problemsRepository.findById(r.getTargetId())
+                                .map(Problems::getTitle)
+                                .filter(t -> t != null && t.contains(keyword))
+                                .isPresent();
+                    } else if (r.getType() == ReportType.USER) {
+                        String nickname = getUserName(r.getTargetId());
+                        return nickname != null && nickname.contains(keyword);
+                    }
+                    return false;
+                })
+                .sorted((r1, r2) -> {
+                    if (r1.getStatus() == ReportStatus.PENDING && r2.getStatus() != ReportStatus.PENDING) return -1;
+                    if (r1.getStatus() != ReportStatus.PENDING && r2.getStatus() == ReportStatus.PENDING) return 1;
+                    return r1.getReportedAt().compareTo(r2.getReportedAt());
+                })
+                .map(this::toListDto)
+                .toList();
+    }
+
 
     // ==============================================================
     // 5. DTO 변환
@@ -211,15 +267,22 @@ public class ReportService {
 
         String reporterName = getUserName(r.getReporterId());
         String targetName = getTargetName(r.getType(), r.getTargetId());
-
+        String title = null;
+        if (r.getType() == ReportType.PROBLEM) {
+            title = problemsRepository.findById(r.getTargetId())
+                    .map(Problems::getTitle)
+                    .orElse(null);
+        } else if (r.getType() == ReportType.USER) {
+            title = getUserName(r.getTargetId());
+        }
         return ReportListDto.builder()
                 .id(r.getId())
                 .reporterName(reporterName)
                 .targetName(targetName)
-                .reason(r.getReason())
                 .type(r.getType())
                 .status(r.getStatus())
                 .reportedAt(r.getReportedAt())
+                .title(title)
                 .build();
     }
 
@@ -265,4 +328,5 @@ public class ReportService {
                 .map(Problems::getTitle)
                 .orElse("Unknown Problem");
     }
+
 }

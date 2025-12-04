@@ -182,8 +182,9 @@ public class AuthService {
                 .streakDays(0)
                 .ranking((int) userRepository.countByRoleNot(UserRole.MANAGER)) // ranking을 메니저 제외한 회원 수로 초기화
                 .previousRanking((int) userRepository.countByRoleNot(UserRole.MANAGER)) // 이전 순위도 동일하게 초기화
-                .rating(0)
-                .score(0.0)
+                .rating(0) 
+                .previousRating(0) 
+                .weeklyRating(0)
                 .build();
         statsRepository.save(stats);
 
