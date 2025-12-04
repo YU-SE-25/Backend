@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>[Unide] 문제 반려 안내</title>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4;">
+    <div style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center; padding: 40px;">
+        <h1 style="color: #F44336; margin-top: 0; margin-bottom: 25px;">Unide 문제 반려 안내</h1>
+        <p style="font-size: 16px; line-height: 1.6; color: #333; margin-top: 0;">
+            <b th:text="${name}">사용자</b>님, 등록하신 문제 <b th:text="${problemTitle}">문제 제목</b>가 반려되었습니다.<br>
+            다시 한 번 확인해 주세요!
+        </p>
+        <a th:href="${problemDetailUrl}"
+           target="_blank"
+           style="display: inline-block; padding: 15px 30px; margin: 25px 0; font-size: 18px; font-weight: bold; color: #ffffff; background-color: #F44336; text-decoration: none; border-radius: 5px;">
+            [UnIDE] 내가 등록한 문제 페이지로 바로가기
+        </a>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+        <p style="font-size: 12px; color: #999;">
+            본 이메일은 문제 반려 알림을 위해 발송되었습니다.
+        </p>
+    </div>
+</body>
+</html>
