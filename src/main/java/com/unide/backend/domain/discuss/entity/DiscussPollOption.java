@@ -17,7 +17,7 @@ import lombok.Setter;
 @Entity
 @Table(name = "dis_poll_option")
 public class DiscussPollOption {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "option_id")
@@ -30,26 +30,28 @@ public class DiscussPollOption {
     @Column(name = "content", nullable = false, length = 200)
     private String content;
 
-     private int voteCount;
+    // ✅ 옵션별 득표 수
+    @Column(name = "vote_count", nullable = false)
+    private int voteCount = 0;
 
-    @Column(name = "label", nullable = false)   // 🔥 DB에 있는 label 컬럼
+    @Column(name = "label", nullable = false)   // "1", "2", "3" ...
     private String label;
 
-    
     protected DiscussPollOption() {}
 
-     public DiscussPollOption(DiscussPoll poll, String label, String content) {
+    public DiscussPollOption(DiscussPoll poll, String label, String content) {
         this.poll = poll;
         this.label = label;
         this.content = content;
+        this.voteCount = 0;
     }
-    
-    public Long getId() { return id; }
-    public DiscussPoll getPoll() { return poll; }
-    public String getContent() { return content; }
-     public void setPoll(DiscussPoll poll) {
+
+    public void setPoll(DiscussPoll poll) {
         this.poll = poll;
     }
-    
 
+    // ✅ 득표 수 +1
+    public void increaseVoteCount() {
+        this.voteCount++;
+    }
 }

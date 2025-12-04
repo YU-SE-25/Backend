@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.unide.backend.domain.qna.dto.QnAPollCreateRequest;
 import com.unide.backend.domain.qna.dto.QnAPollResponse;
@@ -15,9 +16,6 @@ import com.unide.backend.domain.qna.entity.QnAPollVote;
 import com.unide.backend.domain.qna.repository.QnAPollOptionRepository;
 import com.unide.backend.domain.qna.repository.QnAPollRepository;
 import com.unide.backend.domain.qna.repository.QnAPollVoteRepository;
-
-import org.springframework.transaction.annotation.Transactional;
-
 
 @Service
 @Transactional
@@ -35,51 +33,51 @@ public class QnAPollService {
         this.voteRepository = voteRepository;
     }
 
-    // 투표 생성
-   // QnAPollService.java 안
+    /**
+     * 투표 생성
+     */
+    public QnAPollResponse createPoll(Long postId, Long authorId, QnAPollCreateRequest request) {
 
-@Transactional
-public QnAPollResponse createPoll(Long postId, Long authorId, QnAPollCreateRequest request) {
+        // 1) Poll 엔티티 생성
+        QnAPoll poll = new QnAPoll(
+                postId,
+                authorId,
+                request.getTitle(),
+                request.getEnd_time(),
+                request.getIs_private() != null && request.getIs_private(),
+                request.getAllows_multi() != null && request.getAllows_multi()
+        );
 
-    // 1) Poll 엔티티 생성
-    QnAPoll poll = new QnAPoll(
-            postId,
-            authorId,
-            request.getTitle(),
-            request.getEnd_time(),
-            request.getIs_private() != null && request.getIs_private(),
-            request.getAllows_multi() != null && request.getAllows_multi()
-    );
+        QnAPoll savedPoll = pollRepository.save(poll);
 
-    QnAPoll savedPoll = pollRepository.save(poll);
+        // 2) 옵션 저장
+        List<String> options = request.extractOptions();  // option1, option2, ... null 제외해서 리턴한다고 가정
+        int idx = 1;                                      // label용 인덱스 (1,2,3,...)
 
-    // 2) 옵션 저장
-    List<String> options = request.extractOptions();  // option1, option2, ... null 제외해서 리턴한다고 가정
-    int idx = 1;                                      // 🔥 label용 인덱스
+        for (String content : options) {
+            if (content == null || content.isBlank()) {
+                continue;
+            }
 
-    for (String content : options) {
-        if (content == null || content.isBlank()) {
-            continue;
+            String label = String.valueOf(idx);          // "1", "2", "3" ...
+            QnAPollOption option = new QnAPollOption(savedPoll, label, content);
+            optionRepository.save(option);
+
+            idx++;
         }
 
-        String label = String.valueOf(idx);          // "1", "2", "3" ...
-        QnAPollOption option = new QnAPollOption(savedPoll, label, content);
-        optionRepository.save(option);
-
-        idx++;
+        // 3) 응답 DTO
+        return new QnAPollResponse(
+                "투표가 등록되었습니다",
+                savedPoll.getId(),
+                savedPoll.getPostId(),
+                savedPoll.getCreatedAt()
+        );
     }
 
-    // 3) 응답 DTO
-    return new QnAPollResponse(
-            "투표가 등록되었습니다",
-            savedPoll.getId(),
-            savedPoll.getPostId(),
-            savedPoll.getCreatedAt()
-    );
-}
-
-
-    // 투표 하기
+    /**
+     * 투표 하기
+     */
     public QnAPollVoteResponse vote(Long voterId, Long pollId, QnAPollVoteRequest request) {
 
         QnAPoll poll = pollRepository.findById(pollId)
@@ -95,35 +93,40 @@ public QnAPollResponse createPoll(Long postId, Long authorId, QnAPollCreateReque
             throw new IllegalStateException("이미 투표를 완료했습니다.");
         }
 
-        QnAPollOption option = optionRepository.findById(request.getOption_id())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 옵션입니다."));
+        // 🔥 label(Integer)를 String으로 변환해서, pollId + label 로 옵션 찾기
+String labelStr = String.valueOf(request.getLabel());
 
-        // 옵션이 해당 poll에 속하는지 검증
-        if (!option.getPoll().getId().equals(poll.getId())) {
-            throw new IllegalArgumentException("해당 투표의 옵션이 아닙니다.");
-        }
+QnAPollOption option = optionRepository
+        .findByPoll_IdAndLabel(pollId, labelStr)   // ← 여기 메서드 이름 변경
+        .orElseThrow(() -> new IllegalArgumentException("해당 투표에 존재하지 않는 옵션입니다."));
 
+        // ✅ 투표 수 카운트 증가 (엔티티에 메서드 있다고 가정)
+        option.increaseVoteCount();   // 옵션별 득표수 +1
+        poll.increaseTotalVotes();    // 전체 투표수 +1
+
+        // 투표 내역 저장
         QnAPollVote vote = new QnAPollVote(poll, option, voterId);
         voteRepository.save(vote);
 
         return new QnAPollVoteResponse("투표가 정상적으로 반영되었습니다.");
     }
-    
-   @Transactional(readOnly = true)
-public QnAPollResponse getPollByPostId(Long postId, Long userId) {
-    QnAPoll poll = pollRepository.findByPostId(postId)
-            .orElseThrow(() -> new IllegalArgumentException("해당 게시글에는 투표가 없습니다. postId=" + postId));
 
-    QnAPollResponse response = QnAPollResponse.fromEntity(poll, userId);
+    /**
+     * 게시글 기준 투표 조회
+     */
+    @Transactional(readOnly = true)
+    public QnAPollResponse getPollByPostId(Long postId, Long userId) {
+        QnAPoll poll = pollRepository.findByPostId(postId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 게시글에는 투표가 없습니다. postId=" + postId));
 
-    // 내가 이미 투표했는지 여부
-    if (userId != null) {
-        boolean alreadyVoted = voteRepository.existsByPollAndVoterId(poll, userId); // ✅ poll 그대로 전달
-        response.setAlreadyVoted(alreadyVoted);
+        QnAPollResponse response = QnAPollResponse.fromEntity(poll, userId);
+
+        // 내가 이미 투표했는지 여부
+        if (userId != null) {
+            boolean alreadyVoted = voteRepository.existsByPollAndVoterId(poll, userId);
+            response.setAlreadyVoted(alreadyVoted);
+        }
+
+        return response;
     }
-
-    return response;
-}
-
-    
 }

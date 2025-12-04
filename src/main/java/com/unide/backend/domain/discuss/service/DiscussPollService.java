@@ -35,7 +35,6 @@ public class DiscussPollService {
         this.voteRepository = voteRepository;
     }
 
-
     // ===========================
     //  📌 투표 생성
     // ===========================
@@ -59,7 +58,7 @@ public class DiscussPollService {
         for (String content : options) {
             if (content == null || content.isBlank()) continue;
 
-            String label = String.valueOf(idx);
+            String label = String.valueOf(idx);   // "1", "2", "3"...
             DiscussPollOption option = new DiscussPollOption(savedPoll, label, content);
             optionRepository.save(option);
 
@@ -74,9 +73,8 @@ public class DiscussPollService {
         );
     }
 
-
     // ===========================
-    //  📌 투표하기
+    //  📌 투표하기 (label 기준)
     // ===========================
     public DiscussPollVoteResponse vote(Long voterId, Long pollId, DiscussPollVoteRequest request) {
 
@@ -93,21 +91,23 @@ public class DiscussPollService {
             throw new IllegalStateException("이미 투표를 완료했습니다.");
         }
 
-        // 옵션 조회
-        DiscussPollOption option = optionRepository.findById(request.getOption_id())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 옵션입니다."));
+        // 🔥 label(Integer) → String 변환 후, pollId + label 로 옵션 조회
+        String labelStr = String.valueOf(request.getLabel());
 
-        // 옵션이 해당 poll 소속인지 확인
-        if (!option.getPoll().getId().equals(poll.getId())) {
-            throw new IllegalArgumentException("해당 투표의 옵션이 아닙니다.");
-        }
+        DiscussPollOption option = optionRepository
+                .findByPoll_IdAndLabel(pollId, labelStr)
+                .orElseThrow(() -> new IllegalArgumentException("해당 투표에 존재하지 않는 옵션입니다."));
 
+        // ✅ 투표 수 카운트 증가 (엔티티에 메서드 있다고 가정)
+        option.increaseVoteCount();   // 옵션 득표수 +1
+        poll.increaseTotalVotes();    // 전체 투표수 +1
+
+        // 투표 내역 저장
         DiscussPollVote vote = new DiscussPollVote(poll, option, voterId);
         voteRepository.save(vote);
 
         return new DiscussPollVoteResponse("투표가 정상적으로 반영되었습니다.");
     }
-
 
     // ===========================
     //  📌 게시글(postId)로 투표 조회

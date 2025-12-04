@@ -1,15 +1,9 @@
 package com.unide.backend.domain.qna.dto;
-
+// QnAPollVoteRequest.java
 public class QnAPollVoteRequest {
+    private Integer label;   // 1,2,3...
 
-    // 사용자가 선택한 option_id 하나만 보내는 구조라면 이렇게
-    private Long option_id;
-
-    public Long getOption_id() {
-        return option_id;
-    }
-
-    public void setOption_id(Long option_id) {
-        this.option_id = option_id;
-    }
+    public Integer getLabel() { return label; }
+    public void setLabel(Integer label) { this.label = label; }
 }
+
