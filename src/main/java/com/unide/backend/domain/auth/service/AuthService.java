@@ -575,10 +575,13 @@ public class AuthService {
      * @param requestDto 비밀번호가 담긴 DTO
      */
     @Transactional
-    public void withdraw(User user, WithdrawRequestDto requestDto) {
+    public void withdraw(User principalDetailsUser, WithdrawRequestDto requestDto) {
+        User user = userRepository.findById(principalDetailsUser.getId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
         if (!user.isSocialAccount()) {
             if (requestDto.getPassword() == null || requestDto.getPassword().isBlank()) {
-                throw new IllegalArgumentException("비밀번호를 입력해주세요.");
+                throw new IllegalArgumentException("일반 계정 탈퇴 시 비밀번호는 필수입니다.");
             }
             if (!passwordEncoder.matches(requestDto.getPassword(), user.getPasswordHash())) {
                 throw new AuthException("비밀번호가 일치하지 않습니다.");
