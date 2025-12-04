@@ -48,4 +48,9 @@ public class QnAPollOption {
     public void setPoll(QnAPoll poll) {
         this.poll = poll;
     }
+
+    // ✅ 득표수 +1
+    public void increaseVoteCount() {
+        this.voteCount++;
+    }
 }

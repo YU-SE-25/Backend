@@ -22,7 +22,6 @@ public class QnAPoll {
     @Column(name = "poll_id")
     private Long id;
 
-    // 🔥 QnA 연관관계 잠시 제거 (postId만 사용)
     // @ManyToOne(fetch = FetchType.LAZY)
     // @JoinColumn(name = "post_id", nullable = false)
     // private QnA qna;
@@ -53,6 +52,10 @@ public class QnAPoll {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    // ✅ 전체 투표 수
+    @Column(name = "total_votes", nullable = false)
+    private int totalVotes = 0;
+
     protected QnAPoll() {}
 
     public QnAPoll(Long postId,
@@ -68,12 +71,18 @@ public class QnAPoll {
         this.privatePoll = privatePoll;
         this.allowsMulti = allowsMulti;
         this.createdAt = LocalDateTime.now();
+        this.totalVotes = 0;
     }
 
     // === 연관관계 편의 메서드 ===
     public void addOption(QnAPollOption option) {
         options.add(option);
         option.setPoll(this);
+    }
+
+    // ✅ 전체 투표 수 +1
+    public void increaseTotalVotes() {
+        this.totalVotes++;
     }
 
     // === Getter ===
@@ -85,12 +94,7 @@ public class QnAPoll {
     public boolean isPrivatePoll() { return privatePoll; }
     public boolean isAllowsMulti() { return allowsMulti; }
     public LocalDateTime getCreatedAt() { return createdAt; }
-
-    public String getQuestion() {
-        return question;
-    }
-
-    public List<QnAPollOption> getOptions() {
-        return options;
-    }
+    public String getQuestion() { return question; }
+    public List<QnAPollOption> getOptions() { return options; }
+    public int getTotalVotes() { return totalVotes; }
 }
