@@ -47,6 +47,9 @@ public class ProblemService {
     @Value("${app.upload.testcase-dir}")
     private String testcaseUploadDir;
 
+    @Value("${app.base-url}")
+    private String baseUrl;
+
     private final JavaMailSender mailSender;
 	private final SpringTemplateEngine templateEngine;
     
@@ -214,7 +217,7 @@ public class ProblemService {
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
             // ⭐⭐⭐ DB에는 URL 경로만 저장 (프론트 접근 가능)
-            return "/uploads/testcases/" + newFilename;
+            return baseUrl + "/uploads/testcases/" + newFilename;
 
         } catch (IOException e) {
             throw new RuntimeException("테스트케이스 파일 저장 실패: " + e.getMessage(), e);
