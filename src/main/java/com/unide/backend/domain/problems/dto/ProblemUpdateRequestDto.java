@@ -3,6 +3,7 @@
 package com.unide.backend.domain.problems.dto;
 
 import java.util.List;
+import com.unide.backend.domain.problems.dto.TestCaseDto;
 
 import com.unide.backend.domain.problems.entity.ProblemDifficulty;
 import com.unide.backend.domain.problems.entity.ProblemTag;
@@ -45,4 +46,5 @@ public class ProblemUpdateRequestDto {
     private String hint;
     
     private String source;
+    private List<TestCaseDto> testCases;
 }

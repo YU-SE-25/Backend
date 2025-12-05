@@ -269,22 +269,38 @@ public class ReportService {
                 .map(this::toListDto)
                 .toList();
     }
+
+    /** 제목으로 신고 리스트 검색 (관리자용) */
+    public List<ReportListDto> searchReportsByTitle(String keyword) {
+        return reportRepository.findAll().stream()
+                .filter(r -> {
+                    if (r.getType() == ReportType.PROBLEM) {
+                        return problemsRepository.findById(r.getTargetId())
+                                .map(Problems::getTitle)
+                                .filter(t -> t != null && t.contains(keyword))
+                                .isPresent();
+                    } else if (r.getType() == ReportType.USER) {
+                        String nickname = getUserName(r.getTargetId());
+                        return nickname != null && nickname.contains(keyword);
+                    }
+                    return false;
+                })
+                .sorted((r1, r2) -> {
+                    if (r1.getStatus() == ReportStatus.PENDING && r2.getStatus() != ReportStatus.PENDING) return -1;
+                    if (r1.getStatus() != ReportStatus.PENDING && r2.getStatus() == ReportStatus.PENDING) return 1;
+                    return r1.getReportedAt().compareTo(r2.getReportedAt());
+                })
+                .map(this::toListDto)
+                .toList();
+    }
+
+    /** 신고 상세 조회 (관리자용) */
+    public ReportDetailDto getReportDetail(Long reportId) {
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new IllegalArgumentException("신고 정보를 찾을 수 없습니다."));
+        return toDetailDto(report);
+    }
     
-    /** 신고 상세 조회 (관리자용) */
-    public ReportDetailDto getReportDetail(Long reportId) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new IllegalArgumentException("신고 정보를 찾을 수 없습니다."));
-        return toDetailDto(report);
-    }
-
-    /** 신고 상세 조회 (관리자용) */
-    public ReportDetailDto getReportDetail(Long reportId) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new IllegalArgumentException("신고 정보를 찾을 수 없습니다."));
-        return toDetailDto(report);
-    }
-
-
     // ==============================================================
     // 5. DTO 변환
     // ==============================================================
@@ -344,6 +360,29 @@ public class ReportService {
         return problemsRepository.findById(id)
                 .map(Problems::getTitle)
                 .orElse("Unknown Problem");
+    }
+
+    /** 문제 신고 생성 */
+    public void createReportForProblem(Long userId, Long problemId, ReportCreateRequestDto request) {
+        // 유저 조회
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 문제 조회
+        Problems problem = problemsRepository.findById(problemId)
+            .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다."));
+
+        // 신고 엔티티 생성
+        Report report = Report.builder()
+            .reporterId(userId)
+            .targetId(problemId)
+            .type(ReportType.PROBLEM)
+            .status(ReportStatus.PENDING)
+            .reason(request.getReason())
+            .reportedAt(LocalDateTime.now())
+            .build();
+
+        reportRepository.save(report);
     }
 
 }
