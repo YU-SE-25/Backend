@@ -2,6 +2,7 @@ package com.unide.backend.domain.report.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -337,6 +338,29 @@ public class ReportService {
         return problemsRepository.findById(id)
                 .map(Problems::getTitle)
                 .orElse("Unknown Problem");
+    }
+
+    /** 문제 신고 생성 */
+    public void createReportForProblem(Long userId, Long problemId, ReportCreateRequestDto request) {
+        // 유저 조회
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 문제 조회
+        Problems problem = problemsRepository.findById(problemId)
+            .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다."));
+
+        // 신고 엔티티 생성
+        Report report = Report.builder()
+            .reporterId(userId)
+            .targetId(problemId)
+            .type(ReportType.PROBLEM)
+            .status(ReportStatus.PENDING)
+            .reason(request.getReason())
+            .reportedAt(LocalDateTime.now())
+            .build();
+
+        reportRepository.save(report);
     }
 
 }

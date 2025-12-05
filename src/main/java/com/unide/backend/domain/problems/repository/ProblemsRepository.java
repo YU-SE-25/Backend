@@ -3,6 +3,7 @@
 package com.unide.backend.domain.problems.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,4 +41,6 @@ public interface ProblemsRepository extends JpaRepository<Problems, Long> {
     Page<Problems> findByTagsInAndDifficultyAndStatus(java.util.List<com.unide.backend.domain.problems.entity.ProblemTag> tags, com.unide.backend.domain.problems.entity.ProblemDifficulty difficulty, com.unide.backend.domain.problems.entity.ProblemStatus status, Pageable pageable);
 
     Page<Problems> findByTagsInAndTitleContainingAndDifficultyAndStatus(java.util.List<com.unide.backend.domain.problems.entity.ProblemTag> tags, String title, com.unide.backend.domain.problems.entity.ProblemDifficulty difficulty, com.unide.backend.domain.problems.entity.ProblemStatus status, Pageable pageable);
+
+    Optional<Problems> findById(Long id);
 }
