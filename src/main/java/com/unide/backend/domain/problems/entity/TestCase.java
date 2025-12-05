@@ -39,15 +39,11 @@ public class TestCase {
     @Column(nullable = false)
     private String output;
 
-    @Column(nullable = false, name = "testcase_file_path")
-    private String testcaseFilePath;
-
     @Builder
-    public TestCase(Problems problem, String input, String output, String testcaseFilePath) {
+    public TestCase(Problems problem, String input, String output) {
         this.problem = problem;
         this.input = input;
         this.output = output;
-        this.testcaseFilePath = testcaseFilePath;
     }
 
     public void setProblem(Problems problem) {
