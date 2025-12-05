@@ -23,6 +23,8 @@ public class UserStatsResponseDto {
 
     private int ranking;          // 현재 순위
     private int rating;           // 평판 점수
+    private int ratingDelta;      // 평판 점수 변화량
+    private int weeklyRatingDelta;
     private int previousRanking;  // 이전 순위
     private int delta;            // 순위 변화량
     private double score;         // 복합 점수
