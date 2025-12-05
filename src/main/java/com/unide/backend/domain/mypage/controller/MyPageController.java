@@ -19,6 +19,7 @@ import com.unide.backend.domain.mypage.dto.MyPageUpdateResponseDto;
 import com.unide.backend.domain.mypage.service.MyPageService;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -48,20 +49,25 @@ public class MyPageController {
     }
 
     /** 내 프로필 업데이트 */
-    @PatchMapping(consumes = "multipart/form-data")
-    public ResponseEntity<MyPageUpdateResponseDto> updateMyPage(
+    @PatchMapping(value = "", consumes = "multipart/form-data")
+    public ResponseEntity<MyPageResponseDto> updateMyPage(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
-            @RequestPart("data") MyPageUpdateRequestDto requestDto,
-            @RequestPart(value = "file", required = false) MultipartFile file
+            @Valid @RequestPart("data") MyPageUpdateRequestDto requestDto,
+            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile
     ) {
         Long userId = principalDetails.getUser().getId();
 
-        requestDto.setAvatarImageFile(file);
-
-        MyPageUpdateResponseDto response = myPageService.updateMyPage(userId, requestDto);
+        MyPageResponseDto response = myPageService.updateMyPage(
+                userId,
+                requestDto,
+                imageFile
+        );
 
         return ResponseEntity.ok(response);
     }
+
+
+
 
 
     @PostMapping("initialize")
