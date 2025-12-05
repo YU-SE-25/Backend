@@ -45,8 +45,7 @@ public class MainpageService {
     public List<MainProblemViewRankDto> getProblemViewList(LocalDate rankDate) {
         // 1. 현재 주간 순위 목록 조회
         List<MainProblemViewRankDto> currentBaseList =
-                mainProblemViewRankRepository.findRankedProblemsByDate(rankDate);
-
+        mainProblemViewRankRepository.findRankedProblemsByDate(rankDate);
         // 2. 이전 주간 순위 조회 기준일 계산
         LocalDate previousDate = rankDate.minusWeeks(1);
 
@@ -73,7 +72,7 @@ public class MainpageService {
             }
 
             // 최종 DTO 생성 및 목록에 추가
-            finalRankList.add(new MainProblemViewRankDto(currentDto, currentRank, delta));
+finalRankList.add(new MainProblemViewRankDto(currentDto, currentRank, delta));
         }
 
         return finalRankList;
@@ -90,88 +89,90 @@ public class MainpageService {
     // ===========================
     // 2. 사용자 평판 랭킹 (UserStats)
     // ===========================
- @Transactional(readOnly = true)
-public List<UserStatsResponseDto> getReputationRankList(int size) {
+    @Transactional(readOnly = true)
+    public List<UserStatsResponseDto> getReputationRankList(int size) {
 
-    List<ReputationRankProjection> rows =
-            reputationRankRepository.findRankTop(size);
+        List<ReputationRankProjection> rows =
+                reputationRankRepository.findRankTop(size);
 
-    return rows.stream()
-            .map(r -> UserStatsResponseDto.builder()
-                    .userId(r.getUserId())   
-                    .totalSolved(0)
-                    .totalSubmitted(0)
-                    .acceptanceRate(0)
-                    .streakDays(0)
-                    .ranking(r.getRanking())
-                    .rating(r.getRating())
-                    .delta(r.getDelta())
-                    .build()
-            )
-            .collect(Collectors.toList());
-}
-
-// --순위변동 계산
-@Transactional
-public void updateWeeklyReputationRanking() {
-
-    // 1. 전체 유저 평판 점수 순위 가져오기
-    List<Stats> users = statsRepository.findAllByOrderByRatingDesc();
-
-    int rank = 1;
-    Integer previousRank = null;
-
-    for (Stats s : users) {
-
-        // Delta (순위 변화량)
-        Integer delta = (previousRank == null) ? 0 : previousRank - rank;
-
-        // 2. 이벤트 테이블에 저장
-        ReputationEvent event = ReputationEvent.builder()
-                .user(s.getUser())
-                .ranking(rank)
-                .delta(delta)
-                .build();
-
-        reputationRankRepository.save(event);
-
-        previousRank = rank;
-        rank++;
+        return rows.stream()
+                .map(r -> UserStatsResponseDto.builder()
+                        .userId(r.getUserId())      // id도 그대로 보내고
+                        .nickname(r.getNickname())  // ⭐ 닉네임 추가
+                        .totalSolved(0)
+                        .totalSubmitted(0)
+                        .acceptanceRate(0)
+                        .streakDays(0)
+                        .ranking(r.getRanking())
+                        .rating(r.getRating())
+                        .delta(r.getDelta())
+                        .build()
+                )
+                .collect(Collectors.toList());
     }
-}
 
+    // --순위변동 계산
+    @Transactional
+    public void updateWeeklyReputationRanking() {
 
+        // 1. 전체 유저 평판 점수 순위 가져오기
+        List<Stats> users = statsRepository.findAllByOrderByRatingDesc();
 
+        int rank = 1;
+        Integer previousRank = null;
+
+        for (Stats s : users) {
+
+            // Delta (순위 변화량)
+            Integer delta = (previousRank == null) ? 0 : previousRank - rank;
+
+            // 2. 이벤트 테이블에 저장
+            ReputationEvent event = ReputationEvent.builder()
+                    .user(s.getUser())
+                    .ranking(rank)
+                    .delta(delta)
+                    .build();
+
+            reputationRankRepository.save(event);
+
+            previousRank = rank;
+            rank++;
+        }
+    }
 
     // ===========================
     // 3. 코드 리뷰 순위 (vote_count 기준)
     // ===========================
-    @Transactional(readOnly = true)
-    public List<CodeReviewRankDto> getCodeReviewRankList(int size) {
+   @Transactional(readOnly = true)
+public List<CodeReviewRankDto> getCodeReviewRankList(int size) {
 
-        // “최근 7일” 기준
-        LocalDateTime to = LocalDate.now().plusDays(1).atStartOfDay();    // 내일 0시
-        LocalDateTime from = to.minusDays(7);                             // 7일 전 0시
+    // “최근 7일” 기준
+    LocalDateTime to = LocalDate.now().plusDays(1).atStartOfDay();    // 내일 0시
+    LocalDateTime from = to.minusDays(7);                             // 7일 전 0시
 
-        List<CodeReviewRankProjection> rows =
-                codeReviewRankRepository.findTopReviewsByVotes(from, to, size);
+    List<CodeReviewRankProjection> rows =
+            codeReviewRankRepository.findTopReviewsByVotes(from, to, size);
 
-        List<CodeReviewRankDto> result = new ArrayList<>();
+    List<CodeReviewRankDto> result = new ArrayList<>();
 
-        for (int i = 0; i < rows.size(); i++) {
-            CodeReviewRankProjection row = rows.get(i);
-            int rank = i + 1;
-            int delta = 0; // 이전 주 비교용 데이터가 없어서 일단 0
+    for (int i = 0; i < rows.size(); i++) {
+        CodeReviewRankProjection row = rows.get(i);
 
-            result.add(new CodeReviewRankDto(
-                    row.getId(),
-                    row.getAuthorId(),
-                    rank,
-                    delta,
-                    row.getVote()
-            ));
-        }
+        int ranking = i + 1;   // ⭐ 현재 순위
+        int delta = 0;         // ⭐ 일단 0으로 고정 (이전 주 데이터 없어서)
 
-        return result;
+        result.add(
+                CodeReviewRankDto.builder()
+                        .reviewId(row.getId())
+                        .authorId(row.getAuthorId())
+                        .nickname(row.getNickname())
+                        .ranking(ranking)
+                        .delta(delta)
+                        .vote(row.getVote())
+                        .build()
+        );
     }
+
+    return result;
+}
 }

@@ -1,17 +1,23 @@
-// src/main/java/com/unide/backend/domain/mainpage/dto/CodeReviewRankDto.java
 package com.unide.backend.domain.mainpage.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
+@Setter
+@Builder
 @AllArgsConstructor
+@NoArgsConstructor
 public class CodeReviewRankDto {
 
-    private final Long id;          // 리뷰 id
-    private final Long authorId;    // 리뷰 작성자 id (reviewer_id)
-    private final int rank;         // 현재 순위
-    private final int delta;        // 전주 대비 순위 변화 (지금은 0으로 둘 거고, 나중에 확장 가능)
-    private final int vote;         // vote_count
-    // 필요하면 나중에 problemTitle / reviewTitle 필드 추가해서 확장하면 됨
+    private Long reviewId;     // 코드 리뷰 id
+    private Long authorId;     // 작성자 id (필요 없으면 나중에 제거 가능)
+    private String nickname;   // ⭐ 작성자 닉네임
+
+    private int ranking;       // ⭐ 현재 순위
+    private int delta;         // ⭐ 순위 변화량 (이전 주 - 이번 주, 지금은 0)
+    private int vote;          // 투표수 (score 개념)
 }
