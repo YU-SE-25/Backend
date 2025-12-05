@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
+import org.springframework.util.StringUtils;
 
 import com.unide.backend.domain.admin.repository.BlacklistRepository;
 import com.unide.backend.domain.auth.dto.AvailabilityResponseDto;
@@ -182,8 +183,9 @@ public class AuthService {
                 .streakDays(0)
                 .ranking((int) userRepository.countByRoleNot(UserRole.MANAGER)) // ranking을 메니저 제외한 회원 수로 초기화
                 .previousRanking((int) userRepository.countByRoleNot(UserRole.MANAGER)) // 이전 순위도 동일하게 초기화
-                .rating(0)
-                .score(0.0)
+                .rating(0) 
+                .previousRating(0) 
+                .weeklyRating(0)
                 .build();
         statsRepository.save(stats);
 
@@ -204,27 +206,37 @@ public class AuthService {
 
         // 요청 DTO의 role이 INSTRUCTOR일 때 지원서 저장
         if (requestDto.getRole() == UserRole.INSTRUCTOR) {
-            // UserPortfolioFile 저장
-            if (requestDto.getPortfolioFileUrl() != null && requestDto.getOriginalFileName() != null) {
+            
+            // [수정] 파일 존재 여부와 링크 존재 여부 확인
+            boolean hasFile = StringUtils.hasText(requestDto.getPortfolioFileUrl()) && 
+                              StringUtils.hasText(requestDto.getOriginalFileName());
+            boolean hasLinks = requestDto.getPortfolioLinks() != null && 
+                               !requestDto.getPortfolioLinks().isEmpty();
+
+            // [수정] 둘 다 없으면 에러 발생
+            if (!hasFile && !hasLinks) {
+                throw new IllegalArgumentException("강사 지원 시 포트폴리오 파일 또는 링크 중 하나는 필수입니다.");
+            }
+
+            // 파일이 있을 때만 UserPortfolioFile 저장
+            if (hasFile) {
                 UserPortfolioFile portfolioFile = UserPortfolioFile.builder()
-                        .user(savedUser) // 저장된 User 엔티티 사용
+                        .user(savedUser)
                         .originalName(requestDto.getOriginalFileName())
-                        .storedKey(requestDto.getPortfolioFileUrl()) // DTO의 fileUrl은 실제로는 storedKey
-                        .mimeType(null) // mimeType은 파일 업로드 시 알 수 있으므로 null 또는 기본값
+                        .storedKey(requestDto.getPortfolioFileUrl())
+                        .mimeType(null)
                         .sizeBytes(requestDto.getFileSize())
                         .storage(UserPortfolioFile.StorageType.LOCAL)
                         .build();
                 userPortfolioFileRepository.save(portfolioFile);
-            } else {
-                throw new IllegalArgumentException("강사 역할 선택 시 포트폴리오 파일 정보는 필수입니다.");
             }
 
             // InstructorApplication 저장
-            String linksAsString = requestDto.getPortfolioLinks() != null ?
-                    String.join("\n", requestDto.getPortfolioLinks()) : null;
+            String linksAsString = hasLinks ? String.join("\n", requestDto.getPortfolioLinks()) : null;
+            
             InstructorApplication application = InstructorApplication.builder()
-                    .user(savedUser) // 저장된 User 엔티티 사용
-                    .portfolioFileUrl(requestDto.getPortfolioFileUrl()) // 저장된 파일 키/URL
+                    .user(savedUser)
+                    .portfolioFileUrl(hasFile ? requestDto.getPortfolioFileUrl() : null) // 파일 없으면 null 저장
                     .portfolioLinks(linksAsString)
                     .build();
             instructorApplicationRepository.save(application);
@@ -480,6 +492,10 @@ public class AuthService {
         User user = userRepository.findByEmail(requestDto.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
+        if (user.isSocialAccount()) {
+            throw new IllegalArgumentException("소셜 로그인 사용자는 비밀번호를 재설정할 수 없습니다. 소셜 로그인을 이용해주세요.");
+        }
+
         // 6자리 랜덤 숫자 코드 생성
         String verificationCode = String.format("%06d", new Random().nextInt(1000000));
         // 비밀번호 변경 단계를 위한 임시 토큰 생성
@@ -564,6 +580,11 @@ public class AuthService {
 
         // 사용자 비밀번호 업데이트
         User user = resetToken.getUser();
+
+        if (user.isSocialAccount()) {
+            throw new IllegalArgumentException("소셜 로그인 사용자는 비밀번호를 변경할 수 없습니다.");
+        }
+
         String newEncodedPassword = passwordEncoder.encode(requestDto.getNewPassword());
         user.updatePassword(newEncodedPassword);
     }
@@ -574,10 +595,13 @@ public class AuthService {
      * @param requestDto 비밀번호가 담긴 DTO
      */
     @Transactional
-    public void withdraw(User user, WithdrawRequestDto requestDto) {
+    public void withdraw(User principalDetailsUser, WithdrawRequestDto requestDto) {
+        User user = userRepository.findById(principalDetailsUser.getId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
         if (!user.isSocialAccount()) {
             if (requestDto.getPassword() == null || requestDto.getPassword().isBlank()) {
-                throw new IllegalArgumentException("비밀번호를 입력해주세요.");
+                throw new IllegalArgumentException("일반 계정 탈퇴 시 비밀번호는 필수입니다.");
             }
             if (!passwordEncoder.matches(requestDto.getPassword(), user.getPasswordHash())) {
                 throw new AuthException("비밀번호가 일치하지 않습니다.");

@@ -13,16 +13,19 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.unide.backend.common.response.MessageResponseDto;
+import com.unide.backend.domain.bookmark.service.BookmarkService;
 import com.unide.backend.domain.problems.dto.ProblemCreateRequestDto;
 import com.unide.backend.domain.problems.dto.ProblemCreateResponseDto;
 import com.unide.backend.domain.problems.dto.ProblemDetailResponseDto;
@@ -30,6 +33,8 @@ import com.unide.backend.domain.problems.dto.ProblemResponseDto;
 import com.unide.backend.domain.problems.dto.ProblemUpdateRequestDto;
 import com.unide.backend.domain.problems.entity.ProblemDifficulty;
 import com.unide.backend.domain.problems.service.ProblemService;
+import com.unide.backend.domain.report.dto.ReportCreateRequestDto;
+import com.unide.backend.domain.report.service.ReportService;
 import com.unide.backend.domain.submissions.dto.LongestTimeResponseDto;
 import com.unide.backend.domain.submissions.service.SubmissionService;
 import com.unide.backend.global.security.auth.PrincipalDetails;
@@ -43,6 +48,8 @@ import lombok.RequiredArgsConstructor;
 public class ProblemController {
     private final ProblemService problemService;
     private final SubmissionService submissionService;
+    private final BookmarkService bookmarkService;
+    private final ReportService reportService;
 
     /**등록 문제 조회 (매니저용) */
     @GetMapping("/list/pending")
@@ -73,26 +80,39 @@ public class ProblemController {
         return ResponseEntity.ok(problems);
     }
     
-    /** 문제 등록 */
-        @PostMapping("/register")
-        @PreAuthorize("hasAnyRole('MANAGER', 'INSTRUCTOR')")
-        public ResponseEntity<ProblemCreateResponseDto> createProblem(
-                @AuthenticationPrincipal PrincipalDetails principalDetails,
-                @Valid @ModelAttribute ProblemCreateRequestDto requestDto) {
-            Long problemId = problemService.createProblem(principalDetails.getUser(), requestDto);
-            return ResponseEntity.ok(ProblemCreateResponseDto.of("문제가 성공적으로 등록되었습니다.", problemId));
-        }
+    @PostMapping(value = "/register", consumes = "multipart/form-data")
+    @PreAuthorize("hasAnyRole('MANAGER', 'INSTRUCTOR')")
+    public ResponseEntity<ProblemCreateResponseDto> createProblem(
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @Valid @RequestPart("data") ProblemCreateRequestDto requestDto,
+            @RequestPart("testcaseFile") MultipartFile testcaseFile
+    ) {
+        Long problemId = problemService.createProblem(
+                principalDetails.getUser(),
+                requestDto,
+                testcaseFile
+        );
+        return ResponseEntity.ok(
+                ProblemCreateResponseDto.of("문제가 성공적으로 등록되었습니다.", problemId)
+        );
+    }
     
     /** 문제 수정 */
-    @PutMapping("/{problemId}")
+    @PatchMapping(value = "/{problemId}", consumes = "multipart/form-data")
     @PreAuthorize("hasAnyRole('MANAGER')")
     public ResponseEntity<ProblemCreateResponseDto> updateProblem(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
             @PathVariable Long problemId,
-            @Valid @RequestBody ProblemUpdateRequestDto requestDto) {
-        problemService.updateProblem(principalDetails.getUser(), problemId, requestDto);
-        return ResponseEntity.ok(ProblemCreateResponseDto.of("문제가 성공적으로 수정되었습니다.", problemId));
+            @RequestPart("data") ProblemUpdateRequestDto requestDto,
+            @RequestPart(value = "testcaseFile", required = false) MultipartFile testcaseFile
+    ) {
+        problemService.updateProblem(principalDetails.getUser(), problemId, requestDto, testcaseFile);
+        return ResponseEntity.ok(
+                ProblemCreateResponseDto.of("문제가 성공적으로 수정되었습니다.", problemId)
+        );
     }
+
+
     
     /** 문제 리스트 조회 (태그 검색 포함) */
     @GetMapping("/list")
@@ -137,5 +157,40 @@ public class ProblemController {
         
         LongestTimeResponseDto response = submissionService.getLongestRuntime(principalDetails.getUser(), problemId);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/list/bookmarked")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Page<ProblemResponseDto>> getBookmarkedProblems(
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Long userId = principalDetails.getUser().getId();
+        List<Long> bookmarkedProblemIds = bookmarkService.getBookmarkedProblemIds(userId);
+        Page<ProblemResponseDto> problems = problemService.getProblemsByIds(bookmarkedProblemIds, pageable);
+        return ResponseEntity.ok(problems);
+    }
+
+    @PutMapping("/{problemId}/approve")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<MessageResponseDto> approveProblem(@PathVariable Long problemId) {
+        problemService.approveProblem(problemId);
+        return ResponseEntity.ok(new MessageResponseDto("문제가 승인되었습니다."));
+    }
+
+    @PutMapping("/{problemId}/reject")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<MessageResponseDto> rejectProblem(@PathVariable Long problemId) {
+        problemService.rejectProblem(problemId);
+        return ResponseEntity.ok(new MessageResponseDto("문제가 반려되었습니다."));
+    }
+    /** 문제 신고 */
+    @PostMapping("/{problemId}/report")
+    public ResponseEntity<?> reportProblem(
+            @AuthenticationPrincipal PrincipalDetails user,
+            @PathVariable Long problemId,
+            @RequestBody ReportCreateRequestDto request
+    ) {
+        reportService.createReportForProblem(user.getUser().getId(), problemId, request);
+        return ResponseEntity.ok("문제 신고가 접수되었습니다.");
     }
 }

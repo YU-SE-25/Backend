@@ -19,7 +19,6 @@ public class ReportListDto {
     private Long id;
     private String reporterName;
     private String targetName;
-    private String reason;
     private ReportType type;
     private ReportStatus status;
     private LocalDateTime reportedAt;

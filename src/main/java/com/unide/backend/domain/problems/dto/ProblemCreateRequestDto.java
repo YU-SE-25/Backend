@@ -4,19 +4,18 @@ package com.unide.backend.domain.problems.dto;
 
 import java.util.List;
 
-import org.springframework.web.multipart.MultipartFile;
-
 import com.unide.backend.domain.problems.entity.ProblemDifficulty;
-import com.unide.backend.domain.problems.entity.ProblemTag;
 import com.unide.backend.domain.problems.entity.ProblemStatus;
+import com.unide.backend.domain.problems.entity.ProblemTag;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Getter
+@Getter @Setter
 @NoArgsConstructor
 public class ProblemCreateRequestDto {
     
@@ -47,7 +46,5 @@ public class ProblemCreateRequestDto {
     private String hint;
     
     private String source;
-
-    @NotNull(message = "테스트케이스 파일은 필수입니다")
-    private MultipartFile testcaseFile;
+    private List<TestCaseDto> testCases;
 }

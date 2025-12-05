@@ -60,6 +60,8 @@ public class SecurityConfig {
 
             // HTTP 요청에 대한 접근 권한 설정
             .authorizeHttpRequests(authz -> authz
+                // 정적 리소스 허용
+                .requestMatchers("/uploads/**").permitAll() 
                 // Swagger UI 관련 경로는 누구나 접근 가능하도록 허용
                 .requestMatchers(SWAGGER_URL_PATTERNS).permitAll()
                 // 인증 관련 경로는 누구나 접근 가능하도록 허용
@@ -68,12 +70,16 @@ public class SecurityConfig {
                 // 문제 목록 조회와 상세 조회는 누구나 접근 가능
                 .requestMatchers("GET", "/api/problems/list").permitAll()
                 .requestMatchers("GET", "/api/problems/detail/**").permitAll()
+                // 문제 상세 조회는 누구나 접근 가능
+                .requestMatchers("GET", "/api/problems/tags").permitAll()
                 // 포트폴리오 업로드 경로는 누구나 접근 가능하도록 허용
                 .requestMatchers("/api/upload/portfolio").permitAll()
                 // 닉네임으로 마이페이지 조회는 누구나 접근 가능 (GET만 허용)
                 .requestMatchers("GET", "/api/mypage/{nickname}").permitAll()
+                // 주간 평판 변화량 리스트는 누구나 접근 가능
+                .requestMatchers("GET", "/api/mypage/stats/weekly-rating-delta-list").permitAll()
                 // 나머지 stats/me, goals/me 등은 인증 필요
-                .requestMatchers("/api/mypage/stats/**").permitAll()
+                .requestMatchers("/api/mypage/stats/**").authenticated()
                 .requestMatchers("/api/mypage/goals/**").authenticated()
                 // MANAGER 역할을 가진 사용자만 접근 가능
                 .requestMatchers("/api/admin/**").hasRole("MANAGER")
@@ -81,8 +87,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/UNIDE/rank/**").permitAll()
 
                 // 마이페이지 수정/삭제는 인증 필요 (PATCH, DELETE)
-                .requestMatchers("PATCH", "/api/mypage/me").authenticated()
-                .requestMatchers("DELETE", "/api/mypage/me").authenticated()
+                .requestMatchers("POST", "/api/mypage/initialize").authenticated()
+                .requestMatchers("PATCH", "/api/mypage").authenticated()
+                .requestMatchers("DELETE", "/api/mypage").authenticated()
                 
                 // 2) 스터디 그룹 목록 조회만 오픈
                  .requestMatchers(HttpMethod.GET, "/api/studygroup/**").permitAll()

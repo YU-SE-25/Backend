@@ -18,6 +18,5 @@ public class ReportCreateRequestDto {
     private Long targetId;          // 신고 대상 ID (유저 or 문제)
     private ReportType type;        // USER / PROBLEM
     private String reason;          // 신고 사유
-
 }
 

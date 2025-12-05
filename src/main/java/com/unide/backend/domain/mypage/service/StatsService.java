@@ -16,23 +16,60 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class StatsService {
-
     private final StatsRepository statsRepository;
     private final UserRepository userRepository;
     private final SubmissionsRepository submissionsRepository;
+    
+    /**
+     * 매주 월요일 0시에 모든 유저의 weeklyRating 스냅샷 저장
+     */
+    @Transactional
+    @org.springframework.scheduling.annotation.Scheduled(cron = "0 0 0 * * MON")
+    public void updateAllWeeklySnapshots() {
+        var allStats = statsRepository.findAll();
+        for (Stats stats : allStats) {
+            stats.updateWeeklySnapshot();
+            statsRepository.save(stats);
+        }
+    }
+
+    /**
+     * 특정 유저의 주간 평판 변화량 반환
+     */
+    public int getWeeklyRatingDelta(Long userId) {
+        Stats stats = statsRepository.findByUserId(userId);
+        if (stats == null) return 0;
+        return stats.getWeeklyRatingDelta();
+    }
 
     /** 통계 조회 */
     public UserStatsResponseDto getStats(Long userId) {
         Stats stats = statsRepository.findByUserId(userId);
-        return UserStatsResponseDto.builder()
-                .totalSolved(stats.getTotalSolved())
-                .totalSubmitted(stats.getTotalSubmitted())
-                .acceptanceRate(stats.getAcceptanceRate())
-                .streakDays(stats.getStreakDays())
-                .ranking(stats.getRanking())
-                .rating(stats.getRating())
-                .delta(stats.getPreviousRanking() - stats.getRanking()) // 이전 순위 - 현재 순위
+        if (stats == null) {
+            stats = Stats.builder()
+                .user(null)
+                .totalSolved(0)
+                .totalSubmitted(0)
+                .acceptanceRate(0.0)
+                .streakDays(0)
+                .ranking(0)
+                .rating(0)
+                .previousRanking(0)
+                .previousRating(0)
+                .weeklyRating(0)
                 .build();
+        }
+        return UserStatsResponseDto.builder()
+            .totalSolved(stats.getTotalSolved())
+            .totalSubmitted(stats.getTotalSubmitted())
+            .acceptanceRate(stats.getAcceptanceRate())
+            .streakDays(stats.getStreakDays())
+            .ranking(stats.getRanking())
+            .rating(stats.getRating())
+            .delta(stats.getRanking() - stats.getPreviousRanking())
+            .ratingDelta(stats.getRating() - stats.getPreviousRating())
+            .weeklyRatingDelta(getWeeklyRatingDelta(userId))
+            .build();
     }
 
     /** 자동 통계 업데이트 (제출/정답/스트릭/랭킹만 갱신, rating은 건드리지 않음) */
@@ -70,6 +107,9 @@ public class StatsService {
                     .streakDays(streakDays)
                     .ranking(ranking)
                     .rating(0) // 초기 rating 0, 이벤트로만 변화
+                    .previousRanking(ranking)
+                    .previousRating(0)
+                    .weeklyRating(0)
                     .build();
         } else {
             stats.updateTotalSolved((int) totalSolved);
@@ -124,6 +164,8 @@ public class StatsService {
                     .streakDays(0)
                     .ranking(0)
                     .rating(delta)   // 첫 이벤트 점수로 시작
+                    .previousRating(0)
+                    .weeklyRating(0)
                     .build();
         } else {
             int current = stats.getRating() == null ? 0 : stats.getRating();
@@ -201,5 +243,30 @@ public class StatsService {
     @Transactional
     public void onCodeSubmitted(Long userId) {
         addRating(userId, 10);
+    }
+
+    /**
+     * 주간 평판 변화량 순 리스트 반환 (내림차순)
+     */
+    public java.util.List<WeeklyRatingDeltaDto> getWeeklyRatingDeltaList() {
+        var statsList = statsRepository.findAll();
+        java.util.List<WeeklyRatingDeltaDto> result = new java.util.ArrayList<>();
+        for (Stats stats : statsList) {
+            String username = stats.getUser().getNickname();
+            int weeklyDelta = stats.getWeeklyRatingDelta();
+            result.add(new WeeklyRatingDeltaDto(username, stats.getRating(), weeklyDelta));
+        }
+        // 평판 변화량 내림차순 정렬
+        result.sort((a, b) -> Integer.compare(b.getWeeklyDelta(), a.getWeeklyDelta()));
+        return result;
+    }
+
+    /** DTO: 주간 평판 변화량 리스트용 */
+    @lombok.AllArgsConstructor
+    @lombok.Getter
+    public static class WeeklyRatingDeltaDto {
+        private String username;
+        private Integer rating;
+        private int weeklyDelta;
     }
 }

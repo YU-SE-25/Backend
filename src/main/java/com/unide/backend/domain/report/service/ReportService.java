@@ -3,8 +3,12 @@ package com.unide.backend.domain.report.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import com.unide.backend.common.mail.MailService;
 import com.unide.backend.domain.discuss.repository.DiscussCommentReportRepository;
@@ -18,6 +22,7 @@ import com.unide.backend.domain.qna.repository.QnAReportRepository;
 import com.unide.backend.domain.report.dto.ReportCreateRequestDto;
 import com.unide.backend.domain.report.dto.ReportDetailDto;
 import com.unide.backend.domain.report.dto.ReportListDto;
+import com.unide.backend.domain.report.dto.ReportResolveRequestDto;
 import com.unide.backend.domain.report.entity.Report;
 import com.unide.backend.domain.report.entity.ReportStatus;
 import com.unide.backend.domain.report.entity.ReportType;
@@ -27,12 +32,16 @@ import com.unide.backend.domain.review_report.repository.ReviewReportRepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ReportService {
+    private final JavaMailSender mailSender;
+	private final SpringTemplateEngine templateEngine;
 
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
@@ -52,40 +61,84 @@ public class ReportService {
     // 1. 신고 상태 변경 + 이메일 + 평판반영
     // ==============================================================
 
+    /** 신고 처리(관리자용) - 상태, 액션, 메모 */
     @Transactional
-    public void updateReportStatus(Long reportId, ReportStatus status) {
-
+    public void resolveReport(Long reportId, ReportResolveRequestDto dto) {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new IllegalArgumentException("신고 정보를 찾을 수 없습니다."));
 
-        report.setStatus(status);
+        report.setStatus(dto.getStatus());
         report.setResolvedAt(LocalDateTime.now());
+        
         reportRepository.save(report);
 
-        // 승인일 때만 평판 감소
-        if (status == ReportStatus.APPROVED) {
+        if (dto.getStatus() == ReportStatus.APPROVED) {
             applyPenalty(report);
         }
 
-        // 이메일 전송
         User reporter = userRepository.findById(report.getReporterId()).orElse(null);
         if (reporter != null && reporter.getEmail() != null) {
-            String subject = "[UnIDE] 신고 처리 결과 안내";
-            String body;
+            try {
+                MimeMessage mimeMessage = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
 
-            if (status == ReportStatus.REJECTED) {
-                body = String.format(
-                        "안녕하세요, %s님.\n\n신고하신 내용이 거절되었습니다.\n\n감사합니다.",
-                        reporter.getNickname()
-                );
-            } else {
-                body = String.format(
-                        "안녕하세요, %s님.\n\n신고 상태가 승인되었습니다.\n\n감사합니다.",
-                        reporter.getNickname()
-                );
+                Context context = new Context();
+                context.setVariable("name", reporter.getNickname());
+                context.setVariable("reason", report.getReason());
+                context.setVariable("MyReportsUrl", "http://localhost:3000/reports/me/" + report.getId());
+
+                String html;
+                String subject;
+                if (dto.getStatus() == ReportStatus.REJECTED) {
+                    subject = "[Unide] 신고 거절 안내";
+                    html = templateEngine.process("report-rejected-email.html", context);
+                } else {
+                    subject = "[Unide] 신고 승인 안내";
+                    html = templateEngine.process("report-approved-email.html", context);
+                }
+
+                helper.setTo(reporter.getEmail());
+                helper.setSubject(subject);
+                helper.setText(html, true);
+
+                mailSender.send(mimeMessage);
+            } catch (MessagingException e) {
+                throw new RuntimeException("이메일 발송에 실패했습니다.", e);
             }
+        }
 
-            mailService.sendEmail(reporter.getEmail(), subject, body);
+        // 신고를 당한 사람에게도 메일 전송 (승인일 때만)
+        if (dto.getStatus() == ReportStatus.APPROVED) {
+            User targetUser = null;
+            if (report.getType() == ReportType.USER) {
+                targetUser = userRepository.findById(report.getTargetId()).orElse(null);
+            } else if (report.getType() == ReportType.PROBLEM) {
+                Problems problem = problemsRepository.findById(report.getTargetId()).orElse(null);
+                if (problem != null && problem.getCreatedBy() != null) {
+                    targetUser = problem.getCreatedBy();
+                }
+            }
+            if (targetUser != null && targetUser.getEmail() != null) {
+                    try {
+                    MimeMessage mimeMessage = mailSender.createMimeMessage();
+                    MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+                    Context context = new Context();
+                    context.setVariable("name", targetUser.getNickname());
+                    context.setVariable("reason", report.getReason());
+                    context.setVariable("MyReportUrl", "http://localhost:3000/mypage");
+
+                    String html = templateEngine.process("report-target-approved-email.html", context);
+
+                    helper.setTo(targetUser.getEmail()); // 받는 사람
+                    helper.setSubject("[Unide] 신고 승인 안내"); // 제목
+                    helper.setText(html, true); // 본문 (true는 이 내용이 HTML임을 의미)
+
+                    mailSender.send(mimeMessage); // 최종 발송
+                } catch (MessagingException e) {
+                    throw new RuntimeException("이메일 발송에 실패했습니다.", e);
+                }
+            }
         }
     }
 
@@ -107,6 +160,7 @@ public class ReportService {
         // 2) 게시글/댓글 신고 (dis/qna/review 모두 PROBLEM)
         else if (report.getType() == ReportType.PROBLEM) {
 
+            
             // (1) 디스커스 게시글 신고
             var disPostOpt = discussReportRepository.findById(reportId);
             if (authorId == null && disPostOpt.isPresent()) {
@@ -202,7 +256,51 @@ public class ReportService {
         return toDetailDto(report);
     }
 
+    /** 모든 신고 리스트 조회 (관리자용) - 미처리 우선, 신고 먼저한 순 */
+    public List<ReportListDto> getAllReports() {
+        return reportRepository.findAll().stream()
+                .sorted((r1, r2) -> {
+                    // 미처리(PENDING) 먼저, 그 안에서 신고 먼저한 순
+                    if (r1.getStatus() == ReportStatus.PENDING && r2.getStatus() != ReportStatus.PENDING) return -1;
+                    if (r1.getStatus() != ReportStatus.PENDING && r2.getStatus() == ReportStatus.PENDING) return 1;
+                    // 둘 다 같은 상태면 신고 먼저한 순
+                    return r1.getReportedAt().compareTo(r2.getReportedAt());
+                })
+                .map(this::toListDto)
+                .toList();
+    }
 
+    /** 제목으로 신고 리스트 검색 (관리자용) */
+    public List<ReportListDto> searchReportsByTitle(String keyword) {
+        return reportRepository.findAll().stream()
+                .filter(r -> {
+                    if (r.getType() == ReportType.PROBLEM) {
+                        return problemsRepository.findById(r.getTargetId())
+                                .map(Problems::getTitle)
+                                .filter(t -> t != null && t.contains(keyword))
+                                .isPresent();
+                    } else if (r.getType() == ReportType.USER) {
+                        String nickname = getUserName(r.getTargetId());
+                        return nickname != null && nickname.contains(keyword);
+                    }
+                    return false;
+                })
+                .sorted((r1, r2) -> {
+                    if (r1.getStatus() == ReportStatus.PENDING && r2.getStatus() != ReportStatus.PENDING) return -1;
+                    if (r1.getStatus() != ReportStatus.PENDING && r2.getStatus() == ReportStatus.PENDING) return 1;
+                    return r1.getReportedAt().compareTo(r2.getReportedAt());
+                })
+                .map(this::toListDto)
+                .toList();
+    }
+
+    /** 신고 상세 조회 (관리자용) */
+    public ReportDetailDto getReportDetail(Long reportId) {
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new IllegalArgumentException("신고 정보를 찾을 수 없습니다."));
+        return toDetailDto(report);
+    }
+    
     // ==============================================================
     // 5. DTO 변환
     // ==============================================================
@@ -211,12 +309,10 @@ public class ReportService {
 
         String reporterName = getUserName(r.getReporterId());
         String targetName = getTargetName(r.getType(), r.getTargetId());
-
         return ReportListDto.builder()
                 .id(r.getId())
                 .reporterName(reporterName)
                 .targetName(targetName)
-                .reason(r.getReason())
                 .type(r.getType())
                 .status(r.getStatus())
                 .reportedAt(r.getReportedAt())
@@ -265,4 +361,28 @@ public class ReportService {
                 .map(Problems::getTitle)
                 .orElse("Unknown Problem");
     }
+
+    /** 문제 신고 생성 */
+    public void createReportForProblem(Long userId, Long problemId, ReportCreateRequestDto request) {
+        // 유저 조회
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 문제 조회
+        Problems problem = problemsRepository.findById(problemId)
+            .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다."));
+
+        // 신고 엔티티 생성
+        Report report = Report.builder()
+            .reporterId(userId)
+            .targetId(problemId)
+            .type(ReportType.PROBLEM)
+            .status(ReportStatus.PENDING)
+            .reason(request.getReason())
+            .reportedAt(LocalDateTime.now())
+            .build();
+
+        reportRepository.save(report);
+    }
+
 }

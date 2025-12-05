@@ -29,7 +29,7 @@ public class InstructorApplication extends BaseTimeEntity {
     @Column(nullable = false)
     private ApplicationStatus status;
 
-    @Column(nullable = false, length = 500)
+    @Column(length = 500)
     private String portfolioFileUrl;
 
     @Column(columnDefinition = "TEXT")

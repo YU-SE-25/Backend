@@ -4,7 +4,14 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.unide.backend.domain.mypage.dto.ReminderRequestDto;
 import com.unide.backend.domain.mypage.dto.ReminderResponseDto;
@@ -27,7 +34,7 @@ public class ReminderController {
 		return ResponseEntity.ok(reminderService.getRemindersByUser(user));
 	}
 
-	/** 리마인더 등록 */
+	/** 리마인더 등록(처음 입력) */
 	@PostMapping
 	public ResponseEntity<ReminderResponseDto> addReminder(
 			@AuthenticationPrincipal PrincipalDetails principal,
@@ -36,7 +43,7 @@ public class ReminderController {
 		return ResponseEntity.ok(reminderService.saveReminder(user, dto));
 	}
 
-	/** 리마인더 수정 */
+	/** 리마인더 수정(빼고 싶은 시간 빼고 입력) */
 	@PatchMapping("/{reminderId}")
 	public ResponseEntity<ReminderResponseDto> updateReminder(
 			@PathVariable Long reminderId,
@@ -44,10 +51,16 @@ public class ReminderController {
 		return ResponseEntity.ok(reminderService.updateReminder(reminderId, dto));
 	}
 
-	/** 리마인더 삭제 */
+	/** 리마인더 전체 삭제 */
 	@DeleteMapping("/{reminderId}")
 	public ResponseEntity<Void> deleteReminder(@PathVariable Long reminderId) {
 		reminderService.deleteReminder(reminderId);
 		return ResponseEntity.noContent().build();
+	}
+
+	@PostMapping("/send-test")
+	public ResponseEntity<Void> sendTestReminders() {
+		reminderService.sendReminders();
+		return ResponseEntity.ok().build();
 	}
 }

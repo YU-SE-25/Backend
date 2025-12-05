@@ -3,6 +3,7 @@
 package com.unide.backend.domain.problems.dto;
 
 import java.util.List;
+import com.unide.backend.domain.problems.dto.TestCaseDto;
 
 import com.unide.backend.domain.problems.entity.ProblemDifficulty;
 import com.unide.backend.domain.problems.entity.ProblemTag;
@@ -11,12 +12,11 @@ import com.unide.backend.domain.problems.entity.ProblemStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 import jakarta.validation.constraints.NotNull;
 
-import org.springframework.web.multipart.MultipartFile;
-
-@Getter
+@Getter @Setter
 @NoArgsConstructor
 public class ProblemUpdateRequestDto {
     @NotBlank(message = "문제 제목은 필수입니다")
@@ -46,7 +46,5 @@ public class ProblemUpdateRequestDto {
     private String hint;
     
     private String source;
-
-    @NotNull(message = "테스트케이스 파일은 필수입니다")
-    private MultipartFile testcaseFile;
+    private List<TestCaseDto> testCases;
 }

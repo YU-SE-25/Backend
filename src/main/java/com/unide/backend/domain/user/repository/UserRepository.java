@@ -30,4 +30,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // 특정 역할이 아닌 사용자 수를 세는 메서드
     long countByRoleNot(UserRole role);
+
+    // 휴대폰 번호로 사용자를 찾는 메서드
+    Optional<User> findByPhone(String phone);
 }

@@ -24,6 +24,7 @@ import com.unide.backend.domain.admin.entity.Blacklist;
 import com.unide.backend.domain.admin.repository.BlacklistRepository;
 import com.unide.backend.domain.admin.dto.BlacklistCreateRequestDto;
 import com.unide.backend.domain.admin.dto.BlacklistCreateResponseDto;
+import com.unide.backend.domain.admin.dto.BlacklistDeleteResponseDto;
 
 import java.util.List;
 import java.util.UUID;
@@ -221,6 +222,36 @@ public class AdminService {
                 .blacklistId(savedBlacklist.getId())
                 .message("블랙리스트에 등록되었습니다." + (requestDto.getEmail() != null ? " (관련 계정 정지됨)" : ""))
                 .bannedAt(savedBlacklist.getBannedAt())
+                .build();
+    }
+
+    @Transactional
+    public BlacklistDeleteResponseDto removeFromBlacklist(Long blacklistId) {
+        Blacklist blacklist = blacklistRepository.findById(blacklistId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 블랙리스트 ID입니다: " + blacklistId));
+
+        if (blacklist.getEmail() != null) {
+            userRepository.findByEmail(blacklist.getEmail())
+                    .ifPresent(user -> {
+                        user.changeStatus(UserStatus.ACTIVE);
+                        userRepository.save(user);
+                    });
+        }
+
+        if (blacklist.getPhone() != null) {
+            userRepository.findByPhone(blacklist.getPhone())
+                    .ifPresent(user -> {
+                        user.changeStatus(UserStatus.ACTIVE);
+                        userRepository.save(user);
+                });
+        }
+
+        blacklistRepository.delete(blacklist);
+        
+        return BlacklistDeleteResponseDto.builder()
+                .blacklistId(blacklistId)
+                .message("블랙리스트에서 해제되었으며, 관련 계정이 복구되었습니다.")
+                .unbannedAt(LocalDateTime.now())
                 .build();
     }
 }

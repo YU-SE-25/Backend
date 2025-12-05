@@ -1,8 +1,20 @@
 package com.unide.backend.domain.report.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
 import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "reports")
@@ -19,7 +31,7 @@ public class Report {
     private Long reporterId;  // 신고자
 
     @Column(nullable = false)
-    private Long targetId;    // 유저ID 또는 문제ID
+    private Long targetId;    // 유저ID 또는 문제ID b
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

@@ -13,6 +13,8 @@ import com.unide.backend.domain.analysis.repository.SubmissionComplexityReposito
 import com.unide.backend.domain.analysis.dto.FlowchartResponseDto;
 import com.unide.backend.domain.analysis.entity.SubmissionFlowchart;
 import com.unide.backend.domain.analysis.repository.SubmissionFlowchartRepository;
+import com.unide.backend.domain.mypage.entity.Stats;
+import com.unide.backend.domain.mypage.repository.StatsRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,15 +39,29 @@ public class AnalysisService {
     private final ObjectMapper objectMapper;
     private final SubmissionComplexityRepository submissionComplexityRepository;
     private final SubmissionFlowchartRepository submissionFlowchartRepository;
+    private final StatsRepository statsRepository;
 
     @Transactional
     public HabitAnalysisResponseDto analyzeCodingHabits(User user) {
+        Stats userStats = statsRepository.findByUser(user)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 통계 정보를 찾을 수 없습니다."));
+        int currentSolvedCount = userStats.getTotalSolved();
+
+        Optional<UserAnalysisReport> lastReportOpt = userAnalysisReportRepository.findTopByUserOrderByCreatedAtDesc(user);
+
+        if (lastReportOpt.isPresent()) {
+            UserAnalysisReport lastReport = lastReportOpt.get();
+            if (currentSolvedCount - lastReport.getAnalyzedSolvedCount() < 10) {
+                return convertToDto(lastReport);
+            }
+        } else {
+            if (currentSolvedCount < 10) {
+                throw new IllegalArgumentException("분석을 위한 데이터가 부족합니다. 최소 10문제 이상 해결한 뒤 시도해주세요.");
+            }
+        }
+
         List<Submissions> recentSubmissions = submissionsRepository.findTopCorrectSubmissionsByUser(
                 user, PageRequest.of(0, 5));
-
-        if (recentSubmissions.isEmpty()) {
-            throw new IllegalArgumentException("분석할 정답 코드가 충분하지 않습니다. 문제를 먼저 풀어보세요!");
-        }
 
         StringBuilder codeContext = new StringBuilder();
         for (int i = 0; i < recentSubmissions.size(); i++) {
@@ -59,35 +75,36 @@ public class AnalysisService {
                 다음은 동일한 사용자가 작성한 최근 5개의 알고리즘 풀이 코드입니다.
                 이 코드들을 종합적으로 분석하여 다음 항목을 JSON 형식으로 반환해 주세요.
                 
-                응답 형식:
+                [Response Format]
                 {
                   "summary": "전반적인 코딩 스타일 요약 (한글)",
-                  "strengths": ["장점1", "장점2", ...],
-                  "weaknesses": ["단점/개선점1", "단점/개선점2", ...],
-                  "suggestions": ["추천 학습 키워드1", "추천 학습 키워드2", ...]
+                  "strengths": ["장점1", "장점2"],
+                  "weaknesses": ["단점1", "단점2"],
+                  "suggestions": ["추천 키워드1", "추천 키워드2"]
                 }
                 
-                사용자 코드:
+                [User Codes]
                 %s
                 """, codeContext.toString());
 
         String jsonResponse = llmService.getResponse(userPrompt, systemInstruction);
-
-        HabitAnalysisResponseDto result;
+        HabitAnalysisResponseDto resultDto;
         try {
-            result = objectMapper.readValue(jsonResponse, HabitAnalysisResponseDto.class);
+            String cleanJson = extractJson(jsonResponse); 
+            resultDto = objectMapper.readValue(cleanJson, HabitAnalysisResponseDto.class);
         } catch (JsonProcessingException e) {
-            log.error("LLM 응답 파싱 실패: {}", jsonResponse, e);
+            log.error("LLM 응답 파싱 실패. 원본: {}", jsonResponse, e);
             throw new RuntimeException("AI 분석 결과를 처리하는 중 오류가 발생했습니다.");
         }
 
         try {
             UserAnalysisReport report = UserAnalysisReport.builder()
                     .user(user)
-                    .summary(result.getSummary())
-                    .strengths(objectMapper.writeValueAsString(result.getStrengths()))
-                    .weaknesses(objectMapper.writeValueAsString(result.getWeaknesses()))
-                    .suggestions(objectMapper.writeValueAsString(result.getSuggestions()))
+                    .summary(resultDto.getSummary())
+                    .strengths(objectMapper.writeValueAsString(resultDto.getStrengths()))
+                    .weaknesses(objectMapper.writeValueAsString(resultDto.getWeaknesses()))
+                    .suggestions(objectMapper.writeValueAsString(resultDto.getSuggestions()))
+                    .analyzedSolvedCount(currentSolvedCount)
                     .build();
             
             userAnalysisReportRepository.save(report);
@@ -95,7 +112,20 @@ public class AnalysisService {
             log.error("분석 리포트 저장 실패", e);
         }
 
-        return result;
+        return resultDto;
+    }
+
+    private HabitAnalysisResponseDto convertToDto(UserAnalysisReport report) {
+        try {
+            return HabitAnalysisResponseDto.builder()
+                    .summary(report.getSummary())
+                    .strengths(objectMapper.readValue(report.getStrengths(), List.class))
+                    .weaknesses(objectMapper.readValue(report.getWeaknesses(), List.class))
+                    .suggestions(objectMapper.readValue(report.getSuggestions(), List.class))
+                    .build();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("저장된 분석 데이터를 불러오는 중 오류가 발생했습니다.", e);
+        }
     }
 
     @Transactional
@@ -140,9 +170,10 @@ public class AnalysisService {
 
         ComplexityAnalysisResponseDto resultDto;
         try {
-            resultDto = objectMapper.readValue(jsonResponse, ComplexityAnalysisResponseDto.class);
+            String cleanJson = extractJson(jsonResponse);
+            resultDto = objectMapper.readValue(cleanJson, ComplexityAnalysisResponseDto.class);
         } catch (JsonProcessingException e) {
-            log.error("LLM 복잡도 분석 응답 파싱 실패", e);
+            log.error("LLM 복잡도 분석 응답 파싱 실패. 원본: {}", jsonResponse, e);
             throw new RuntimeException("AI 분석 결과를 처리하는 중 오류가 발생했습니다.");
         }
 
@@ -195,9 +226,10 @@ public class AnalysisService {
 
         FlowchartResponseDto resultDto;
         try {
-            resultDto = objectMapper.readValue(jsonResponse, FlowchartResponseDto.class);
+            String cleanJson = extractJson(jsonResponse);
+            resultDto = objectMapper.readValue(cleanJson, FlowchartResponseDto.class);
         } catch (JsonProcessingException e) {
-            log.error("LLM 플로우 차트 응답 파싱 실패: {}", jsonResponse, e);
+            log.error("LLM 플로우 차트 응답 파싱 실패. 원본: {}", jsonResponse, e);
             throw new RuntimeException("플로우 차트를 생성하는 중 오류가 발생했습니다.");
         }
 
@@ -209,5 +241,18 @@ public class AnalysisService {
         submissionFlowchartRepository.save(entity);
 
         return resultDto;
+    }
+
+    private String extractJson(String response) {
+        response = response.replace("```json", "").replace("```", "");
+        
+        int firstBrace = response.indexOf("{");
+        int lastBrace = response.lastIndexOf("}");
+        
+        if (firstBrace != -1 && lastBrace != -1) {
+            return response.substring(firstBrace, lastBrace + 1);
+        }
+        
+        return response;
     }
 }

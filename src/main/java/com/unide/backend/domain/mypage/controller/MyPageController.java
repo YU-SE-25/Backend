@@ -19,6 +19,7 @@ import com.unide.backend.domain.mypage.dto.MyPageUpdateResponseDto;
 import com.unide.backend.domain.mypage.service.MyPageService;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -48,31 +49,26 @@ public class MyPageController {
     }
 
     /** 내 프로필 업데이트 */
-    @PatchMapping(consumes = "multipart/form-data")
-    public ResponseEntity<MyPageUpdateResponseDto> updateMyPage(
+    @PatchMapping(value = "", consumes = "multipart/form-data")
+    public ResponseEntity<MyPageResponseDto> updateMyPage(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
-            @RequestPart(value = "data") MyPageUpdateRequestDto requestDto,
-            @RequestPart(value = "file", required = false) MultipartFile file) {
+            @Valid @RequestPart("data") MyPageUpdateRequestDto requestDto,
+            @RequestPart(value = "avatarImageFile", required = false) MultipartFile imageFile
+    ) {
         Long userId = principalDetails.getUser().getId();
 
-        // 파일을 DTO에 설정
-        if (file != null && !file.isEmpty()) {
-            requestDto.setAvatarImageFile(file);
-        }
+        MyPageResponseDto response = myPageService.updateMyPage(
+                userId,
+                requestDto,
+                imageFile
+        );
 
-        MyPageResponseDto result = myPageService.updateMyPage(userId, requestDto);
-
-        if (requestDto.getUserGoals() != null) {
-            myPageService.updateUserGoals(userId, requestDto.getUserGoals());
-        }
-        if (requestDto.getReminders() != null) {
-            result.getReminders().forEach(r -> myPageService.deleteReminder(r.getId()));
-            requestDto.getReminders().forEach(reminderDto -> myPageService.addReminder(userId, reminderDto));
-        }
-
-        LocalDateTime updatedAt = result.getUpdatedAt();
-        return ResponseEntity.ok(new MyPageUpdateResponseDto("마이페이지가 성공적으로 수정되었습니다.", updatedAt));
+        return ResponseEntity.ok(response);
     }
+
+
+
+
 
     @PostMapping("initialize")
     public ResponseEntity<MyPageUpdateResponseDto> initializeMyPage(@AuthenticationPrincipal PrincipalDetails principalDetails) {
