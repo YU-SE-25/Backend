@@ -94,6 +94,20 @@ public class ProblemService {
 
         problemsRepository.save(problem);
 
+        // 테스트케이스 저장
+        if (requestDto.getTestCases() != null) {
+            for (com.unide.backend.domain.problems.dto.TestCaseDto tcDto : requestDto.getTestCases()) {
+                if (tcDto.getInput() != null && tcDto.getOutput() != null) {
+                    testCaseRepository.save(
+                        com.unide.backend.domain.problems.entity.TestCase.builder()
+                            .problem(problem)
+                            .input(tcDto.getInput())
+                            .output(tcDto.getOutput())
+                            .build()
+                    );
+                }
+            }
+        }
         return problem.getId();
     }
 
@@ -122,6 +136,32 @@ public class ProblemService {
         if (newFile != null && !newFile.isEmpty()) {
             String newPath = saveTestcaseFile(newFile);
             problem.updateTestcaseFilePath(newPath);
+        }
+
+        // 테스트케이스 수정: 입력이 없으면 기본값 저장
+        List<com.unide.backend.domain.problems.dto.TestCaseDto> testCases = dto.getTestCases();
+        testCaseRepository.deleteByProblem(problem);
+        if (testCases == null || testCases.isEmpty()) {
+            // 기본 테스트케이스 저장
+            testCaseRepository.save(
+                com.unide.backend.domain.problems.entity.TestCase.builder()
+                    .problem(problem)
+                    .input("입력 없음")
+                    .output("출력 없음")
+                    .build()
+            );
+        } else {
+            for (com.unide.backend.domain.problems.dto.TestCaseDto tcDto : testCases) {
+                if (tcDto.getInput() != null && tcDto.getOutput() != null) {
+                    testCaseRepository.save(
+                        com.unide.backend.domain.problems.entity.TestCase.builder()
+                            .problem(problem)
+                            .input(tcDto.getInput())
+                            .output(tcDto.getOutput())
+                            .build()
+                    );
+                }
+            }
         }
 
         if(user.getRole() == UserRole.MANAGER) {

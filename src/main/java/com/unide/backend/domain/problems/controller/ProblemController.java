@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -32,6 +33,8 @@ import com.unide.backend.domain.problems.dto.ProblemResponseDto;
 import com.unide.backend.domain.problems.dto.ProblemUpdateRequestDto;
 import com.unide.backend.domain.problems.entity.ProblemDifficulty;
 import com.unide.backend.domain.problems.service.ProblemService;
+import com.unide.backend.domain.report.dto.ReportCreateRequestDto;
+import com.unide.backend.domain.report.service.ReportService;
 import com.unide.backend.domain.submissions.dto.LongestTimeResponseDto;
 import com.unide.backend.domain.submissions.service.SubmissionService;
 import com.unide.backend.global.security.auth.PrincipalDetails;
@@ -46,6 +49,7 @@ public class ProblemController {
     private final ProblemService problemService;
     private final SubmissionService submissionService;
     private final BookmarkService bookmarkService;
+    private final ReportService reportService;
 
     /**등록 문제 조회 (매니저용) */
     @GetMapping("/list/pending")
@@ -178,5 +182,15 @@ public class ProblemController {
     public ResponseEntity<MessageResponseDto> rejectProblem(@PathVariable Long problemId) {
         problemService.rejectProblem(problemId);
         return ResponseEntity.ok(new MessageResponseDto("문제가 반려되었습니다."));
+    }
+    /** 문제 신고 */
+    @PostMapping("/{problemId}/report")
+    public ResponseEntity<?> reportProblem(
+            @AuthenticationPrincipal PrincipalDetails user,
+            @PathVariable Long problemId,
+            @RequestBody ReportCreateRequestDto request
+    ) {
+        reportService.createReportForProblem(user.getUser().getId(), problemId, request);
+        return ResponseEntity.ok("문제 신고가 접수되었습니다.");
     }
 }
