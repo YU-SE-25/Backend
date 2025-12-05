@@ -2,7 +2,16 @@
 
 package com.unide.backend.domain.problems.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,11 +39,15 @@ public class TestCase {
     @Column(nullable = false)
     private String output;
 
+    @Column(nullable = false, name = "testcase_file_path")
+    private String testcaseFilePath;
+
     @Builder
-    public TestCase(Problems problem, String input, String output) {
+    public TestCase(Problems problem, String input, String output, String testcaseFilePath) {
         this.problem = problem;
         this.input = input;
         this.output = output;
+        this.testcaseFilePath = testcaseFilePath;
     }
 
     public void setProblem(Problems problem) {
