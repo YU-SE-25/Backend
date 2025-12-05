@@ -281,6 +281,8 @@ public class SubmissionService {
                         .runtime(submission.getRuntime())
                         .memory(submission.getMemory())
                         .submittedAt(submission.getSubmittedAt())
+                        .passedTestCases(submission.getPassedTestCases())
+                        .totalTestCases(submission.getTotalTestCases())
                         .build())
                 .collect(Collectors.toList());
 

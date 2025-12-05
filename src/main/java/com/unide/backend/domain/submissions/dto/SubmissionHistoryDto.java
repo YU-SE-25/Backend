@@ -20,4 +20,6 @@ public class SubmissionHistoryDto {
     private Integer runtime;
     private Integer memory;
     private LocalDateTime submittedAt;
+    private Integer passedTestCases;
+    private Integer totalTestCases;
 }
