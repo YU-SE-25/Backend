@@ -23,6 +23,7 @@ import com.unide.backend.domain.qna.dto.QnAProblemDto;
 import com.unide.backend.domain.qna.entity.QnA;
 import com.unide.backend.domain.qna.entity.QnALike;
 import com.unide.backend.domain.qna.repository.QnALikeRepository;
+import com.unide.backend.domain.qna.repository.QnAProblemPostRepository;
 import com.unide.backend.domain.qna.repository.QnARepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
@@ -40,15 +41,14 @@ public class QnAService {
     private final UserRepository userRepository;
     private final QnALikeRepository qnaLikeRepository;
     private final StatsService statsService;
+    private final QnAProblemPostRepository qnaProblemPostRepository;
 
     // ===== 목록 조회 =====
 
-    // 기존 버전: 다른 코드 호환용
     public PageResponse<QnADto> getQnAList(int pageNum) {
         return getQnAList(pageNum, null);
     }
 
-    // 새 버전: viewerId 까지 받아서 viewerLiked 채워줌
     @Transactional(readOnly = true)
     public PageResponse<QnADto> getQnAList(int pageNum, Long viewerId) {
         PageRequest pageRequest = PageRequest.of(
@@ -64,6 +64,7 @@ public class QnAService {
                     Problems linked = qnaProblemPostService
                             .getLinkedProblem(qna.getId())
                             .orElse(null);
+
                     QnAProblemDto problemDto = QnAProblemDto.fromEntity(linked);
 
                     boolean viewerLiked = false;
@@ -72,14 +73,13 @@ public class QnAService {
                                 .existsByIdPostIdAndIdLikerId(qna.getId(), viewerId);
                     }
 
-                    // fromEntity 오버로드: (qna, problemDto, viewerLiked)
                     return QnADto.fromEntity(qna, problemDto, viewerLiked);
                 })
                 .toList();
 
         return PageResponse.<QnADto>builder()
                 .content(content)
-                .page(pageNum)                 // 1-based
+                .page(pageNum)
                 .size(page.getSize())
                 .totalElements(page.getTotalElements())
                 .totalPages(page.getTotalPages())
@@ -130,7 +130,7 @@ public class QnAService {
                 .build();
 
         QnA savedQnA = qnaRepository.save(qna);
-        // 생성 직후 viewerLiked 정보는 없으니 false 로
+
         return QnADto.fromEntity(savedQnA, null, false);
     }
 
@@ -149,12 +149,16 @@ public class QnAService {
     }
 
     // ===== 삭제 =====
-    public void deleteQnA(Long postId) {
-        QnA qna = qnaRepository.findById(postId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("해당 QnA글이 없습니다. postId=" + postId));
-        qnaRepository.delete(qna);
-    }
+public void deleteQnA(Long postId) {  // 1) 문제 연결 매핑 먼저 삭제
+    // 🔧 여기!
+    qnaProblemPostRepository.deleteByQna_Id(postId);
+
+    // 2) QnA 본문 삭제
+    QnA qna = qnaRepository.findById(postId)
+            .orElseThrow(() ->
+                    new IllegalArgumentException("해당 QnA글이 없습니다. postId=" + postId));
+    qnaRepository.delete(qna);
+}
 
     // ===== 검색 =====
     @Transactional(readOnly = true)
@@ -162,11 +166,11 @@ public class QnAService {
         return qnaRepository
                 .findByTitleContainingIgnoreCaseOrContentsContainingIgnoreCase(keyword, keyword)
                 .stream()
-                .map(QnADto::fromEntity)   // 검색에서는 viewerLiked 안 씀
+                .map(QnADto::fromEntity)
                 .collect(Collectors.toList());
     }
 
-    // ===== 첨부파일 첨가 =====
+    // ===== 첨부파일 추가 =====
     @Transactional
     public Map<String, Object> attachFile(Long postId, String fileUrl) {
 
@@ -184,7 +188,7 @@ public class QnAService {
         return response;
     }
 
-    // ===== QnA 게시글 좋아요 토글 =====
+    // ===== 좋아요 토글 =====
     public QnADto toggleLike(Long postId, Long userId) {
 
         QnA qna = qnaRepository.findById(postId)
@@ -218,7 +222,7 @@ public class QnAService {
         return dto;
     }
 
-    // ===== 아래 두 개는 지금 PollService 따로 있으니까 그대로 두거나 지워도 무방 =====
+    // ===== Poll Service는 현재 비활성 =====
     public QnAPollResponse createPoll(Long postId, Long authorId, QnAPollCreateRequest request) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
