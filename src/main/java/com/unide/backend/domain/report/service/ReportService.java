@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
-import com.unide.backend.common.mail.MailService;
 import com.unide.backend.domain.discuss.repository.DiscussCommentReportRepository;
 import com.unide.backend.domain.discuss.repository.DiscussReportRepository;
 import com.unide.backend.domain.mypage.service.StatsService;
@@ -46,7 +45,6 @@ public class ReportService {
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
     private final ProblemsRepository problemsRepository;
-    private final MailService mailService;
     private final StatsService statsService;
 
     private final DiscussReportRepository discussReportRepository;
@@ -270,30 +268,6 @@ public class ReportService {
                 .toList();
     }
 
-    /** 제목으로 신고 리스트 검색 (관리자용) */
-    public List<ReportListDto> searchReportsByTitle(String keyword) {
-        return reportRepository.findAll().stream()
-                .filter(r -> {
-                    if (r.getType() == ReportType.PROBLEM) {
-                        return problemsRepository.findById(r.getTargetId())
-                                .map(Problems::getTitle)
-                                .filter(t -> t != null && t.contains(keyword))
-                                .isPresent();
-                    } else if (r.getType() == ReportType.USER) {
-                        String nickname = getUserName(r.getTargetId());
-                        return nickname != null && nickname.contains(keyword);
-                    }
-                    return false;
-                })
-                .sorted((r1, r2) -> {
-                    if (r1.getStatus() == ReportStatus.PENDING && r2.getStatus() != ReportStatus.PENDING) return -1;
-                    if (r1.getStatus() != ReportStatus.PENDING && r2.getStatus() == ReportStatus.PENDING) return 1;
-                    return r1.getReportedAt().compareTo(r2.getReportedAt());
-                })
-                .map(this::toListDto)
-                .toList();
-    }
-
     /** 신고 상세 조회 (관리자용) */
     public ReportDetailDto getReportDetail(Long reportId) {
         Report report = reportRepository.findById(reportId)
@@ -355,6 +329,31 @@ public class ReportService {
             return userRepository.findById(id)
                     .map(User::getNickname)
                     .orElse("Unknown User");
+        } else if (type == ReportType.DISCUSSION) {
+            return discussReportRepository.findById(id)
+                    .map(dr -> {
+                        var post = dr.getPost();
+                        if (post != null) {
+                            String nickname = userRepository.findById(post.getAuthorId())
+                                .map(User::getNickname)
+                                .orElse("Unknown User");
+                            return post.getTitle() + " (" + nickname + ")";
+                        } else {
+                            return "Unknown";
+                        }
+                    })
+                    .orElse("Unknown Discussion");
+        } else if (type == ReportType.QnA) {
+            return qnaReportRepository.findById(id)
+                    .map(qr -> {
+                        var post = qr.getPost();
+                        if (post != null && post.getAuthor() != null) {
+                            return post.getTitle() + " (" + post.getAuthor().getNickname() + ")";
+                        } else {
+                            return post != null ? post.getTitle() : "Unknown Problem";
+                        }
+                    })
+                    .orElse("Unknown Problem");
         }
 
         return problemsRepository.findById(id)

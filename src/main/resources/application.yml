@@ -61,8 +61,11 @@ servlet:
   multipart:
     max-file-size: 100MB
     max-request-size: 500MB
+
 app:
+  base-url: http://localhost:8080
   upload:
+    avatar-dir: uploads/avatars
     testcase-dir: uploads/testcases
-    avatar-dir: uploads/avatars 
+
 

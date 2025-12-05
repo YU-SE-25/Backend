@@ -27,19 +27,19 @@ import com.unide.backend.domain.submissions.dto.LongestTimeResponseDto;
 import com.unide.backend.domain.submissions.dto.SubmissionDetailResponseDto;
 import com.unide.backend.domain.submissions.dto.SubmissionHistoryDto;
 import com.unide.backend.domain.submissions.dto.SubmissionHistoryListDto;
+import com.unide.backend.domain.submissions.dto.SubmissionRecordDto;
 import com.unide.backend.domain.submissions.dto.SubmissionRequestDto;
 import com.unide.backend.domain.submissions.dto.SubmissionResponseDto;
 import com.unide.backend.domain.submissions.dto.SubmissionShareRequestDto;
 import com.unide.backend.domain.submissions.dto.SubmissionShareResponseDto;
 import com.unide.backend.domain.submissions.dto.SubmissionSolutionDto;
 import com.unide.backend.domain.submissions.dto.SubmissionSolutionListDto;
+import com.unide.backend.domain.submissions.entity.SubmissionRecord;
 import com.unide.backend.domain.submissions.entity.SubmissionStatus;
 import com.unide.backend.domain.submissions.entity.Submissions;
+import com.unide.backend.domain.submissions.repository.SubmissionRecordRepository;
 import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
 import com.unide.backend.domain.user.entity.User;
-import com.unide.backend.domain.submissions.entity.SubmissionRecord;
-import com.unide.backend.domain.submissions.repository.SubmissionRecordRepository;
-import com.unide.backend.domain.submissions.dto.SubmissionRecordDto;
 
 import lombok.RequiredArgsConstructor;
 
@@ -238,6 +238,8 @@ public class SubmissionService {
                 .memory(submission.getMemory())
                 .submittedAt(submission.getSubmittedAt())
                 .isShared(submission.isShared())
+                .passedTestCases(submission.getPassedTestCases())
+                .totalTestCases(submission.getTotalTestCases())
                 .records(recordDtos)
                 .build();
     }
