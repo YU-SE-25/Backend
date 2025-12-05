@@ -231,20 +231,17 @@ public class MyPageService {
         updateStudyAlarmIfPresent(dto.getIsStudyAlarm(), myPage);
         updateDarkModeIfPresent(dto.getIsDarkMode(), myPage);
 
-        // 프로필 이미지
-        if (dto.getAvatarUrl() == null && (file == null || file.isEmpty())) {
-            // 기존 이미지 실제 파일도 삭제
-            imageService.deleteImage(myPage.getAvatarUrl());
-
-            // 기본 이미지로 초기화
-            myPage.updateAvatarUrl(DEFAULT_AVATAR_URL);
-        }
+        // 프로필 이미지 업데이트
         if (file != null && !file.isEmpty()) {
-            imageService.deleteImage(myPage.getAvatarUrl()); // 기존 이미지 삭제
+            // 새 파일이 있을 때만 기존 이미지 삭제 + 업로드
+            imageService.deleteImage(myPage.getAvatarUrl());
             String newUrl = imageService.uploadProfileImage(file);
             myPage.updateAvatarUrl(newUrl);
-        }
 
+        } else {
+            // 파일이 없으면 avatarUrl 그대로 유지
+            // 아무 처리도 하지 않음
+        }
 
         // 목표 업데이트
         if (dto.getUserGoals() != null) {
