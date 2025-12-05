@@ -2,25 +2,17 @@ package com.unide.backend.domain.mypage.service;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.UUID;         
-import java.io.IOException;
-import org.springframework.web.multipart.MultipartFile;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.unide.backend.domain.bookmark.repository.BookmarkRepository;
 import com.unide.backend.domain.mypage.dto.MyPageResponseDto;
 import com.unide.backend.domain.mypage.dto.MyPageUpdateRequestDto;
-import com.unide.backend.domain.mypage.dto.MyPageUpdateResponseDto;
 import com.unide.backend.domain.mypage.dto.ReminderRequestDto;
 import com.unide.backend.domain.mypage.dto.ReminderResponseDto;
 import com.unide.backend.domain.mypage.dto.SubmissionItem;
@@ -33,8 +25,8 @@ import com.unide.backend.domain.mypage.entity.Reminder;
 import com.unide.backend.domain.mypage.entity.Stats;
 import com.unide.backend.domain.mypage.repository.GoalsRepository;
 import com.unide.backend.domain.mypage.repository.MyPageRepository;
-import com.unide.backend.domain.mypage.repository.StatsRepository;
 import com.unide.backend.domain.mypage.repository.ReminderRepository;
+import com.unide.backend.domain.mypage.repository.StatsRepository;
 import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.repository.UserRepository;
@@ -57,7 +49,8 @@ public class MyPageService {
     private final GoalsService goalsService;
     private final BookmarkRepository bookmarkRepository;
     private final ReminderService reminderService;
-
+    private final ImageService imageService;
+    
     private static final String DEFAULT_AVATAR_URL = "/images/default-avatar.png";
     
 
@@ -225,37 +218,48 @@ public class MyPageService {
     /* ====================== UPDATE MYPAGE =========================== */
 
     @Transactional
-    public MyPageUpdateResponseDto updateMyPage(Long userId, MyPageUpdateRequestDto requestDto) {
+    public MyPageResponseDto updateMyPage(Long userId, MyPageUpdateRequestDto dto, MultipartFile file) {
 
         User user = getUserById(userId);
         MyPage myPage = getMyPageByUserId(userId);
 
-        updateNicknameIfPresent(requestDto.getNickname(), userId, user, myPage);
-        updateBioIfPresent(requestDto.getBio(), myPage);
-        updatePreferredLanguageIfPresent(requestDto.getPreferredLanguage(), myPage);
-        updatePublicStatusIfPresent(requestDto.getIsPublic(), myPage);
-        updateAvatarUrlIfPresent(requestDto.getAvatarImageFile(), myPage);
-        updateStudyAlarmIfPresent(requestDto.getIsStudyAlarm(), myPage);
-        updateDarkModeIfPresent(requestDto.getIsDarkMode(), myPage);
+        // 기본 정보 업데이트
+        updateNicknameIfPresent(dto.getNickname(), userId, user, myPage);
+        updateBioIfPresent(dto.getBio(), myPage);
+        updatePreferredLanguageIfPresent(dto.getPreferredLanguage(), myPage);
+        updatePublicStatusIfPresent(dto.getIsPublic(), myPage);
+        updateStudyAlarmIfPresent(dto.getIsStudyAlarm(), myPage);
+        updateDarkModeIfPresent(dto.getIsDarkMode(), myPage);
 
-        if (requestDto.getUserGoals() != null) {
-            updateUserGoalsInternal(userId, requestDto.getUserGoals());
+        // 프로필 이미지
+        if (dto.getAvatarUrl() == null && (file == null || file.isEmpty())) {
+            // 기존 이미지 실제 파일도 삭제
+            imageService.deleteImage(myPage.getAvatarUrl());
+
+            // 기본 이미지로 초기화
+            myPage.updateAvatarUrl(DEFAULT_AVATAR_URL);
+        }
+        if (file != null && !file.isEmpty()) {
+            imageService.deleteImage(myPage.getAvatarUrl()); // 기존 이미지 삭제
+            String newUrl = imageService.uploadProfileImage(file);
+            myPage.updateAvatarUrl(newUrl);
         }
 
-        if (requestDto.getReminders() != null) {
-            updateRemindersInternal(userId, requestDto.getReminders());
+
+        // 목표 업데이트
+        if (dto.getUserGoals() != null) {
+            updateUserGoalsInternal(userId, dto.getUserGoals());
         }
 
-        userRepository.save(user);
+        // 리마인더 업데이트
+        if (dto.getReminders() != null) {
+            updateRemindersInternal(userId, dto.getReminders());
+        }
+
         myPageRepository.save(myPage);
 
-        return new MyPageUpdateResponseDto(
-                "마이페이지가 성공적으로 수정되었습니다.",
-                myPage.getUpdatedAt()
-        );
+        return getMyPage(userId);
     }
-           
-
 
     /* ====================== DELETE & INIT =========================== */
 
@@ -415,40 +419,4 @@ public class MyPageService {
     private void updateDarkModeIfPresent(Boolean isDarkMode, MyPage myPage) {
         if (isDarkMode != null) myPage.updateIsDarkMode(isDarkMode);
     }
-
-    @Value("${app.upload.avatar-dir}")
-    private String avatarUploadDir;
-    private String saveAvatar(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            return null;
-        }
-
-        try {
-            Path uploadPath = Paths.get(avatarUploadDir).toAbsolutePath().normalize();
-
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
-            String originalName = file.getOriginalFilename();
-            String extension = originalName.substring(originalName.lastIndexOf("."));
-            String fileName = System.currentTimeMillis() + "_" + UUID.randomUUID() + extension;
-
-            Path filePath = uploadPath.resolve(fileName);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            // DB에는 상대 경로 저장 (프론트에서 표시 가능)
-            return "/avatars/" + fileName;
-
-        } catch (IOException e) {
-            throw new RuntimeException("프로필 이미지 저장 중 오류 발생", e);
-        }
-    }
-    private void updateAvatarUrlIfPresent(MultipartFile file, MyPage myPage) {
-        if (file == null || file.isEmpty()) return;
-
-        String avatarUrl = saveAvatar(file);
-        myPage.updateAvatarUrl(avatarUrl);
-    }
-
 }

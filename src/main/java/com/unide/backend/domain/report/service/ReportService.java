@@ -160,6 +160,7 @@ public class ReportService {
         // 2) 게시글/댓글 신고 (dis/qna/review 모두 PROBLEM)
         else if (report.getType() == ReportType.PROBLEM) {
 
+            
             // (1) 디스커스 게시글 신고
             var disPostOpt = discussReportRepository.findById(reportId);
             if (authorId == null && disPostOpt.isPresent()) {
@@ -226,6 +227,7 @@ public class ReportService {
                 .reason(dto.getReason())
                 .status(ReportStatus.PENDING)
                 .reportedAt(LocalDateTime.now())
+                .title(dto.getTitle())
                 .build();
 
         reportRepository.save(report);
@@ -317,7 +319,7 @@ public class ReportService {
                 .type(r.getType())
                 .status(r.getStatus())
                 .reportedAt(r.getReportedAt())
-                .title(title)
+                .title(r.getTitle())
                 .build();
     }
 
