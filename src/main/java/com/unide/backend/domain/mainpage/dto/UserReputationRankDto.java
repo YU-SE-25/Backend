@@ -7,6 +7,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class UserReputationRankDto {
 
+private final String nickname;
     private final Long userId;
     private final int rank;
     private final int delta;
