@@ -2,9 +2,6 @@ package com.unide.backend.domain.mypage.dto;
 
 import java.util.List;
 
-import org.springframework.web.multipart.MultipartFile;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -22,6 +19,5 @@ public class MyPageUpdateRequestDto {
     private UserGoalsRequestDto userGoals;
     private List<ReminderRequestDto> reminders;
 
-    @JsonIgnore
-    private MultipartFile avatarImageFile;
+    private String avatarUrl;
 }
