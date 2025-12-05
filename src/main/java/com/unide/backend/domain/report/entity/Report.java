@@ -43,9 +43,6 @@ public class Report {
     @Column(nullable = false)
     private String reason;
 
-    @Column(nullable = false)
-    private String title;
-
     private LocalDateTime reportedAt;
     private LocalDateTime resolvedAt;
 }
