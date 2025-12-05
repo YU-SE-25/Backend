@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.unide.backend.domain.report.dto.ReportCreateRequestDto;
@@ -67,13 +66,6 @@ public class ReportController {
     @GetMapping
     public ResponseEntity<List<ReportListDto>> getAllReports() {
         return ResponseEntity.ok(reportService.getAllReports());
-    }
-
-    /** 제목으로 신고 리스트 검색 (관리자용) */
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/search")
-    public ResponseEntity<List<ReportListDto>> searchReportsByTitle(@RequestParam String keyword) {
-        return ResponseEntity.ok(reportService.searchReportsByTitle(keyword));
     }
 
     /** 신고 처리(관리자용) - 상태, 액션, 메모 */

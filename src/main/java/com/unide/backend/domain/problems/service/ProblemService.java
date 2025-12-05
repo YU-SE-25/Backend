@@ -3,13 +3,12 @@
 package com.unide.backend.domain.problems.service;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -29,7 +28,6 @@ import com.unide.backend.domain.problems.dto.ProblemResponseDto;
 import com.unide.backend.domain.problems.dto.ProblemUpdateRequestDto;
 import com.unide.backend.domain.problems.entity.ProblemDifficulty;
 import com.unide.backend.domain.problems.entity.Problems;
-import com.unide.backend.domain.problems.entity.TestCase;
 import com.unide.backend.domain.problems.repository.ProblemsRepository;
 import com.unide.backend.domain.problems.repository.TestCaseRepository;
 import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
@@ -149,38 +147,41 @@ public class ProblemService {
             }
         }
     }
+    
     private String saveTestcaseFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            return null; // 파일 없으면 그냥 null 저장
+            return null;
         }
 
         try {
-            // 업로드 폴더 (application.yml 또는 properties에서 주입받았다고 가정)
+            // 폴더 준비
             Path uploadPath = Paths.get(testcaseUploadDir).toAbsolutePath().normalize();
             Files.createDirectories(uploadPath);
 
-            // 파일 이름 정리
+            // 파일명 정리
             String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
             if (originalFilename.contains("..")) {
                 throw new IllegalArgumentException("파일명에 '..' 문자를 포함할 수 없습니다.");
             }
 
-            // 새로운 파일명 생성
-            String newFilename = System.currentTimeMillis() + "_" + originalFilename;
+            // UUID로 중복 방지
+            String newFilename = UUID.randomUUID() + "_" + originalFilename;
 
-            // 저장 위치
+            // 실제 저장 위치
             Path targetLocation = uploadPath.resolve(newFilename);
 
             // 파일 저장
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
-            // DB에는 절대경로 저장
-            return targetLocation.toString();
+            // ⭐⭐⭐ DB에는 URL 경로만 저장 (프론트 접근 가능)
+            return "/uploads/testcases/" + newFilename;
 
         } catch (IOException e) {
             throw new RuntimeException("테스트케이스 파일 저장 실패: " + e.getMessage(), e);
         }
     }
+
+
 
     /** 승인된 문제 조회 */
     public Page<ProblemResponseDto> getProblems(Pageable pageable) {
