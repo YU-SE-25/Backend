@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
+import org.springframework.util.StringUtils;
 
 import com.unide.backend.domain.admin.repository.BlacklistRepository;
 import com.unide.backend.domain.auth.dto.AvailabilityResponseDto;
@@ -205,27 +206,37 @@ public class AuthService {
 
         // 요청 DTO의 role이 INSTRUCTOR일 때 지원서 저장
         if (requestDto.getRole() == UserRole.INSTRUCTOR) {
-            // UserPortfolioFile 저장
-            if (requestDto.getPortfolioFileUrl() != null && requestDto.getOriginalFileName() != null) {
+            
+            // [수정] 파일 존재 여부와 링크 존재 여부 확인
+            boolean hasFile = StringUtils.hasText(requestDto.getPortfolioFileUrl()) && 
+                              StringUtils.hasText(requestDto.getOriginalFileName());
+            boolean hasLinks = requestDto.getPortfolioLinks() != null && 
+                               !requestDto.getPortfolioLinks().isEmpty();
+
+            // [수정] 둘 다 없으면 에러 발생
+            if (!hasFile && !hasLinks) {
+                throw new IllegalArgumentException("강사 지원 시 포트폴리오 파일 또는 링크 중 하나는 필수입니다.");
+            }
+
+            // 파일이 있을 때만 UserPortfolioFile 저장
+            if (hasFile) {
                 UserPortfolioFile portfolioFile = UserPortfolioFile.builder()
-                        .user(savedUser) // 저장된 User 엔티티 사용
+                        .user(savedUser)
                         .originalName(requestDto.getOriginalFileName())
-                        .storedKey(requestDto.getPortfolioFileUrl()) // DTO의 fileUrl은 실제로는 storedKey
-                        .mimeType(null) // mimeType은 파일 업로드 시 알 수 있으므로 null 또는 기본값
+                        .storedKey(requestDto.getPortfolioFileUrl())
+                        .mimeType(null)
                         .sizeBytes(requestDto.getFileSize())
                         .storage(UserPortfolioFile.StorageType.LOCAL)
                         .build();
                 userPortfolioFileRepository.save(portfolioFile);
-            } else {
-                throw new IllegalArgumentException("강사 역할 선택 시 포트폴리오 파일 정보는 필수입니다.");
             }
 
             // InstructorApplication 저장
-            String linksAsString = requestDto.getPortfolioLinks() != null ?
-                    String.join("\n", requestDto.getPortfolioLinks()) : null;
+            String linksAsString = hasLinks ? String.join("\n", requestDto.getPortfolioLinks()) : null;
+            
             InstructorApplication application = InstructorApplication.builder()
-                    .user(savedUser) // 저장된 User 엔티티 사용
-                    .portfolioFileUrl(requestDto.getPortfolioFileUrl()) // 저장된 파일 키/URL
+                    .user(savedUser)
+                    .portfolioFileUrl(hasFile ? requestDto.getPortfolioFileUrl() : null) // 파일 없으면 null 저장
                     .portfolioLinks(linksAsString)
                     .build();
             instructorApplicationRepository.save(application);
