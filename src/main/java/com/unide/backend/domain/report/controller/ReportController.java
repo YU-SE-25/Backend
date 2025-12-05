@@ -86,4 +86,11 @@ public class ReportController {
         reportService.resolveReport(reportId, dto);
         return ResponseEntity.ok("신고가 처리되었습니다.");
     }
+
+    /** 신고 상세 조회 (관리자용) */
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{reportId}")
+    public ResponseEntity<ReportDetailDto> getReportDetail(@PathVariable Long reportId) {
+        return ResponseEntity.ok(reportService.getReportDetail(reportId));
+    }
 }

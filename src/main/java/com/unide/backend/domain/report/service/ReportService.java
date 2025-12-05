@@ -227,7 +227,6 @@ public class ReportService {
                 .reason(dto.getReason())
                 .status(ReportStatus.PENDING)
                 .reportedAt(LocalDateTime.now())
-                .title(dto.getTitle())
                 .build();
 
         reportRepository.save(report);
@@ -295,6 +294,13 @@ public class ReportService {
                 .toList();
     }
 
+    /** 신고 상세 조회 (관리자용) */
+    public ReportDetailDto getReportDetail(Long reportId) {
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new IllegalArgumentException("신고 정보를 찾을 수 없습니다."));
+        return toDetailDto(report);
+    }
+
 
     // ==============================================================
     // 5. DTO 변환
@@ -304,14 +310,6 @@ public class ReportService {
 
         String reporterName = getUserName(r.getReporterId());
         String targetName = getTargetName(r.getType(), r.getTargetId());
-        String title = null;
-        if (r.getType() == ReportType.PROBLEM) {
-            title = problemsRepository.findById(r.getTargetId())
-                    .map(Problems::getTitle)
-                    .orElse(null);
-        } else if (r.getType() == ReportType.USER) {
-            title = getUserName(r.getTargetId());
-        }
         return ReportListDto.builder()
                 .id(r.getId())
                 .reporterName(reporterName)
@@ -319,7 +317,6 @@ public class ReportService {
                 .type(r.getType())
                 .status(r.getStatus())
                 .reportedAt(r.getReportedAt())
-                .title(r.getTitle())
                 .build();
     }
 

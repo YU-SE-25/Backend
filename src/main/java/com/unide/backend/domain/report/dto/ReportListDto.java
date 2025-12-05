@@ -22,6 +22,5 @@ public class ReportListDto {
     private ReportType type;
     private ReportStatus status;
     private LocalDateTime reportedAt;
-    private String title;
 }
 
