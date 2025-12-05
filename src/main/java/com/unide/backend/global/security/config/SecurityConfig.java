@@ -60,6 +60,8 @@ public class SecurityConfig {
 
             // HTTP 요청에 대한 접근 권한 설정
             .authorizeHttpRequests(authz -> authz
+                // 정적 리소스 허용
+                .requestMatchers("/uploads/**").permitAll() 
                 // Swagger UI 관련 경로는 누구나 접근 가능하도록 허용
                 .requestMatchers(SWAGGER_URL_PATTERNS).permitAll()
                 // 인증 관련 경로는 누구나 접근 가능하도록 허용
