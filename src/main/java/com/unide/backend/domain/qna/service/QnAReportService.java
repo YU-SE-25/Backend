@@ -40,7 +40,7 @@ public void reportPost(Long postId, Long reporterId, QnAReportCreateRequestDto d
     Report baseReport = Report.builder()
             .reporterId(reporterId)
             .targetId(postId)
-            .type(ReportType.PROBLEM)
+            .type(ReportType.QnA)
             .status(ReportStatus.PENDING)
             .reason(dto.getReason())
             .reportedAt(LocalDateTime.now())

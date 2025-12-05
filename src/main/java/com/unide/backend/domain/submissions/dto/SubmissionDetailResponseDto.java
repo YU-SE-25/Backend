@@ -2,15 +2,14 @@
 
 package com.unide.backend.domain.submissions.dto;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import com.unide.backend.domain.submissions.entity.SubmissionLanguage;
 import com.unide.backend.domain.submissions.entity.SubmissionStatus;
-import com.unide.backend.domain.submissions.dto.SubmissionRecordDto;
 
 import lombok.Builder;
 import lombok.Getter;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Getter
 @Builder
@@ -25,5 +24,7 @@ public class SubmissionDetailResponseDto {
     private Integer memory;
     private LocalDateTime submittedAt;
     private boolean isShared;
+    private Integer passedTestCases;
+    private Integer totalTestCases;
     private List<SubmissionRecordDto> records;
 }
