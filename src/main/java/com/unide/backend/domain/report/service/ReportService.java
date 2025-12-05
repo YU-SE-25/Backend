@@ -294,7 +294,13 @@ public class ReportService {
                 .toList();
     }
 
-
+    /** 신고 상세 조회 (관리자용) */
+    public ReportDetailDto getReportDetail(Long reportId) {
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new IllegalArgumentException("신고 정보를 찾을 수 없습니다."));
+        return toDetailDto(report);
+    }
+    
     // ==============================================================
     // 5. DTO 변환
     // ==============================================================
