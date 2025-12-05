@@ -53,7 +53,7 @@ public class MyPageController {
     public ResponseEntity<MyPageResponseDto> updateMyPage(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
             @Valid @RequestPart("data") MyPageUpdateRequestDto requestDto,
-            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile
+            @RequestPart(value = "avatarImageFile", required = false) MultipartFile imageFile
     ) {
         Long userId = principalDetails.getUser().getId();
 
