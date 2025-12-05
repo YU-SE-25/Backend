@@ -42,7 +42,7 @@ public class DiscussReportService {
         Report baseReport = Report.builder()
                 .reporterId(reporterId)
                 .targetId(postId)
-                .type(ReportType.PROBLEM)              // 필요하면 DISCUSS_POST 등으로 enum 추가
+                .type(ReportType.DISCUSSION)              // 필요하면 DISCUSS_POST 등으로 enum 추가
                 .status(ReportStatus.PENDING)
                 .reason(dto.getReason())
                 .reportedAt(LocalDateTime.now())
