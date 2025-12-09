@@ -126,6 +126,7 @@ public class ProblemService {
 
         // 값 수정
         if (dto.getTitle() != null) problem.updateTitle(dto.getTitle());
+        if (dto.getSummary() != null) problem.updateSummary(dto.getSummary());
         if (dto.getDescription() != null) problem.updateDescription(dto.getDescription());
         if (dto.getInputOutputExample() != null) problem.updateInputOutputExample(dto.getInputOutputExample());
         if (dto.getDifficulty() != null) problem.updateDifficulty(dto.getDifficulty());
