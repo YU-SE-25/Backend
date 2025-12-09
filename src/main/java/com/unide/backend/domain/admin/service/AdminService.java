@@ -205,7 +205,12 @@ public class AdminService {
 
         if (StringUtils.hasText(requestDto.getEmail())) {
             userRepository.findByEmail(requestDto.getEmail())
-                    .ifPresent(user -> user.changeStatus(UserStatus.SUSPENDED));
+                .ifPresent(user -> {
+                    if (user.getRole() == UserRole.MANAGER) {
+                        throw new IllegalArgumentException("관리자 계정은 블랙리스트로 등록할 수 없습니다.");
+                    }
+                    user.changeStatus(UserStatus.SUSPENDED);
+                });
         }
 
         Blacklist blacklist = Blacklist.builder()
