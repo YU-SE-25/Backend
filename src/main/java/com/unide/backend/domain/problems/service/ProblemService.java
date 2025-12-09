@@ -7,8 +7,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -34,6 +37,7 @@ import com.unide.backend.domain.submissions.repository.SubmissionsRepository;
 import com.unide.backend.domain.user.entity.User;
 import com.unide.backend.domain.user.entity.UserRole;
 import com.unide.backend.global.security.auth.PrincipalDetails;
+import com.unide.backend.domain.problems.entity.TestCase;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -99,7 +103,9 @@ public class ProblemService {
         problemsRepository.save(problem);
 
         // 테스트케이스 저장
-        if (requestDto.getTestCases() != null) {
+        if (path != null) {
+            saveTestCasesFromFile(problem, path); 
+        } else if (requestDto.getTestCases() != null) {
             for (com.unide.backend.domain.problems.dto.TestCaseDto tcDto : requestDto.getTestCases()) {
                 if (tcDto.getInput() != null && tcDto.getOutput() != null) {
                     testCaseRepository.save(
@@ -435,5 +441,34 @@ public class ProblemService {
 		} catch (MessagingException e) {
 			throw new RuntimeException("이메일 발송에 실패했습니다.", e);
 		}
+    }
+
+    @Transactional
+    private void saveTestCasesFromFile(Problems problem, String filePath) {
+        String cleanFilePath = filePath.replace(baseUrl + "/uploads/testcases/", "");
+        Path path = Paths.get(testcaseUploadDir, cleanFilePath);
+
+        try {
+            String content = Files.readString(path, StandardCharsets.UTF_8);
+            Pattern pattern = Pattern.compile("Input\\s*\\n(.*?)\\nOutput\\s*\\n(.*?)(?=\\nInput|\\z)", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+            Matcher matcher = pattern.matcher(content);
+
+            while (matcher.find()) {
+                String input = matcher.group(1).trim();
+                String output = matcher.group(2).trim();
+
+                if (!input.isEmpty() && !output.isEmpty()) {
+                    TestCase testCase = TestCase.builder()
+                        .problem(problem)
+                        .input(input)
+                        .output(output)
+                        .build();
+                    testCaseRepository.save(testCase);
+                }
+            }
+            
+        } catch (IOException e) {
+            throw new RuntimeException("테스트케이스 파일 분석 및 로딩 실패: " + e.getMessage(), e);
+        }
     }
 }
