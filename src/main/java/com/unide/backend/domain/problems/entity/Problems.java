@@ -74,7 +74,7 @@ public class Problems extends BaseTimeEntity {
     private String testcaseFilePath;
 
     @Builder
-    public Problems(User createdBy, String title, String description, String inputOutputExample, ProblemDifficulty difficulty,
+    public Problems(User createdBy, String title, String summary, String description, String inputOutputExample, ProblemDifficulty difficulty,
                     Integer timeLimit, Integer memoryLimit, ProblemStatus status, List<ProblemTag> tags,
                     String hint, String source, String testcaseFilePath) {
         this.createdBy = createdBy;
@@ -140,5 +140,9 @@ public class Problems extends BaseTimeEntity {
 
     public void updateTestcaseFilePath(String testcaseFilePath) {
         this.testcaseFilePath = testcaseFilePath;
+    }
+
+    public void updateSummary(String summary) {
+        this.summary = summary;
     }
 }
