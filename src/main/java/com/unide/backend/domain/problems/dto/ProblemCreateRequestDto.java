@@ -21,6 +21,10 @@ public class ProblemCreateRequestDto {
     
     @NotBlank(message = "문제 제목은 필수입니다")
     private String title;
+
+    @NotBlank(message = "문제 요약은 필수입니다.")
+    @Size(max = 255, message = "요약은 255자를 초과할 수 없습니다.")
+    private String summary;
     
     @NotBlank(message = "문제 설명은 필수입니다")
     private String description;
