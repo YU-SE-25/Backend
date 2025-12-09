@@ -7,6 +7,14 @@ import com.unide.backend.domain.user.entity.UserRole;
 import com.unide.backend.domain.user.repository.UserRepository;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 import com.unide.backend.global.security.oauth.GitHubUserInfo;
+import com.unide.backend.domain.mypage.entity.MyPage;
+import com.unide.backend.domain.mypage.entity.Stats;
+import com.unide.backend.domain.mypage.entity.Goals;
+import com.unide.backend.domain.mypage.entity.Reminder;
+import com.unide.backend.domain.mypage.repository.MyPageRepository;
+import com.unide.backend.domain.mypage.repository.StatsRepository;
+import com.unide.backend.domain.mypage.repository.GoalsRepository;
+import com.unide.backend.domain.mypage.repository.ReminderRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -23,6 +31,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     private final UserRepository userRepository;
+    private final MyPageRepository myPageRepository;
+    private final StatsRepository statsRepository;
+    private final GoalsRepository goalsRepository;
+    private final ReminderRepository reminderRepository;
 
     @Override
     @Transactional
@@ -81,7 +93,49 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                             .build();
                     newUser.activateAccount(); // 소셜 로그인은 이메일이 검증된 것으로 간주하여 바로 활성화
                     newUser.markAsSocialAccount();
-                    return userRepository.save(newUser);
+                    User savedUser = userRepository.save(newUser);
+
+                    // MyPage 자동 생성
+                    MyPage myPage = MyPage.builder()
+                            .user(savedUser)
+                            .nickname(savedUser.getNickname())
+                            .isPublic(true)
+                            .build();
+                    myPageRepository.save(myPage);
+
+                    // Stats 생성
+                    Stats stats = Stats.builder()
+                            .user(savedUser)
+                            .totalSolved(0)
+                            .totalSubmitted(0)
+                            .acceptanceRate(0.0)
+                            .streakDays(0)
+                            .ranking((int) userRepository.count()) // 임시 랭킹 (정확한 구현을 위해 UserRole.MANAGER 제외 로직이 필요할 수 있으나, 일단 count()로 대체)
+                            .previousRanking((int) userRepository.count())
+                            .rating(0) 
+                            .previousRating(0) 
+                            .weeklyRating(0)
+                            .build();
+                    statsRepository.save(stats);
+
+                    // Goals 생성
+                    Goals goals = Goals.builder()
+                            .user(savedUser)
+                            .dailyMinimumStudyMinutes(0)
+                            .weeklyStudyGoalMinutes(0)
+                            .studyTimeByLanguage("{}") // 빈 JSON 객체
+                            .build();
+                    goalsRepository.save(goals);
+
+                    // Reminder 생성
+                    Reminder reminder = Reminder.builder()
+                            .user(savedUser)
+                            .day(0) // 기본값: 알림 없음
+                            .times("[]")    // 기본값: 빈 배열
+                            .build();
+                    reminderRepository.save(reminder);
+
+                    return savedUser;
                 });
 
         return new PrincipalDetails(user, oAuth2User.getAttributes());
