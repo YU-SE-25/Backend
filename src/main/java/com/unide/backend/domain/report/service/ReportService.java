@@ -325,40 +325,98 @@ public class ReportService {
 
     private String getTargetName(ReportType type, Long id) {
 
+        // 1. User 신고
         if (type == ReportType.USER) {
             return userRepository.findById(id)
-                    .map(User::getNickname)
-                    .orElse("Unknown User");
-        } else if (type == ReportType.DISCUSSION) {
-            return discussReportRepository.findById(id)
-                    .map(dr -> {
-                        var post = dr.getPost();
-                        if (post != null) {
-                            String nickname = userRepository.findById(post.getAuthorId())
-                                .map(User::getNickname)
-                                .orElse("Unknown User");
-                            return post.getTitle() + " (" + nickname + ")";
-                        } else {
-                            return "Unknown";
-                        }
-                    })
-                    .orElse("Unknown Discussion");
-        } else if (type == ReportType.QnA) {
-            return qnaReportRepository.findById(id)
-                    .map(qr -> {
-                        var post = qr.getPost();
-                        if (post != null && post.getAuthor() != null) {
-                            return post.getTitle() + " (" + post.getAuthor().getNickname() + ")";
-                        } else {
-                            return post != null ? post.getTitle() : "Unknown Problem";
-                        }
-                    })
-                    .orElse("Unknown Problem");
-        }
+                .map(User::getNickname)
+                .orElse("Unknown User");
 
-        return problemsRepository.findById(id)
+        // 2. Problem 신고
+        } else if (type == ReportType.PROBLEM) {
+            return problemsRepository.findById(id)
                 .map(Problems::getTitle)
                 .orElse("Unknown Problem");
+            
+        // 3. Discussion 게시글 신고
+        } else if (type.name().contains("DISCUSSION") && !type.name().contains("COMMENT")) {
+            // Report 엔티티 ID를 사용
+            return discussReportRepository.findById(id) 
+                .map(dr -> {
+                    var post = dr.getPost();
+                    if (post != null) {
+                        // post.getAuthorId()를 사용해 닉네임 조회
+                        String nickname = userRepository.findById(post.getAuthorId()) 
+                            .map(User::getNickname)
+                            .orElse("Unknown User");
+                        return post.getTitle() + " (" + nickname + ")";
+                    } else {
+                        return "Unknown Post";
+                    }
+                })
+                .orElse("Unknown Discussion");
+
+        // 4. Discussion 댓글 신고
+        } else if (type.name().contains("DISCUSSION_COMMENT")) {
+            return discussCommentReportRepository.findById(id)
+                .map(dcr -> {
+                    var comment = dcr.getComment();
+                    Long authorId = comment.getAuthorId();
+                    
+                    String nickname = userRepository.findById(authorId)
+                        .map(User::getNickname)
+                        .orElse("Unknown User");
+
+                    return nickname + "의 디스커스 댓글";
+                })
+                .orElse("Unknown Discussion Comment");
+                
+        // 5. QnA 게시글 신고
+        } else if (type.name().contains("QNA") && !type.name().contains("COMMENT")) {
+            return qnaReportRepository.findById(id)
+                .map(qr -> {
+                    var post = qr.getPost();
+                    if (post != null && post.getAuthor() != null) {
+                        return post.getTitle() + " (" + post.getAuthor().getNickname() + ")";
+                    } else {
+                        return post != null ? post.getTitle() : "Unknown QnA Post";
+                    }
+                })
+                .orElse("Unknown QnA Post");
+                
+        // 6. QnA 댓글 신고
+        } else if (type.name().contains("QNA_COMMENT")) {
+            return qnaCommentReportRepository.findById(id)
+                .map(qcr -> qcr.getComment().getAuthorId()) // QnA 댓글 엔티티에서 작성자 ID를 가져옴
+                .flatMap(userRepository::findById)
+                .map(User::getNickname)
+                .map(nickname -> nickname + "의 QnA 댓글")
+                .orElse("Unknown QnA Comment");
+                
+        // 7. Review 게시글 신고 (CodeReview 엔티티에 제목이 없는 경우)
+        } else if (type.name().contains("REVIEW") && !type.name().contains("COMMENT")) { 
+            return reviewReportRepository.findById(id)
+                .map(rr -> {
+                    var reviewPost = rr.getPost(); // CodeReview 엔티티
+                    
+                    // 1. 문제 제목 가져오기 (CodeReview -> Submission -> Problem)
+                    String problemTitle = reviewPost.getSubmission().getProblem().getTitle(); 
+                    
+                    // 2. 리뷰어 닉네임 가져오기 (CodeReview -> Reviewer)
+                    String reviewerNickname = reviewPost.getReviewer().getNickname();
+                    
+                    return "문제: " + problemTitle + "에 대한 리뷰 (" + reviewerNickname + ")";
+                })
+                .orElse("Unknown Review Post");
+                
+        // 8. Review 댓글 신고
+        } else if (type.name().contains("REVIEW_COMMENT")) {
+            return reviewCommentReportRepository.findById(id)
+                .map(rcr -> rcr.getReviewComment().getCommenter().getNickname() + "의 리뷰 댓글")
+                .orElse("Unknown Review Comment");
+        }
+
+        // 매핑되지 않은 기타 타입이나 문제가 발생했을 때 대비
+        return "Unknown Type/ID: " + type + "/" + id;
     }
 
     /** 문제 신고 생성 */
