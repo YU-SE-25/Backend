@@ -21,6 +21,7 @@ public interface MainProblemViewRankRepository extends JpaRepository<Problems, L
             :rankDate
         )
         FROM Problems p
+        WHERE p.status = com.unide.backend.domain.problems.entity.ProblemStatus.APPROVED
         ORDER BY p.viewCount DESC
         """)
     List<MainProblemViewRankDto> findRankedProblemsByDate(@Param("rankDate") LocalDate rankDate);
