@@ -11,6 +11,7 @@ import com.unide.backend.domain.problems.entity.ProblemTag;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -21,6 +22,10 @@ public class ProblemCreateRequestDto {
     
     @NotBlank(message = "문제 제목은 필수입니다")
     private String title;
+
+    @NotBlank(message = "문제 요약은 필수입니다.")
+    @Size(max = 255, message = "요약은 255자를 초과할 수 없습니다.")
+    private String summary;
     
     @NotBlank(message = "문제 설명은 필수입니다")
     private String description;

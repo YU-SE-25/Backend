@@ -83,6 +83,7 @@ public class ProblemService {
         Problems problem = Problems.builder()
                 .createdBy(user)
                 .title(requestDto.getTitle())
+                .summary(requestDto.getSummary())
                 .description(requestDto.getDescription())
                 .inputOutputExample(requestDto.getInputOutputExample())
                 .difficulty(requestDto.getDifficulty())
@@ -251,7 +252,8 @@ public class ProblemService {
                 }
 
                 // 문제 요약(설명 일부)
-                String summary = problem.getDescription() != null ? problem.getDescription().substring(0, Math.min(50, problem.getDescription().length())) : "";
+                //String summary = problem.getDescription() != null ? problem.getDescription().substring(0, Math.min(50, problem.getDescription().length())) : "";
+                String summary = problem.getSummary();
                 // 푼 사람 수(정답 제출한 유저 수)
                 Long acceptedCount = submissionsRepository.countAcceptedByProblemId(problem.getId());
                 Integer solverCount = acceptedCount != null ? acceptedCount.intValue() : 0;
@@ -309,7 +311,8 @@ public class ProblemService {
                     userStatus = com.unide.backend.domain.problems.dto.UserStatus.INCORRECT;
                 }
             }
-            String summary = problem.getDescription() != null ? problem.getDescription().substring(0, Math.min(50, problem.getDescription().length())) : "";
+            //String summary = problem.getDescription() != null ? problem.getDescription().substring(0, Math.min(50, problem.getDescription().length())) : "";
+            String summary = problem.getSummary();
             Long acceptedCount = submissionsRepository.countAcceptedByProblemId(problem.getId());
             Integer solverCount = acceptedCount != null ? acceptedCount.intValue() : 0;
             Long totalCount = submissionsRepository.countByProblemId(problem.getId());
