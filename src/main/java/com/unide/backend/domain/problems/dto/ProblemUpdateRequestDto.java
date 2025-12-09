@@ -15,6 +15,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 @Getter @Setter
 @NoArgsConstructor
@@ -24,6 +25,10 @@ public class ProblemUpdateRequestDto {
 
     @NotBlank(message = "문제 설명은 필수입니다")
     private String description;
+
+    @NotBlank(message = "문제 요약은 필수입니다")
+    @Size(max = 255, message = "요약은 255자를 초과할 수 없습니다.")
+    private String summary;
 
     @NotBlank(message = "입출력 예시는 필수입니다")
     private String inputOutputExample;
