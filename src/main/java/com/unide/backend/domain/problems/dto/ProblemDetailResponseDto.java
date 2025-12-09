@@ -22,6 +22,7 @@ public class ProblemDetailResponseDto {
     private String createdByNickname;
     private String title;
     private String description;
+    private String summary;
     private String inputOutputExample;
     private ProblemDifficulty difficulty;
     private Integer timeLimit;
@@ -44,6 +45,7 @@ public class ProblemDetailResponseDto {
                 .createdByNickname(problem.getCreatedBy().getNickname())
                 .title(problem.getTitle())
                 .description(problem.getDescription())
+                .summary(problem.getSummary())
                 .inputOutputExample(problem.getInputOutputExample())
                 .difficulty(problem.getDifficulty())
                 .timeLimit(problem.getTimeLimit())
