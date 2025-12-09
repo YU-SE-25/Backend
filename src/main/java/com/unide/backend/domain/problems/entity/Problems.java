@@ -3,6 +3,8 @@
 package com.unide.backend.domain.problems.entity;
 
 import com.unide.backend.common.entity.BaseTimeEntity;
+import com.unide.backend.domain.problems.entity.ProblemStatus;
+import com.unide.backend.domain.problems.entity.ProblemTag;
 import com.unide.backend.domain.user.entity.User;
 
 import jakarta.persistence.*;
@@ -31,6 +33,9 @@ public class Problems extends BaseTimeEntity {
 
     @Column(nullable = false, length = 50)
     private String title;
+
+    @Column(nullable = false, length = 255) 
+    private String summary;
 
     @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String description;
@@ -74,6 +79,7 @@ public class Problems extends BaseTimeEntity {
                     String hint, String source, String testcaseFilePath) {
         this.createdBy = createdBy;
         this.title = title;
+        this.summary = summary;
         this.description = description;
         this.inputOutputExample = inputOutputExample;
         this.difficulty = difficulty;
