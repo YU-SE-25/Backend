@@ -73,6 +73,7 @@ public class ProblemDetailResponseDto {
                 .createdByNickname(problem.getCreatedBy().getNickname())
                 .title(problem.getTitle())
                 .description(problem.getDescription())
+                .summary(problem.getSummary())
                 .inputOutputExample(problem.getInputOutputExample())
                 .difficulty(problem.getDifficulty())
                 .timeLimit(problem.getTimeLimit())
