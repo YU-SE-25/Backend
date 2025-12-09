@@ -61,7 +61,7 @@ public class AnalysisService {
         }
 
         List<Submissions> recentSubmissions = submissionsRepository.findTopCorrectSubmissionsByUser(
-                user, PageRequest.of(0, 5));
+                user, PageRequest.of(0, 10));
 
         StringBuilder codeContext = new StringBuilder();
         for (int i = 0; i < recentSubmissions.size(); i++) {
