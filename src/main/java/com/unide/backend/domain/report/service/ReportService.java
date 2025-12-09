@@ -327,38 +327,67 @@ public class ReportService {
 
         if (type == ReportType.USER) {
             return userRepository.findById(id)
-                    .map(User::getNickname)
-                    .orElse("Unknown User");
-        } else if (type == ReportType.DISCUSSION) {
-            return discussReportRepository.findById(id)
-                    .map(dr -> {
-                        var post = dr.getPost();
-                        if (post != null) {
-                            String nickname = userRepository.findById(post.getAuthorId())
-                                .map(User::getNickname)
-                                .orElse("Unknown User");
-                            return post.getTitle() + " (" + nickname + ")";
-                        } else {
-                            return "Unknown";
-                        }
-                    })
-                    .orElse("Unknown Discussion");
-        } else if (type == ReportType.QnA) {
-            return qnaReportRepository.findById(id)
-                    .map(qr -> {
-                        var post = qr.getPost();
-                        if (post != null && post.getAuthor() != null) {
-                            return post.getTitle() + " (" + post.getAuthor().getNickname() + ")";
-                        } else {
-                            return post != null ? post.getTitle() : "Unknown Problem";
-                        }
-                    })
-                    .orElse("Unknown Problem");
-        }
+                .map(User::getNickname)
+                .orElse("Unknown User");
 
-        return problemsRepository.findById(id)
+        } else if (type == ReportType.PROBLEM) { // 문제 신고
+            return problemsRepository.findById(id)
                 .map(Problems::getTitle)
                 .orElse("Unknown Problem");
+            
+        } else if (type == ReportType.DISCUSSION) { // 디스커스 게시글 신고
+            return discussReportRepository.findById(id) // Report 엔티티 ID를 사용
+                .map(dr -> {
+                    var post = dr.getPost();
+                    if (post != null) {
+                        String nickname = userRepository.findById(post.getAuthorId())
+                            .map(User::getNickname)
+                            .orElse("Unknown User");
+                        return post.getTitle() + " (" + nickname + ")";
+                    } else {
+                        return "Unknown";
+                    }
+                })
+                .orElse("Unknown Discussion");
+
+        } else if (type == ReportType.DISCUSSION_COMMENT) { // 디스커스 댓글 신고
+            return discussCommentReportRepository.findById(id)
+                .map(dcr -> dcr.getComment().getCommenterNickname() + "의 댓글")
+                .orElse("Unknown Discussion Comment");
+                
+        } else if (type == ReportType.QnA) { // QnA 게시글 신고
+            return qnaReportRepository.findById(id)
+                .map(qr -> {
+                    var post = qr.getPost();
+                    if (post != null && post.getAuthor() != null) {
+                        return post.getTitle() + " (" + post.getAuthor().getNickname() + ")";
+                    } else {
+                        return post != null ? post.getTitle() : "Unknown Problem";
+                    }
+                })
+                .orElse("Unknown Problem");
+                
+        } else if (type == ReportType.QNA_COMMENT) { // QnA 댓글 신고
+            return qnaCommentReportRepository.findById(id)
+                .map(qcr -> qcr.getComment().getAuthorId()) // QnA 댓글 엔티티에서 작성자 ID를 가져옴
+                .flatMap(userRepository::findById)
+                .map(User::getNickname)
+                .map(nickname -> nickname + "의 QnA 댓글")
+                .orElse("Unknown QnA Comment");
+                
+        } else if (type == ReportType.REVIEW) { // 리뷰 게시글 신고
+            return reviewReportRepository.findById(id)
+                .map(rr -> rr.getPost().getTitle() + " (리뷰)")
+                .orElse("Unknown Review");
+                
+        } else if (type == ReportType.REVIEW_COMMENT) { // 리뷰 댓글 신고
+            return reviewCommentReportRepository.findById(id)
+                .map(rcr -> rcr.getReviewComment().getCommenter().getNickname() + "의 리뷰 댓글")
+                .orElse("Unknown Review Comment");
+        }
+
+        // 매핑되지 않은 기타 타입이나 문제가 발생했을 때 대비
+        return "Unknown Type/ID: " + type + "/" + id;
     }
 
     /** 문제 신고 생성 */
