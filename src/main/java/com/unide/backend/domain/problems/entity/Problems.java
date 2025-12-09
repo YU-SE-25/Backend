@@ -32,12 +32,10 @@ public class Problems extends BaseTimeEntity {
     @Column(nullable = false, length = 50)
     private String title;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String description;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String inputOutputExample;
 
     @Enumerated(EnumType.STRING)
