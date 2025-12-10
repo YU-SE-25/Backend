@@ -21,7 +21,9 @@ public interface SubmissionsRepository extends JpaRepository<Submissions, Long> 
     Optional<Submissions> findByUserAndProblemAndStatus(User user, Problems problem, SubmissionStatus status);
     
     // 특정 문제의 전체 제출 수
-    @Query("SELECT COUNT(s) FROM Submissions s WHERE s.problem.id = :problemId")
+    // @Query("SELECT COUNT(s) FROM Submissions s WHERE s.problem.id = :problemId")
+    // Long countByProblemId(@Param("problemId") Long problemId);
+    @Query("SELECT COUNT(s) FROM Submissions s WHERE s.problem.id = :problemId AND s.status != 'DRAFT'")
     Long countByProblemId(@Param("problemId") Long problemId);
     
     // 특정 문제의 정답 제출 수
@@ -33,11 +35,15 @@ public interface SubmissionsRepository extends JpaRepository<Submissions, Long> 
     List<Long> findSolvedProblemsByUserId(@Param("userId") Long userId);
     
     // 사용자의 최근 제출 내역
-    @Query("SELECT s FROM Submissions s WHERE s.user.id = :userId ORDER BY s.submittedAt DESC")
+    // @Query("SELECT s FROM Submissions s WHERE s.user.id = :userId ORDER BY s.submittedAt DESC")
+    // List<Submissions> findRecentSubmissionsByUserId(@Param("userId") Long userId, Pageable pageable);
+    @Query("SELECT s FROM Submissions s WHERE s.user.id = :userId AND s.status != 'DRAFT' ORDER BY s.submittedAt DESC")
     List<Submissions> findRecentSubmissionsByUserId(@Param("userId") Long userId, Pageable pageable);
     
     // 사용자의 전체 제출 수
-    Long countByUserId(Long userId);
+    // Long countByUserId(Long userId);
+    @Query("SELECT COUNT(s) FROM Submissions s WHERE s.user.id = :userId AND s.status != 'DRAFT'")
+    Long countByUserId(@Param("userId") Long userId);
     
     // 사용자가 해결한 문제 수
     @Query("SELECT COUNT(DISTINCT s.problem.id) FROM Submissions s WHERE s.user.id = :userId AND s.status = 'CA'")
@@ -66,7 +72,9 @@ public interface SubmissionsRepository extends JpaRepository<Submissions, Long> 
     Page<Submissions> findSharedSolutionsByProblem(@Param("problemId") Long problemId, Pageable pageable);
 
     // 특정 사용자의 모든 제출 내역을 제출 시간 내림차순으로 조회
-    @Query("SELECT s FROM Submissions s WHERE s.user.id = :userId ORDER BY s.submittedAt DESC")
+    // @Query("SELECT s FROM Submissions s WHERE s.user.id = :userId ORDER BY s.submittedAt DESC")
+    // List<Submissions> findAllByUserIdOrderBySubmittedAtDesc(@Param("userId") Long userId);
+    @Query("SELECT s FROM Submissions s WHERE s.user.id = :userId AND s.status != 'DRAFT' ORDER BY s.submittedAt DESC")
     List<Submissions> findAllByUserIdOrderBySubmittedAtDesc(@Param("userId") Long userId);
 
     // 효율 랭킹 계산용: 특정 문제의 공유된 제출 전체 리스트
