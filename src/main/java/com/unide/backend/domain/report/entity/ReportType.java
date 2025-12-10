@@ -4,5 +4,9 @@ public enum ReportType {
     USER,
     PROBLEM,
     DISCUSSION,
-    QnA
+    DISCUSSION_COMMENT,
+    QnA,
+    QNA_COMMENT,
+    REVIEW,
+    REVIEW_COMMENT
 }
