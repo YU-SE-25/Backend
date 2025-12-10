@@ -34,7 +34,7 @@ public class Report {
     private Long targetId;    // 유저ID 또는 문제ID b
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private ReportType type;  // 신고 유형(USER, PROBLEM)
 
     @Enumerated(EnumType.STRING)
