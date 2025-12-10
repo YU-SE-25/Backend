@@ -50,11 +50,15 @@ public interface SubmissionsRepository extends JpaRepository<Submissions, Long> 
                                                               @Param("status") SubmissionStatus status);
 
     // 내 모든 제출 이력 조회
-    @Query("SELECT s FROM Submissions s JOIN FETCH s.problem WHERE s.user = :user ORDER BY s.submittedAt DESC")
+    // @Query("SELECT s FROM Submissions s JOIN FETCH s.problem WHERE s.user = :user ORDER BY s.submittedAt DESC")
+    // Page<Submissions> findAllByUser(@Param("user") User user, Pageable pageable);
+    @Query("SELECT s FROM Submissions s JOIN FETCH s.problem WHERE s.user = :user AND s.status != 'DRAFT' ORDER BY s.submittedAt DESC")
     Page<Submissions> findAllByUser(@Param("user") User user, Pageable pageable);
 
     // 특정 문제에 대한 내 제출 이력 조회
-    @Query("SELECT s FROM Submissions s JOIN FETCH s.problem WHERE s.user = :user AND s.problem = :problem ORDER BY s.submittedAt DESC")
+    // @Query("SELECT s FROM Submissions s JOIN FETCH s.problem WHERE s.user = :user AND s.problem = :problem ORDER BY s.submittedAt DESC")
+    // Page<Submissions> findAllByUserAndProblem(@Param("user") User user, @Param("problem") Problems problem, Pageable pageable);
+    @Query("SELECT s FROM Submissions s JOIN FETCH s.problem WHERE s.user = :user AND s.problem = :problem AND s.status != 'DRAFT' ORDER BY s.submittedAt DESC")
     Page<Submissions> findAllByUserAndProblem(@Param("user") User user, @Param("problem") Problems problem, Pageable pageable);
 
     // 특정 문제에 대해 공유된(isShared=true) 제출 내역을 최신순으로 페이징 조회
