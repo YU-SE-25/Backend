@@ -27,7 +27,9 @@ public interface SubmissionsRepository extends JpaRepository<Submissions, Long> 
     Long countByProblemId(@Param("problemId") Long problemId);
     
     // 특정 문제의 정답 제출 수
-    @Query("SELECT COUNT(s) FROM Submissions s WHERE s.problem.id = :problemId AND s.status = 'CA'")
+    // @Query("SELECT COUNT(s) FROM Submissions s WHERE s.problem.id = :problemId AND s.status = 'CA'")
+    // Long countAcceptedByProblemId(@Param("problemId") Long problemId);
+    @Query("SELECT COUNT(DISTINCT s.user.id) FROM Submissions s WHERE s.problem.id = :problemId AND s.status = 'CA'")
     Long countAcceptedByProblemId(@Param("problemId") Long problemId);
     
     // 사용자가 해결한 문제 ID 목록
