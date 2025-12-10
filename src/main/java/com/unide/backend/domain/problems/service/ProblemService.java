@@ -263,11 +263,21 @@ public class ProblemService {
                 String summary = problem.getSummary();
                 // 푼 사람 수(정답 제출한 유저 수)
                 Long acceptedCount = submissionsRepository.countAcceptedByProblemId(problem.getId());
-                Integer solverCount = acceptedCount != null ? acceptedCount.intValue() : 0;
+                Long distinctSolvedUsers = submissionsRepository.countDistinctSolvedUsersByProblemId(problem.getId());
+                Integer solverCount = distinctSolvedUsers != null ? distinctSolvedUsers.intValue() : 0;
                 // 정답률
                 Long totalCount = submissionsRepository.countByProblemId(problem.getId());
-                Double correctRate = (totalCount != null && totalCount > 0) ? (acceptedCount.doubleValue() / totalCount.doubleValue() * 100) : null;
+                Double correctRate;
 
+                if (totalCount == null || totalCount == 0L) {
+                    correctRate = 0.0;
+                } else {
+                    correctRate = acceptedCount.doubleValue() / totalCount.doubleValue();
+                    if (correctRate > 100.0) {
+                        correctRate = 100.0;
+                    }
+                }
+                
                 return ProblemResponseDto.from(problem, userStatus, summary, solverCount, correctRate);
             });
     }

@@ -67,6 +67,10 @@ public class ProblemDetailResponseDto {
         double acceptanceRate = totalSubmissions > 0 
             ? (acceptedSubmissions * 100.0 / totalSubmissions) 
             : 0.0;
+
+        if (acceptanceRate > 100.0) {
+            acceptanceRate = 100.0;
+        }
             
         return ProblemDetailResponseDto.builder()
                 .problemId(problem.getId())
