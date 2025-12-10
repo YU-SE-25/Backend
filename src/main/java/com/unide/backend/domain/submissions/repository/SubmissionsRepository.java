@@ -29,7 +29,9 @@ public interface SubmissionsRepository extends JpaRepository<Submissions, Long> 
     // 특정 문제의 정답 제출 수
     // @Query("SELECT COUNT(s) FROM Submissions s WHERE s.problem.id = :problemId AND s.status = 'CA'")
     // Long countAcceptedByProblemId(@Param("problemId") Long problemId);
-    @Query("SELECT COUNT(DISTINCT s.user.id) FROM Submissions s WHERE s.problem.id = :problemId AND s.status = 'CA'")
+    // @Query("SELECT COUNT(DISTINCT s.user.id) FROM Submissions s WHERE s.problem.id = :problemId AND s.status = 'CA'")
+    // Long countAcceptedByProblemId(@Param("problemId") Long problemId);
+    @Query("SELECT COUNT(s) FROM Submissions s WHERE s.problem.id = :problemId AND s.status = 'CA'")
     Long countAcceptedByProblemId(@Param("problemId") Long problemId);
     
     // 사용자가 해결한 문제 ID 목록
@@ -93,4 +95,7 @@ public interface SubmissionsRepository extends JpaRepository<Submissions, Long> 
     // 사용자의 최근 정답(CA) 제출 내역 조회
     @Query("SELECT s FROM Submissions s JOIN FETCH s.problem WHERE s.user = :user AND s.status = 'CA' ORDER BY s.submittedAt DESC")
     List<Submissions> findTopCorrectSubmissionsByUser(@Param("user") User user, Pageable pageable);
+
+    @Query("SELECT COUNT(DISTINCT s.user.id) FROM Submissions s WHERE s.problem.id = :problemId AND s.status = 'CA'")
+    Long countDistinctSolvedUsersByProblemId(@Param("problemId") Long problemId);
 }
