@@ -516,10 +516,14 @@ public class ProblemService {
             } else {
                 throw new RuntimeException("테스트케이스 파일을 찾을 수 없거나 읽을 수 없습니다: " + filePath.toString());
             }
-        } catch (MalformedURLException e) {
-            throw new RuntimeException("파일 경로 URL 형식이 잘못되었습니다.", e);
-        } catch (IOException e) {
-            throw new RuntimeException("테스트케이스 파일 로드 중 시스템 오류가 발생했습니다.", e);
+        } catch (Exception e) {
+            if (e instanceof java.net.MalformedURLException) {
+                throw new RuntimeException("파일 경로 URL 형식이 잘못되었습니다.", e);
+            } else if (e instanceof java.io.IOException) {
+                throw new RuntimeException("테스트케이스 파일 로드 중 시스템 오류가 발생했습니다.", e);
+            } else {
+                throw new RuntimeException("예기치 않은 오류가 발생했습니다.", e);
+            }
         }
     }
 }
