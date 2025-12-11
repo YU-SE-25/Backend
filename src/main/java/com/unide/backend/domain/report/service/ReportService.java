@@ -257,15 +257,12 @@ public class ReportService {
     /** 모든 신고 리스트 조회 (관리자용) - 미처리 우선, 신고 먼저한 순 */
     public List<ReportListDto> getAllReports() {
         return reportRepository.findAll().stream()
-                .sorted((r1, r2) -> {
-                    // 미처리(PENDING) 먼저, 그 안에서 신고 먼저한 순
-                    if (r1.getStatus() == ReportStatus.PENDING && r2.getStatus() != ReportStatus.PENDING) return -1;
-                    if (r1.getStatus() != ReportStatus.PENDING && r2.getStatus() == ReportStatus.PENDING) return 1;
-                    // 둘 다 같은 상태면 신고 먼저한 순
-                    return r1.getReportedAt().compareTo(r2.getReportedAt());
-                })
-                .map(this::toListDto)
-                .toList();
+            .filter(r -> r.getStatus() == ReportStatus.PENDING)
+            .sorted((r1, r2) -> {
+                return r1.getReportedAt().compareTo(r2.getReportedAt());
+            })
+            .map(this::toListDto)
+            .toList();
     }
 
     /** 신고 상세 조회 (관리자용) */
