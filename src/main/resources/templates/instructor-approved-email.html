@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Unide 강사 권한 승인 안내</title>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4;">
+
+    <div style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center; padding: 40px;">
+        
+        <h1 style="color: #4CAF50; margin-top: 0; margin-bottom: 25px;">[UnIDE] 강사 권한 승인 안내</h1>
+        
+        <p style="font-size: 16px; line-height: 1.6; color: #333; margin-top: 0;">
+            <b th:text="${nickname}">사용자</b>님, 요청하신 Unide 강사(INSTRUCTOR) 권한이 승인되었습니다.<br>
+            이제부터 새로운 문제를 출제하고 관리할 수 있습니다.
+        </p>
+        
+        <a th:href="${problemCreationUrl}"
+            target="_blank"
+            style="display: inline-block; padding: 15px S30px; margin: 25px 0; font-size: 18px; font-weight: bold; color: #ffffff; background-color: #4CAF50; text-decoration: none; border-radius: 5px;">
+            문제 출제 페이지로 이동
+        </a>
+        
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #999;">
+            본 이메일은 관리자에 의해 강사 권한 승인이 완료되어 발송되었습니다.
+        </p>
+    </div>
+
+</body>
+</html>
