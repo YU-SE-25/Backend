@@ -14,6 +14,8 @@ import com.unide.backend.domain.admin.dto.BlacklistCreateRequestDto;
 import com.unide.backend.domain.admin.dto.BlacklistCreateResponseDto;
 import com.unide.backend.domain.admin.dto.BlacklistDeleteResponseDto;
 import com.unide.backend.global.security.auth.PrincipalDetails;
+import com.unide.backend.domain.auth.dto.InstructorApproveEmailRequestDto;
+import com.unide.backend.domain.auth.service.AuthService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 @RequestMapping("/api/admin")
 public class AdminController {
     private final AdminService adminService;
+    private final AuthService authService;
 
     @PatchMapping("/users/{userId}/role")
     public ResponseEntity<RoleChangeResponseDto> changeUserRole(
@@ -92,5 +95,13 @@ public class AdminController {
         BlacklistDeleteResponseDto response = adminService.removeFromBlacklist(blacklistId);
         
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/approve-instructor-email") 
+    public ResponseEntity<Void> sendInstructorApprovalEmail(
+        @RequestBody InstructorApproveEmailRequestDto requestDto) {
+        authService.sendInstructorApprovalEmail(requestDto);
+        
+        return ResponseEntity.ok().build();
     }
 }
