@@ -285,10 +285,15 @@ public class AdminService {
                 } else {
                         throw new RuntimeException("파일을 찾을 수 없거나 읽을 수 없습니다: " + filePath.toString());
                 }
-        } catch (java.net.MalformedURLException e) {
-                throw new RuntimeException("잘못된 파일 경로 형식입니다.", e);
-        } catch (java.io.IOException e) {
-                throw new RuntimeException("파일 로드 중 시스템 오류가 발생했습니다.", e);
+        } catch (Exception e) {
+                if (e instanceof java.net.MalformedURLException) {
+                        throw new RuntimeException("잘못된 파일 경로 형식입니다.", e);
+                } else if (e instanceof java.io.IOException) {
+                        throw new RuntimeException("파일 로드 중 시스템 오류가 발생했습니다.", e);
+                } else {
+                        // 예상치 못한 다른 Exception 처리
+                        throw new RuntimeException("예상치 못한 파일 처리 오류가 발생했습니다.", e);
+                }
         }
     }
 
