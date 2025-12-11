@@ -50,7 +50,7 @@ spring:
               - read:user
 
 file:
-  upload-dir: ./uploads
+  upload-dir: ./uploads/portfolios
 
 openai:
   api-key: ${OPENAI_API_KEY}
@@ -67,5 +67,6 @@ app:
   upload:
     avatar-dir: uploads/avatars
     testcase-dir: uploads/testcases
+    portfolio-dir: uploads/portfolios
 
 

@@ -14,6 +14,7 @@ import com.unide.backend.domain.admin.dto.InstructorApplicationListResponseDto;
 import com.unide.backend.domain.instructor.entity.ApplicationStatus;
 import com.unide.backend.domain.instructor.entity.InstructorApplication;
 import com.unide.backend.domain.instructor.repository.InstructorApplicationRepository;
+import com.unide.backend.domain.instructor.repository.UserPortfolioFileRepository;
 import com.unide.backend.domain.admin.dto.InstructorApplicationUpdateRequestDto;
 import com.unide.backend.global.security.auth.PrincipalDetails;
 import com.unide.backend.domain.admin.dto.UserListResponseDto;
@@ -31,6 +32,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import java.time.LocalDateTime;
+import java.nio.file.Paths;
+import java.net.MalformedURLException;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +42,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 
 @Service
 @RequiredArgsConstructor
@@ -47,6 +52,11 @@ public class AdminService {
     private final UserRepository userRepository;
     private final InstructorApplicationRepository instructorApplicationRepository;
     private final BlacklistRepository blacklistRepository;
+    @org.springframework.beans.factory.annotation.Value("${file.upload-dir}")
+    private String rootUploadDir;
+    @org.springframework.beans.factory.annotation.Value("${app.upload.portfolio-dir}")
+    private String portfolioUploadDir;
+    private final UserPortfolioFileRepository userPortfolioFileRepository;
 
     @Transactional
     public RoleChangeResponseDto changeUserRole(Long userId, RoleChangeRequestDto requestDto) {
@@ -258,5 +268,34 @@ public class AdminService {
                 .message("블랙리스트에서 해제되었으며, 관련 계정이 복구되었습니다.")
                 .unbannedAt(LocalDateTime.now())
                 .build();
+    }
+
+    public Resource loadPortfolioFile(String storedKey) {
+        com.unide.backend.domain.instructor.entity.UserPortfolioFile portfolioFile = userPortfolioFileRepository.findByStoredKey(storedKey)
+                .orElseThrow(() -> new IllegalArgumentException("요청된 포트폴리오 파일 메타데이터를 찾을 수 없습니다. (KEY: " + storedKey + ")"));
+
+        try {
+                java.nio.file.Path rootPath = Paths.get(rootUploadDir).toAbsolutePath().normalize();
+                java.nio.file.Path filePath = rootPath.resolve(portfolioFile.getStoredKey()).normalize();
+                
+                org.springframework.core.io.Resource resource = new UrlResource(filePath.toUri());
+
+                if (resource.exists() && resource.isReadable()) {
+                        return resource;
+                } else {
+                        throw new RuntimeException("파일을 찾을 수 없거나 읽을 수 없습니다: " + filePath.toString());
+                }
+        } catch (java.net.MalformedURLException e) {
+                throw new RuntimeException("잘못된 파일 경로 형식입니다.", e);
+        } catch (java.io.IOException e) {
+                throw new RuntimeException("파일 로드 중 시스템 오류가 발생했습니다.", e);
+        }
+    }
+
+    public String getOriginalFileNameByStoredKey(String storedKey) {
+        com.unide.backend.domain.instructor.entity.UserPortfolioFile portfolioFile = userPortfolioFileRepository.findByStoredKey(storedKey)
+                .orElseThrow(() -> new IllegalArgumentException("요청된 포트폴리오 파일 메타데이터를 찾을 수 없습니다. (KEY: " + storedKey + ")"));
+        
+        return portfolioFile.getOriginalName();
     }
 }
