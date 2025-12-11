@@ -613,4 +613,43 @@ public class AuthService {
         user.withdraw();
         userRepository.save(user);
     }
+
+    /**
+     * 관리자가 사용자에게 강사 권한 승인 메일을 발송하는 메서드
+     * @param requestDto 메일을 발송할 대상 사용자 ID를 담은 DTO
+     */
+    public void sendInstructorApprovalEmail(com.unide.backend.domain.auth.dto.InstructorApproveEmailRequestDto requestDto) {
+        // 1. 사용자 조회 (메일을 보낼 대상)
+        User user = userRepository.findById(requestDto.getUserId())
+            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자 ID입니다: " + requestDto.getUserId()));
+
+        // 2. 메일 발송 로직 (sendWelcomeEmail 로직 재활용)
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+            // 템플릿 변수 설정
+            Context context = new Context();
+            context.setVariable("nickname", user.getNickname());
+            
+            // 문제 출제 페이지 URL 설정 (프론트엔드와 협의된 URL)
+            // *주의: baseUrl 변수가 이 AuthService에 @Value 등으로 주입되어 있어야 합니다.
+            // 임시 URL을 사용합니다.
+            String problemCreationUrl = "http://localhost:5173/problem-add"; 
+            
+            context.setVariable("problemCreationUrl", problemCreationUrl); 
+
+            // 템플릿 처리 (instructor-approved-email.html 파일 사용)
+            String html = templateEngine.process("instructor-approved-email", context);
+
+            helper.setTo(user.getEmail()); 
+            helper.setSubject("[Unide] 강사 권한 승인 안내"); 
+            helper.setText(html, true); 
+
+            mailSender.send(mimeMessage);
+            
+        } catch (MessagingException e) {
+            throw new RuntimeException("강사 승인 이메일 발송에 실패했습니다.", e);
+        }
+    }
 }
