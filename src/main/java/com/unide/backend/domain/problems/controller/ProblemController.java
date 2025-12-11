@@ -209,7 +209,8 @@ public class ProblemController {
         String headerValue = "attachment; filename*=UTF-8''" + encodedFilename; 
 
         return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(MediaType.APPLICATION_OCTET_STREAM) 
+                .header(org.springframework.http.HttpHeaders.CONTENT_ENCODING, "identity")
                 .header(HttpHeaders.CONTENT_DISPOSITION, headerValue)
                 .body(resource);
     }
