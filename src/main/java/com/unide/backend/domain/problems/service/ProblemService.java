@@ -410,7 +410,7 @@ public class ProblemService {
 			Context context = new Context();
 			context.setVariable("name", creator.getNickname());
 			context.setVariable("problemTitle", problem.getTitle());
-			context.setVariable("problemDetailUrl", "http://localhost:3000/problems/detail/" + problem.getId());
+			context.setVariable("problemDetailUrl", "http://localhost:3000/problem-detail/" + problem.getId());
 
 			String html = templateEngine.process("problem-approved-email.html", context);
 
@@ -441,7 +441,7 @@ public class ProblemService {
 			Context context = new Context();
 			context.setVariable("name", creator.getNickname());
 			context.setVariable("problemTitle", problem.getTitle());
-			context.setVariable("problemDetailUrl", "http://localhost:3000/problems/detail/" + problem.getId());
+			context.setVariable("problemDetailUrl", "http://localhost:3000/problem-detail/" + problem.getId());
 
 			String html = templateEngine.process("problem-rejected-email.html", context);
 
