@@ -3,6 +3,8 @@
 package com.unide.backend.domain.problems.controller;
 
 import java.util.List;
+import java.net.URLEncoder;
+import java.io.IOException;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +25,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 import com.unide.backend.common.response.MessageResponseDto;
 import com.unide.backend.domain.bookmark.service.BookmarkService;
@@ -192,5 +197,20 @@ public class ProblemController {
     ) {
         reportService.createReportForProblem(user.getUser().getId(), problemId, request);
         return ResponseEntity.ok("문제 신고가 접수되었습니다.");
+    }
+
+    @GetMapping("/{problemId}/testcase/download")
+    @PreAuthorize("hasAnyRole('MANAGER')")
+    public ResponseEntity<Resource> downloadTestcaseFile(@PathVariable Long problemId) throws IOException {
+        Resource resource = problemService.downloadTestcaseFile(problemId);
+
+        String originalFilename = resource.getFilename(); 
+        String encodedFilename = URLEncoder.encode(originalFilename, "UTF-8").replace("+", "%20");
+        String headerValue = "attachment; filename*=UTF-8''" + encodedFilename; 
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, headerValue)
+                .body(resource);
     }
 }

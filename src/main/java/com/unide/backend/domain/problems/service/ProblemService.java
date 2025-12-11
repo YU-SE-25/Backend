@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.net.MalformedURLException;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -24,6 +25,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 
 import com.unide.backend.domain.problems.dto.ProblemCreateRequestDto;
 import com.unide.backend.domain.problems.dto.ProblemDetailResponseDto;
@@ -479,6 +482,44 @@ public class ProblemService {
             
         } catch (IOException e) {
             throw new RuntimeException("테스트케이스 파일 분석 및 로딩 실패: " + e.getMessage(), e);
+        }
+    }
+
+    public Resource downloadTestcaseFile(Long problemId) {
+        Problems problem = problemsRepository.findById(problemId)
+                .orElseThrow(() -> new IllegalArgumentException("ID에 해당하는 문제를 찾을 수 없습니다: " + problemId));
+
+        String fileUrl = problem.getTestcaseFilePath();
+
+        if (!StringUtils.hasText(fileUrl)) {
+            throw new IllegalArgumentException("해당 문제에 등록된 테스트케이스 파일이 없습니다.");
+        }
+
+        try {
+            String pathPrefix = baseUrl + "/uploads/testcases/";
+            String storedKey;
+
+            if (fileUrl.startsWith(pathPrefix)) {
+                storedKey = fileUrl.substring(pathPrefix.length());
+            } else {
+                String separator = java.nio.file.FileSystems.getDefault().getSeparator();
+                storedKey = fileUrl.substring(fileUrl.lastIndexOf(separator) + 1);
+            }
+
+            java.nio.file.Path baseUploadPath = Paths.get(testcaseUploadDir).toAbsolutePath().normalize();
+            java.nio.file.Path filePath = baseUploadPath.resolve(storedKey).normalize();
+            
+            org.springframework.core.io.Resource resource = new UrlResource(filePath.toUri());
+
+            if (resource.exists() && resource.isReadable()) {
+                return resource;
+            } else {
+                throw new RuntimeException("테스트케이스 파일을 찾을 수 없거나 읽을 수 없습니다: " + filePath.toString());
+            }
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("파일 경로 URL 형식이 잘못되었습니다.", e);
+        } catch (IOException e) {
+            throw new RuntimeException("테스트케이스 파일 로드 중 시스템 오류가 발생했습니다.", e);
         }
     }
 }
