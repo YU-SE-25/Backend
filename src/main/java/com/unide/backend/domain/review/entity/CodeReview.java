@@ -5,6 +5,10 @@ package com.unide.backend.domain.review.entity;
 import com.unide.backend.common.entity.BaseTimeEntity;
 import com.unide.backend.domain.submissions.entity.Submissions;
 import com.unide.backend.domain.user.entity.User;
+import com.unide.backend.domain.review.entity.CodeReviewVote;
+
+import java.util.List;
+import java.util.ArrayList;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -40,6 +44,9 @@ public class CodeReview extends BaseTimeEntity {
     @Column(name = "line_number")
     private Integer lineNumber;
 
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CodeReviewVote> votes;
+
     @Builder
     public CodeReview(Submissions submission, User reviewer, String content, Integer lineNumber) {
         this.submission = submission;
@@ -47,6 +54,7 @@ public class CodeReview extends BaseTimeEntity {
         this.content = content;
         this.lineNumber = lineNumber;
         this.voteCount = 0;
+        this.votes = new ArrayList<>();
     }
 
     public void updateContent(String content) {
