@@ -19,6 +19,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList; 
+import java.util.List; 
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
+import lombok.Builder.Default;
+
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -58,7 +64,10 @@ public class QnA extends BaseTimeEntity {
     @Column(name = "attachment_url", length = 500)
     private String attachmentUrl;//url
 
-    
+    @Default
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<QnAReport> reports = new ArrayList<>();
+
      // ⭐ 수동으로 추가
     public String getAttachmentUrl() {
         return attachmentUrl;
