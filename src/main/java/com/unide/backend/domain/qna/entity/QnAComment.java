@@ -16,6 +16,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList; 
+import java.util.List; 
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
+import lombok.Builder.Default;
+import com.unide.backend.domain.qna.entity.QnACommentReport;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -66,6 +73,10 @@ public class QnAComment {
     // 수정 시각
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @Default 
+    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<QnACommentReport> commentReports = new ArrayList<>();
 
     @PrePersist
     public void onCreate() {

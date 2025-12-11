@@ -16,6 +16,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList; 
+import java.util.List; 
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
+import lombok.Builder.Default;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -67,6 +73,10 @@ public class DiscussComment {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Default 
+    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DiscussCommentReport> commentReports = new ArrayList<>();
+    
     @PrePersist
     public void onCreate() {
         this.createdAt = LocalDateTime.now();

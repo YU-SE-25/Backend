@@ -16,6 +16,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList; 
+import java.util.List; 
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
+import lombok.Builder.Default;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -59,6 +65,10 @@ public class Discuss {
 
     @Column(name = "attachment_url", length = 500)
     private String attachmentUrl;//url
+
+    @Default
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DiscussReport> reports = new ArrayList<>();
 
     @PrePersist
     public void onCreate() {
