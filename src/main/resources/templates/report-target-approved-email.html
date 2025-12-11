@@ -4,19 +4,19 @@
     <meta charset="UTF-8">
     <title>[Unide] 신고 처리 결과 안내</title>
 </head>
-<body style="background-color: #fffde7; font-family: Arial, sans-serif; margin: 0; padding: 20px;">
-    <div style="max-width: 600px; margin: 40px auto; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.08); border: 1px solid #ffe082; text-align: center; padding: 40px;">
-        <h1 style="color: #ff9800; margin-bottom: 25px;">[Unide] 신고가 승인되어 제재가 적용되었습니다</h1>
+<body style="background-color: #f4f4f4; font-family: Arial, sans-serif; margin: 0; padding: 20px;">
+    <div style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border: 1px solid #c8e6c9; text-align: center; padding: 40px;">
+        <h1 style="color: #4CAF50; margin-bottom: 25px;">[Unide] 신고 처리 안내</h1>
         <p style="font-size: 16px; color: #333;">
             <b th:text="${name}">사용자</b>님, 귀하에 대한 신고가 <b>승인</b> 처리되어 서비스 정책에 따라 제재가 적용되었습니다.<br>
             <span th:if="${reason}" style="display:block; margin-top:10px;">사유: <span th:text="${reason}">사유</span></span>
         </p>
         <a th:href="${MyPageUrl}"
            target="_blank"
-           style="display: inline-block; padding: 12px 28px; margin: 25px 0; font-size: 17px; font-weight: bold; color: #fff; background-color: #ff9800; text-decoration: none; border-radius: 5px;">
+           style="display: inline-block; padding: 12px 28px; margin: 25px 0; font-size: 17px; font-weight: bold; color: #fff; background-color: #4CAF50; text-decoration: none; border-radius: 5px;">
             마이페이지 화면으로 바로가기
         </a>
-        <hr style="border: none; border-top: 1px solid #ffe082; margin: 30px 0;">
+        <hr style="border: none; border-top: 1px solid #c8e6c9; margin: 30px 0;">
         <p style="font-size: 12px; color: #999;">
             본 이메일은 신고 승인 및 제재 안내를 위해 발송되었습니다.
         </p>
