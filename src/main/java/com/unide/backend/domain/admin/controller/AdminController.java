@@ -27,6 +27,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.http.HttpHeaders;
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
+
+import java.io.IOException;
+import java.net.URLEncoder;
 
 @RestController
 @RequiredArgsConstructor
@@ -103,5 +109,20 @@ public class AdminController {
         authService.sendInstructorApprovalEmail(requestDto);
         
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/instructor/download/portfolio/{storedKey}")
+    public ResponseEntity<Resource> downloadPortfolioFile(
+            @PathVariable("storedKey") String storedKey) throws java.io.IOException {
+        
+        Resource resource = adminService.loadPortfolioFile(storedKey);
+        String originalFilename = adminService.getOriginalFileNameByStoredKey(storedKey);
+        String encodedFilename = java.net.URLEncoder.encode(originalFilename, "UTF-8").replace("+", "%20");
+        String headerValue = "attachment; filename*=UTF-8''" + encodedFilename; 
+        
+        return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_OCTET_STREAM)
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, headerValue)
+                .body(resource);
     }
 }
